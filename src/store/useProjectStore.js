@@ -45,7 +45,26 @@ const useProjectStore = create((set, get) => ({
       }
 
       // 4. Fetch board, tasks, comments as before
-      const { data: boardData, error: boardError } = await supabase.from('boards').select('*').eq('project_id', projectId).single();
+      let boardData = null;
+      let boardError = null;
+      try {
+        const boardRes = await supabase.from('boards').select('*').eq('project_id', projectId).single();
+        boardData = boardRes.data;
+        boardError = boardRes.error;
+        console.log('[DEBUG] Board fetch:', boardData, boardError);
+      } catch (e) {
+        boardError = e;
+        console.log('[DEBUG] Board fetch exception:', e);
+      }
+      // If no board exists, auto-create one
+      if (!boardData && !boardError) {
+        console.log('[DEBUG] No board found, attempting to create one...');
+        const { data: newBoard, error: createBoardError } = await supabase.from('boards').insert({ project_id: projectId, board_data: {} }).select().single();
+        console.log('[DEBUG] Board creation result:', newBoard, createBoardError);
+        if (!createBoardError) {
+          boardData = newBoard;
+        }
+      }
       if (boardError && boardError.code !== 'PGRST116') throw boardError;
 
       const { data: tasksData, error: tasksError } = await supabase.from('tasks').select('*, assigned_to_user:users(email)').eq('project_id', projectId);
