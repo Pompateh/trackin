@@ -11,6 +11,8 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuthStore();
 
+  const canCreateProjects = user?.user_metadata?.can_create_projects === true;
+
   const fetchProjects = async () => {
     try {
       setLoading(true);
@@ -37,9 +39,11 @@ const Dashboard = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Your Projects</h1>
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
-          Create Project
-        </button>
+        {canCreateProjects && (
+          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+            Create Project
+          </button>
+        )}
       </div>
       {loading ? (
         <div className="text-center">
