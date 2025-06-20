@@ -21,20 +21,16 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .insert({
-          name,
-          description,
-          deadline: deadline || null,
-          q_and_a: qAndA,
-          debrief,
-          direction,
-          revision,
-          delivery,
-          created_by: user.id,
-        })
-        .select();
+      const { error } = await supabase.rpc('create_new_project', {
+        name,
+        description,
+        deadline: deadline || null,
+        q_and_a: qAndA,
+        debrief,
+        direction,
+        revision,
+        delivery,
+      });
 
       if (error) throw error;
 

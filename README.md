@@ -61,6 +61,10 @@ Copy and paste the following SQL into the Supabase SQL Editor to set up your dat
 This script is idempotent, meaning it can be run multiple times without causing errors.
 
 ```sql
+-- FORCEFUL CLEANUP OF OLD TRIGGERS AND FUNCTIONS
+DROP TRIGGER IF EXISTS on_project_created ON public.projects;
+DROP FUNCTION IF EXISTS public.add_creator_as_admin CASCADE;
+
 -- Create a public users table to store non-sensitive user data
 CREATE TABLE IF NOT EXISTS public.users (
   id uuid NOT NULL PRIMARY KEY,
@@ -83,7 +87,6 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
-
 
 -- PROJECTS table
 CREATE TABLE IF NOT EXISTS projects (
@@ -132,7 +135,6 @@ BEGIN
     END IF;
 END$$;
 
-
 -- TASKS table
 CREATE TABLE IF NOT EXISTS tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -152,24 +154,6 @@ CREATE TABLE IF NOT EXISTS comments (
     "timestamp" TIMESTAMPTZ DEFAULT now()
 );
 
--- Function to add creator as admin to project_members
-CREATE OR REPLACE FUNCTION public.add_creator_as_admin()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.project_members (project_id, user_id, role)
-  VALUES (NEW.id, NEW.created_by, 'admin')
-  ON CONFLICT (project_id, user_id) DO NOTHING; -- Prevents error if member already exists
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Trigger to call the function after a project is created
-DROP TRIGGER IF EXISTS on_project_created ON public.projects;
-CREATE TRIGGER on_project_created
-  AFTER INSERT ON public.projects
-  FOR EACH ROW EXECUTE PROCEDURE public.add_creator_as_admin();
-
-
 -- Helper function to check project membership and break recursion
 CREATE OR REPLACE FUNCTION public.is_project_member(p_project_id uuid, p_user_id uuid)
 RETURNS boolean AS $$
@@ -181,7 +165,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Helper function to check project admin status and break recursion
 CREATE OR REPLACE FUNCTION public.is_project_admin(p_project_id uuid, p_user_id uuid)
 RETURNS boolean AS $$
 BEGIN
@@ -192,7 +175,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
@@ -201,77 +183,231 @@ ALTER TABLE boards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 
-
 --- POLICIES
 --- They are safe to re-run, as they will be replaced.
 
--- Policies for USERS
+-- USERS: All users can view user profiles
 DROP POLICY IF EXISTS "All users can view user profiles." ON public.users;
 CREATE POLICY "All users can view user profiles." ON public.users FOR SELECT USING (true);
 
--- Policies for PROJECTS
+-- PROJECTS: Access by membership/role
 DROP POLICY IF EXISTS "Users can see projects they are members of." ON projects;
-CREATE POLICY "Users can see projects they are members of." ON projects FOR SELECT USING ( public.is_project_member(id, auth.uid()) );
-
-DROP POLICY IF EXISTS "Creator-role users can insert projects." ON projects;
-CREATE POLICY "Creator-role users can insert projects." ON projects FOR INSERT WITH CHECK (
-    (auth.jwt() -> 'raw_user_meta_data' ->> 'can_create_projects')::boolean = true
+CREATE POLICY "Users can see projects they are members of." ON projects FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = projects.id
+      AND pm.user_id = auth.uid()
+      AND (
+        pm.role = 'admin' OR
+        pm.role = 'member' OR
+        pm.role = 'viewer'
+      )
+  )
 );
 
+-- Project creation via RPC only
+DROP POLICY IF EXISTS "Creator-role users can insert projects." ON projects;
+
+-- Admins can update/delete any project they admin
 DROP POLICY IF EXISTS "Admins can update projects." ON projects;
-CREATE POLICY "Admins can update projects." ON projects FOR UPDATE USING ( public.is_project_admin(id, auth.uid()) );
+CREATE POLICY "Admins can update projects." ON projects FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = projects.id
+      AND pm.user_id = auth.uid()
+      AND pm.role = 'admin'
+  )
+);
 
 DROP POLICY IF EXISTS "Admins can delete projects." ON projects;
-CREATE POLICY "Admins can delete projects." ON projects FOR DELETE USING ( public.is_project_admin(id, auth.uid()) );
+CREATE POLICY "Admins can delete projects." ON projects FOR DELETE USING (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = projects.id
+      AND pm.user_id = auth.uid()
+      AND pm.role = 'admin'
+  )
+);
 
--- Policies for PROJECT_MEMBERS (Corrected AGAIN to prevent recursion)
-DROP POLICY IF EXISTS "Users can view members of projects they belong to." ON public.project_members;
-CREATE POLICY "Users can view members of projects they belong to."
+-- Remove all old policies on project_members
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'project_members') LOOP
+    EXECUTE 'DROP POLICY IF EXISTS "' || r.policyname || '" ON public.project_members;';
+  END LOOP;
+END$$;
+
+-- Only allow users to see their own memberships (SAFE, NO RECURSION)
+CREATE POLICY "Users can view their own project_members"
 ON public.project_members FOR SELECT
-USING ( public.is_project_member(project_id, auth.uid()) );
+USING (
+  user_id = auth.uid()
+);
 
-DROP POLICY IF EXISTS "Admins can manage project members." ON public.project_members;
-CREATE POLICY "Admins can manage project members."
-ON public.project_members FOR ALL
-USING ( public.is_project_admin(project_id, auth.uid()) );
+-- Allow admins to insert project members (must use WITH CHECK)
+CREATE POLICY "Admins can insert project members"
+ON public.project_members FOR INSERT
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = project_members.project_id
+      AND pm.user_id = auth.uid()
+      AND pm.role = 'admin'
+  )
+);
 
+-- Allow admins to update project members
+CREATE POLICY "Admins can update project members"
+ON public.project_members FOR UPDATE
+USING (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = project_members.project_id
+      AND pm.user_id = auth.uid()
+      AND pm.role = 'admin'
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = project_members.project_id
+      AND pm.user_id = auth.uid()
+      AND pm.role = 'admin'
+  )
+);
 
--- Policies for BOARDS
-DROP POLICY IF EXISTS "Members can view boards of their projects." ON boards;
-CREATE POLICY "Members can view boards of their projects." ON boards FOR SELECT USING ( public.is_project_member(project_id, auth.uid()) );
+-- Allow admins to delete project members
+CREATE POLICY "Admins can delete project members"
+ON public.project_members FOR DELETE
+USING (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = project_members.project_id
+      AND pm.user_id = auth.uid()
+      AND pm.role = 'admin'
+  )
+);
+
+-- BOARDS: Admins and members can view/update, viewers can only view
+DROP POLICY IF EXISTS "Members and viewers can view boards of their projects." ON boards;
+CREATE POLICY "Members and viewers can view boards of their projects." ON boards FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = boards.project_id
+      AND pm.user_id = auth.uid()
+      AND (pm.role = 'admin' OR pm.role = 'member' OR pm.role = 'viewer')
+  )
+);
 
 DROP POLICY IF EXISTS "Admins and members can update boards." ON boards;
 CREATE POLICY "Admins and members can update boards." ON boards FOR UPDATE USING (
-  (SELECT role FROM project_members WHERE project_id = boards.project_id AND user_id = auth.uid()) IN ('admin', 'member')
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = boards.project_id
+      AND pm.user_id = auth.uid()
+      AND (pm.role = 'admin' OR pm.role = 'member')
+  )
 );
 
--- Policies for TASKS
-DROP POLICY IF EXISTS "Members can view tasks of their projects." ON tasks;
-CREATE POLICY "Members can view tasks of their projects." ON tasks FOR SELECT USING ( public.is_project_member(project_id, auth.uid()) );
+-- TASKS: Admins and members can view/update/delete, only admins can create
+DROP POLICY IF EXISTS "Admins and members can view tasks of their projects." ON tasks;
+CREATE POLICY "Admins and members can view tasks of their projects." ON tasks FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = tasks.project_id
+      AND pm.user_id = auth.uid()
+      AND (pm.role = 'admin' OR pm.role = 'member')
+  )
+);
 
 DROP POLICY IF EXISTS "Admins can create tasks." ON tasks;
-CREATE POLICY "Admins can create tasks." ON tasks FOR INSERT WITH CHECK ( public.is_project_admin(project_id, auth.uid()) );
+CREATE POLICY "Admins can create tasks." ON tasks FOR INSERT WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = tasks.project_id
+      AND pm.user_id = auth.uid()
+      AND pm.role = 'admin'
+  )
+);
 
 DROP POLICY IF EXISTS "Admins and members can update tasks." ON tasks;
 CREATE POLICY "Admins and members can update tasks." ON tasks FOR UPDATE USING (
-  (SELECT role FROM project_members WHERE project_id = tasks.project_id AND user_id = auth.uid()) IN ('admin', 'member')
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = tasks.project_id
+      AND pm.user_id = auth.uid()
+      AND (pm.role = 'admin' OR pm.role = 'member')
+  )
 );
 
 DROP POLICY IF EXISTS "Admins and members can delete tasks." ON tasks;
 CREATE POLICY "Admins and members can delete tasks." ON tasks FOR DELETE USING (
-  (SELECT role FROM project_members WHERE project_id = tasks.project_id AND user_id = auth.uid()) IN ('admin', 'member')
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = tasks.project_id
+      AND pm.user_id = auth.uid()
+      AND (pm.role = 'admin' OR pm.role = 'member')
+  )
 );
 
-
--- Policies for COMMENTS
+-- COMMENTS: Only project members (admin/member/viewer) can view/create, only comment owner can delete
 DROP POLICY IF EXISTS "Members can view comments." ON comments;
-CREATE POLICY "Members can view comments." ON comments FOR SELECT USING ( public.is_project_member(project_id, auth.uid()) );
+CREATE POLICY "Members can view comments." ON comments FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = comments.project_id
+      AND pm.user_id = auth.uid()
+      AND (pm.role = 'admin' OR pm.role = 'member' OR pm.role = 'viewer')
+  )
+);
 
 DROP POLICY IF EXISTS "Members can create comments." ON comments;
-CREATE POLICY "Members can create comments." ON comments FOR INSERT WITH CHECK ( public.is_project_member(project_id, auth.uid()) );
+CREATE POLICY "Members can create comments." ON comments FOR INSERT WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = comments.project_id
+      AND pm.user_id = auth.uid()
+      AND (pm.role = 'admin' OR pm.role = 'member' OR pm.role = 'viewer')
+  )
+);
 
 DROP POLICY IF EXISTS "Users can delete their own comments." ON comments;
 CREATE POLICY "Users can delete their own comments." ON comments FOR DELETE USING (auth.uid() = user_id);
+
+-- RPC Function to create a new project and add the creator as an admin
+CREATE OR REPLACE FUNCTION public.create_new_project(
+    name TEXT,
+    description TEXT,
+    deadline TIMESTAMPTZ,
+    q_and_a TEXT,
+    debrief TEXT,
+    direction TEXT,
+    revision TEXT,
+    delivery TEXT
+)
+RETURNS uuid AS $$
+DECLARE
+  new_project_id uuid;
+BEGIN
+  -- 1. Check if the user has the 'can_create_projects' role.
+  IF NOT (auth.jwt() -> 'raw_user_meta_data' ->> 'can_create_projects')::boolean THEN
+    RAISE EXCEPTION 'User does not have permission to create projects';
+  END IF;
+
+  -- 2. Insert the new project
+  INSERT INTO public.projects (name, description, deadline, q_and_a, debrief, direction, revision, delivery, created_by)
+  VALUES (name, description, deadline, q_and_a, debrief, direction, revision, delivery, auth.uid())
+  RETURNING id INTO new_project_id;
+
+  -- 3. Add the creator as an admin in the project_members table
+  INSERT INTO public.project_members (project_id, user_id, role)
+  VALUES (new_project_id, auth.uid(), 'admin');
+
+  RETURN new_project_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to get projects for a user
 CREATE OR REPLACE FUNCTION get_projects_for_user(user_id_param uuid)
@@ -284,6 +420,44 @@ BEGIN
   WHERE pm.user_id = user_id_param;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function for admins to fetch all members of a project
+CREATE OR REPLACE FUNCTION public.get_project_members_for_admin(p_project_id uuid)
+RETURNS TABLE(user_id uuid, role project_role) AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.project_members
+    WHERE project_id = p_project_id AND user_id = auth.uid() AND role = 'admin'
+  ) THEN
+    RAISE EXCEPTION 'Not authorized';
+  END IF;
+
+  RETURN QUERY
+  SELECT user_id, role FROM public.project_members
+  WHERE project_id = p_project_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+ALTER TABLE public.tasks DROP CONSTRAINT IF EXISTS tasks_assigned_to_fkey;
+ALTER TABLE public.tasks ADD CONSTRAINT tasks_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(id); 
+
+ALTER TABLE public.comments
+DROP CONSTRAINT IF EXISTS comments_user_id_fkey;
+
+ALTER TABLE public.comments
+ADD CONSTRAINT comments_user_id_fkey
+FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+DROP POLICY IF EXISTS "Admins can create boards." ON boards;
+CREATE POLICY "Admins can create boards." ON boards FOR INSERT
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.project_members pm
+    WHERE pm.project_id = boards.project_id
+      AND pm.user_id = auth.uid()
+      AND pm.role = 'admin'
+  )
+);
 
 ---
 ## Advanced: Granting Creator Privileges
@@ -319,4 +493,3 @@ We have already created the function for you in the `supabase/functions` directo
         ```
     *   Click **Invoke function**.
 
-The user will now have the ability to create projects. 

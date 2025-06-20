@@ -9,7 +9,7 @@ import CommentSection from '../components/comments/CommentSection';
 const Project = () => {
   const { projectId } = useParams();
   const { user } = useAuthStore();
-  const { project, role, loading, fetchProjectData } = useProjectStore();
+  const { project, role, loading, fetchProjectData, members } = useProjectStore();
 
   useEffect(() => {
     if (projectId && user) {
@@ -62,6 +62,34 @@ const Project = () => {
               <CommentSection projectId={projectId} />
             </div>
           </div>
+          {/* Admin: Show all project members */}
+          {isAdmin && (
+            <div className="card bg-base-100 shadow-md">
+              <div className="card-body">
+                <h2 className="card-title">Project Members</h2>
+                {members && members.length > 0 ? (
+                  <ul>
+                    {members.map((m) => (
+                      <li key={m.user_id}>
+                        User: {m.user_id} | Role: {m.role}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div>No members found.</div>
+                )}
+              </div>
+            </div>
+          )}
+          {/* Non-admin: Show own role */}
+          {!isAdmin && (
+            <div className="card bg-base-100 shadow-md">
+              <div className="card-body">
+                <h2 className="card-title">Your Role</h2>
+                <div>{role}</div>
+              </div>
+            </div>
+          )}
           {isAdmin && (
              <div className="card bg-base-100 shadow-md">
                 <div className="card-body">

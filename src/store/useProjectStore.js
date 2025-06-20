@@ -10,22 +10,41 @@ const useProjectStore = create((set, get) => ({
   comments: [],
   loading: true,
   isUploading: false,
+  members: [],
 
   fetchProjectData: async (projectId, userId) => {
-    set({ loading: true, project: null, role: null, board: null, tasks: [], comments: [] });
+    set({ loading: true, project: null, role: null, board: null, tasks: [], comments: [], members: [] });
     try {
+      // 1. Fetch the project (if user is a member, this will succeed)
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select(`*, project_members!inner(role)`)
+        .select('*')
         .eq('id', projectId)
-        .eq('project_members.user_id', userId)
         .single();
-      
-      if (projectError) throw projectError;
-      
-      const role = projectData.project_members[0].role;
-      delete projectData.project_members;
 
+      if (projectError) throw projectError;
+
+      // 2. Fetch the user's membership row for this project
+      const { data: memberRows, error: memberError } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', userId);
+
+      if (memberError || !memberRows || memberRows.length === 0) throw new Error('No membership found');
+      const role = memberRows[0].role;
+
+      // 3. If admin, fetch all members
+      let allMembers = [];
+      if (role === 'admin') {
+        const { data: adminMembers, error: adminError } = await supabase
+          .rpc('get_project_members_for_admin', { p_project_id: projectId });
+        if (!adminError && adminMembers) {
+          allMembers = adminMembers;
+        }
+      }
+
+      // 4. Fetch board, tasks, comments as before
       const { data: boardData, error: boardError } = await supabase.from('boards').select('*').eq('project_id', projectId).single();
       if (boardError && boardError.code !== 'PGRST116') throw boardError;
 
@@ -35,7 +54,15 @@ const useProjectStore = create((set, get) => ({
       const { data: commentsData, error: commentsError } = await supabase.from('comments').select('*, user:users(email)').eq('project_id', projectId).order('timestamp', { ascending: true });
       if (commentsError) throw commentsError;
 
-      set({ project: projectData, role, board: boardData, tasks: tasksData, comments: commentsData, loading: false });
+      set({
+        project: projectData,
+        role,
+        board: boardData,
+        tasks: tasksData,
+        comments: commentsData,
+        loading: false,
+        members: allMembers
+      });
     } catch (error) {
       toast.error(`Error fetching project data: ${error.message}`);
       set({ loading: false });
