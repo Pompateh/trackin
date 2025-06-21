@@ -71,7 +71,7 @@ const Project = () => {
                   <ul>
                     {members.map((m) => (
                       <li key={m.user_id}>
-                        User: {m.user_id} | Role: {m.role}
+                        {m.email} ({m.role})
                       </li>
                     ))}
                   </ul>

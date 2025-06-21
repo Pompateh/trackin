@@ -422,24 +422,35 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function for admins to fetch all members of a project
+DROP FUNCTION IF EXISTS public.get_project_members_for_admin(uuid);
 CREATE OR REPLACE FUNCTION public.get_project_members_for_admin(p_project_id uuid)
-RETURNS TABLE(user_id uuid, role project_role) AS $$
+RETURNS TABLE(user_id uuid, role project_role, email text) AS $$
+#variable_conflict use_column
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM public.project_members
-    WHERE project_id = p_project_id AND user_id = auth.uid() AND role = 'admin'
-  ) THEN
-    RAISE EXCEPTION 'Not authorized';
-  END IF;
-
   RETURN QUERY
-  SELECT user_id, role FROM public.project_members
-  WHERE project_id = p_project_id;
+  SELECT
+    pm.user_id,
+    pm.role,
+    u.email
+  FROM
+    public.project_members AS pm
+  JOIN
+    public.users AS u ON pm.user_id = u.id
+  WHERE
+    pm.project_id = p_project_id
+    -- Security check: ensure the current user is an admin of this project
+    AND EXISTS (
+      SELECT 1
+      FROM public.project_members AS pm_inner
+      WHERE pm_inner.project_id = p_project_id
+        AND pm_inner.user_id = auth.uid()
+        AND pm_inner.role = 'admin'
+    );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ALTER TABLE public.tasks DROP CONSTRAINT IF EXISTS tasks_assigned_to_fkey;
-ALTER TABLE public.tasks ADD CONSTRAINT tasks_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(id); 
+ALTER TABLE public.tasks ADD CONSTRAINT tasks_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(id);
 
 ALTER TABLE public.comments
 DROP CONSTRAINT IF EXISTS comments_user_id_fkey;

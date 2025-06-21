@@ -39,7 +39,11 @@ const useProjectStore = create((set, get) => ({
       if (role === 'admin') {
         const { data: adminMembers, error: adminError } = await supabase
           .rpc('get_project_members_for_admin', { p_project_id: projectId });
-        if (!adminError && adminMembers) {
+        
+        if (adminError) {
+          console.error('Error fetching project members:', adminError);
+          toast.error(`Failed to fetch project members: ${adminError.message}`);
+        } else if (adminMembers) {
           allMembers = adminMembers;
         }
       }
