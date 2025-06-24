@@ -50,8 +50,21 @@ const ProjectSidebar = ({ projectId }) => {
     saveNotes(newNotes);
   };
 
+  const handleDeleteProject = async () => {
+    if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) return;
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', projectId);
+    if (error) {
+      alert('Failed to delete project: ' + error.message);
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
-    <div className="bg-base-200 p-4 h-full overflow-y-auto">
+    <div className="bg-base-200 p-4 h-full overflow-y-auto flex flex-col">
       <div className="mb-4">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-bold">NOTE</h2>
@@ -84,6 +97,15 @@ const ProjectSidebar = ({ projectId }) => {
       
       <h2 className="text-xl font-bold mb-4">RECAP</h2>
       <RecapList projectId={projectId} />
+
+      <div className="mt-8 flex-1 flex flex-col justify-end">
+        <button
+          className="btn btn-error btn-outline w-full"
+          onClick={handleDeleteProject}
+        >
+          Delete Project
+        </button>
+      </div>
     </div>
   );
 };

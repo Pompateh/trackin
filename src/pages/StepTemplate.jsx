@@ -9,7 +9,7 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
   if (!isVisible) return null;
 
   return (
-    <div className="flex items-center group">
+    <div className="relative group">
       <div
         contentEditable
         suppressContentEditableWarning
@@ -18,17 +18,60 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
         style={{ fontSize: `${fontSize}px` }}
         dangerouslySetInnerHTML={{ __html: value || '' }}
       />
-      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
-        <button onClick={() => onFontSizeChange(fontSize - 1)} className="btn btn-xs btn-ghost">-</button>
-        <span className="text-xs w-6 text-center tabular-nums">{fontSize}px</span>
-        <button onClick={() => onFontSizeChange(fontSize + 1)} className="btn btn-xs btn-ghost">+</button>
+      <div className="absolute top-0 right-0 h-full flex items-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto bg-gradient-to-l from-base-200 via-base-200 to-transparent pl-4">
+        <div className="flex items-center">
+            <button onClick={() => onFontSizeChange(fontSize - 1)} className="btn btn-xs btn-ghost">-</button>
+            <span className="text-xs w-6 text-center tabular-nums">{fontSize}px</span>
+            <button onClick={() => onFontSizeChange(fontSize + 1)} className="btn btn-xs btn-ghost">+</button>
+        </div>
+        <button 
+          onClick={onVisibilityChange}
+          className="ml-2 text-red-500"
+        >
+          &times;
+        </button>
       </div>
-      <button 
-        onClick={onVisibilityChange}
-        className="ml-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto"
-      >
-        &times;
-      </button>
+    </div>
+  );
+};
+
+// New toolbar for text formatting
+const TextFormatToolbar = ({ item, onUpdate }) => {
+  const handleUpdate = (updates) => {
+    // If a corner is selected, set text_align automatically
+    if (updates.text_vertical_align && updates.text_horizontal_align) {
+      let align = 'left';
+      if (updates.text_horizontal_align === 'right') align = 'right';
+      onUpdate({
+        ...updates,
+        text_align: align,
+      });
+      return;
+    }
+    onUpdate(updates);
+  };
+  
+  const positions = [
+    { v: 'top', h: 'left', label: 'TL' },
+    { v: 'top', h: 'right', label: 'TR' },
+    { v: 'bottom', h: 'left', label: 'BL' },
+    { v: 'bottom', h: 'right', label: 'BR' },
+  ];
+
+  return (
+    <div className="absolute top-2 left-2 bg-base-300 p-1 rounded-lg shadow-lg flex flex-col gap-1 z-20">
+      <div className="btn-group" title="Set Block Position">
+        {positions.map(({ v, h, label }) => (
+          <button
+            key={`${v}-${h}`}
+            title={`Position ${v} ${h}`}
+            className={`btn btn-xs ${item.text_vertical_align === v && item.text_horizontal_align === h ? 'btn-active' : ''}`}
+            onClick={() => handleUpdate({ text_vertical_align: v, text_horizontal_align: h })}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
@@ -39,38 +82,56 @@ const TextContent = ({ item, onUpdate }) => {
     onUpdate({ [field]: value });
   }, [onUpdate]);
 
+  const justifyMap = { // Vertical alignment for flex-col
+    top: 'justify-start',
+    center: 'justify-center',
+    bottom: 'justify-end',
+  };
+
+  const alignMap = { // Horizontal alignment for flex-col
+    left: 'items-start',
+    center: 'items-center',
+    right: 'items-end',
+  };
+
+  // Text align is now always left for left corners, right for right corners
+  let effectiveTextAlign = 'left';
+  if (item.text_horizontal_align === 'right') effectiveTextAlign = 'right';
+
   return (
-    <div className="p-4 h-full flex flex-col justify-center">
-      <EditableTextRow
-        value={item.title_text}
-        onChange={text => handleUpdate('title_text', text)}
-        onVisibilityChange={() => handleUpdate('is_title_visible', false)}
-        placeholder="Big Title"
-        className="text-2xl font-bold"
-        isVisible={item.is_title_visible}
-        fontSize={item.title_font_size}
-        onFontSizeChange={size => handleUpdate('title_font_size', size)}
-      />
-      <EditableTextRow
-        value={item.subtitle_text}
-        onChange={text => handleUpdate('subtitle_text', text)}
-        onVisibilityChange={() => handleUpdate('is_subtitle_visible', false)}
-        placeholder="Small Description"
-        className="text-md text-gray-600"
-        isVisible={item.is_subtitle_visible}
-        fontSize={item.subtitle_font_size}
-        onFontSizeChange={size => handleUpdate('subtitle_font_size', size)}
-      />
-      <EditableTextRow
-        value={item.body_text}
-        onChange={text => handleUpdate('body_text', text)}
-        onVisibilityChange={() => handleUpdate('is_body_visible', false)}
-        placeholder="Word processing added..."
-        className="text-base mt-4"
-        isVisible={item.is_body_visible}
-        fontSize={item.body_font_size}
-        onFontSizeChange={size => handleUpdate('body_font_size', size)}
-      />
+    <div className={`p-2 h-full w-full flex flex-col relative ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}>
+      <div style={{ textAlign: effectiveTextAlign, width: '100%' }}>
+        <EditableTextRow
+          value={item.title_text}
+          onChange={text => handleUpdate('title_text', text)}
+          onVisibilityChange={() => handleUpdate('is_title_visible', false)}
+          placeholder="Big Title"
+          className="text-2xl font-bold"
+          isVisible={item.is_title_visible}
+          fontSize={item.title_font_size}
+          onFontSizeChange={size => handleUpdate('title_font_size', size)}
+        />
+        <EditableTextRow
+          value={item.subtitle_text}
+          onChange={text => handleUpdate('subtitle_text', text)}
+          onVisibilityChange={() => handleUpdate('is_subtitle_visible', false)}
+          placeholder="Small Description"
+          className="text-md text-gray-600"
+          isVisible={item.is_subtitle_visible}
+          fontSize={item.subtitle_font_size}
+          onFontSizeChange={size => handleUpdate('subtitle_font_size', size)}
+        />
+        <EditableTextRow
+          value={item.body_text}
+          onChange={text => handleUpdate('body_text', text)}
+          onVisibilityChange={() => handleUpdate('is_body_visible', false)}
+          placeholder="Word processing added..."
+          className="text-base mt-4"
+          isVisible={item.is_body_visible}
+          fontSize={item.body_font_size}
+          onFontSizeChange={size => handleUpdate('body_font_size', size)}
+        />
+      </div>
     </div>
   );
 };
@@ -143,6 +204,10 @@ const TextAndImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => 
 // A single grid item component
 const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId }) => {
   const [isUploading, setIsUploading] = useState(false);
+
+  const handleToolbarUpdate = (updates) => {
+    onUpdate(item.grid_item_id, updates);
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -219,18 +284,25 @@ const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId })
       onClick={() => onSelect(item.grid_item_id)}
       onContextMenu={(e) => { e.preventDefault(); onShowMenu(e, item.grid_item_id); }}
     >
+      {selected && item.template_type === 'text' && (
+        <TextFormatToolbar item={item} onUpdate={handleToolbarUpdate} />
+      )}
       {renderContent()}
       <input type="file" id={`file-input-${item.grid_item_id}`} className="hidden" onChange={handleImageUpload} accept="image/*" />
     </div>
   );
 };
 
-// Generate initial grid state. This is the canonical structure for local state.
-const generateInitialItems = (rows, cols) => {
-  return Array.from({ length: rows * cols }, (_, i) => ({
-    grid_item_id: i + 1,
-    row: Math.floor(i / cols) + 1,
-    col: (i % cols) + 1,
+// --- Grid Constants and Helpers ---
+const NUM_COLS = 4;
+const MIN_ROWS = 2;
+
+// Generates a default, empty grid item for a specific cell.
+const createDefaultGridItem = (row, col) => {
+  return {
+    grid_item_id: (row - 1) * NUM_COLS + col,
+    row: row,
+    col: col,
     rowSpan: 1,
     colSpan: 1,
     hidden: false,
@@ -245,7 +317,10 @@ const generateInitialItems = (rows, cols) => {
     title_font_size: 24,
     subtitle_font_size: 16,
     body_font_size: 14,
-  }));
+    text_align: 'left',
+    text_vertical_align: 'top',
+    text_horizontal_align: 'left',
+  };
 };
 
 // Maps a local state grid item to the structure the database expects.
@@ -269,13 +344,16 @@ const mapStateToDb = (item, projectId, sectionId) => ({
   title_font_size: item.title_font_size,
   subtitle_font_size: item.subtitle_font_size,
   body_font_size: item.body_font_size,
+  text_align: item.text_align,
+  text_vertical_align: item.text_vertical_align,
+  text_horizontal_align: item.text_horizontal_align,
 });
 
 // The main template selection component
 const StepTemplate = () => {
   const { projectId, sectionId } = useParams();
-  const [rows, setRows] = useState(2);
-  const [gridItems, setGridItems] = useState(() => generateInitialItems(2, 4));
+  const [rows, setRows] = useState(MIN_ROWS);
+  const [gridItems, setGridItems] = useState([]);
   const [selectedGrids, setSelectedGrids] = useState(new Set());
   const [menu, setMenu] = useState({ visible: false, x: 0, y: 0, gridId: null });
   const [projectName, setProjectName] = useState('');
@@ -410,6 +488,9 @@ const StepTemplate = () => {
           title_font_size: 24,
           subtitle_font_size: 16,
           body_font_size: 14,
+          text_align: 'left',
+          text_vertical_align: 'top',
+          text_horizontal_align: 'left',
         }
       });
     });
@@ -427,6 +508,9 @@ const StepTemplate = () => {
           template_type,
           content: template_type === 'text' ? '' : null,
           image_url: null, // Reset image url on template change
+          text_align: 'left',
+          text_vertical_align: 'top',
+          text_horizontal_align: 'left',
         }
       });
     });
@@ -437,17 +521,19 @@ const StepTemplate = () => {
 
   const handleAddRow = async () => {
     const newRowsCount = rows + 1;
-    const maxId = gridItems.reduce((max, item) => Math.max(max, item.grid_item_id), 0);
+    
+    const newItems = [];
+    const dbItemsToUpsert = [];
 
-    const newItems = Array.from({ length: 4 }, (_, i) => ({
-      ...generateInitialItems(1, 1)[0],
-      grid_item_id: maxId + i + 1,
-      row: newRowsCount,
-      col: i + 1,
-    }));
+    for (let c = 1; c <= NUM_COLS; c++) {
+      const newItem = createDefaultGridItem(newRowsCount, c);
+      newItems.push(newItem);
+      dbItemsToUpsert.push(mapStateToDb(newItem, projectId, sectionId));
+    }
 
-    const dbItems = newItems.map(item => mapStateToDb(item, projectId, sectionId));
-    const { error } = await supabase.from('grid_items').insert(dbItems);
+    const { error } = await supabase.from('grid_items').upsert(dbItemsToUpsert, {
+      onConflict: 'project_id,section_id_text,grid_item_id'
+    });
 
     if (error) {
       console.error("Error adding new row:", JSON.stringify(error, null, 2));
@@ -459,16 +545,19 @@ const StepTemplate = () => {
   };
 
   const handleRemoveRow = async () => {
-    if (rows <= 1) return;
+    if (rows <= MIN_ROWS) return;
 
+    const lastRow = rows;
     const itemIdsToDelete = gridItems
-      .filter(item => item.row === rows)
+      .filter(item => item.row === lastRow)
       .map(item => item.grid_item_id);
 
     if (itemIdsToDelete.length > 0) {
       const { error } = await supabase
         .from('grid_items')
         .delete()
+        .eq('project_id', projectId)
+        .eq('section_id_text', sectionId)
         .in('grid_item_id', itemIdsToDelete);
 
       if (error) {
@@ -477,8 +566,8 @@ const StepTemplate = () => {
       }
     }
 
-    setGridItems(prevItems => prevItems.filter(item => item.row < rows));
-    setRows(rows - 1);
+    setGridItems(prevItems => prevItems.filter(item => item.row < lastRow));
+    setRows(lastRow - 1);
   };
 
   // --- Data Fetching and Saving ---
@@ -499,61 +588,76 @@ const StepTemplate = () => {
 
     fetchProjectName();
 
-    const fetchGridItems = async () => {
-      const { data, error } = await supabase
+    const fetchAndStructureGridItems = async () => {
+      const { data: dbItems, error } = await supabase
         .from('grid_items')
         .select('*')
         .eq('project_id', projectId)
-        .eq('section_id_text', sectionId)
-        .order('grid_item_id', { ascending: true });
-      
+        .eq('section_id_text', sectionId);
+
       if (error) {
         console.error("Error fetching grid items:", JSON.stringify(error, null, 2));
         return;
       }
 
-      if (data && data.length > 0) {
-        const mappedData = data.map(item => ({
-          grid_item_id: item.grid_item_id,
-          row: item.row_num,
-          col: item.col_num,
-          rowSpan: item.row_span,
-          colSpan: item.col_span,
-          hidden: item.is_hidden,
-          template_type: item.template_type,
-          image_url: item.image_url,
-          title_text: item.title_text,
-          subtitle_text: item.subtitle_text,
-          body_text: item.body_text,
-          is_title_visible: item.is_title_visible,
-          is_subtitle_visible: item.is_subtitle_visible,
-          is_body_visible: item.is_body_visible,
-          title_font_size: item.title_font_size || 24,
-          subtitle_font_size: item.subtitle_font_size || 16,
-          body_font_size: item.body_font_size || 14
-        }));
-        setGridItems(mappedData);
-        const maxRows = Math.max(...mappedData.map(i => i.row));
-        setRows(maxRows);
-      } else {
-        const initialItems = generateInitialItems(2, 4);
-        const dbItems = initialItems.map(item => mapStateToDb(item, projectId, sectionId));
-        
-        const { error: upsertError } = await supabase
-          .from('grid_items')
-          .upsert(dbItems, {
-            onConflict: 'project_id,section_id_text,grid_item_id'
-          });
-          
-        if (upsertError) {
-          console.error("Error upserting initial items:", JSON.stringify(upsertError, null, 2));
-          return;
+      const maxRowInDb = dbItems && dbItems.length > 0
+        ? Math.max(...dbItems.map(i => i.row_num))
+        : 0;
+      const totalRows = Math.max(MIN_ROWS, maxRowInDb);
+      setRows(totalRows);
+
+      const newGridItems = [];
+      const itemsToUpsert = [];
+
+      for (let r = 1; r <= totalRows; r++) {
+        for (let c = 1; c <= NUM_COLS; c++) {
+          const gridId = (r - 1) * NUM_COLS + c;
+          const dbItem = dbItems?.find(item => item.grid_item_id === gridId);
+
+          if (dbItem) {
+            newGridItems.push({
+              grid_item_id: dbItem.grid_item_id,
+              row: dbItem.row_num,
+              col: dbItem.col_num,
+              rowSpan: dbItem.row_span,
+              colSpan: dbItem.col_span,
+              hidden: dbItem.is_hidden,
+              template_type: dbItem.template_type,
+              image_url: dbItem.image_url,
+              title_text: dbItem.title_text,
+              subtitle_text: dbItem.subtitle_text,
+              body_text: dbItem.body_text,
+              is_title_visible: dbItem.is_title_visible,
+              is_subtitle_visible: dbItem.is_subtitle_visible,
+              is_body_visible: dbItem.is_body_visible,
+              title_font_size: dbItem.title_font_size || 24,
+              subtitle_font_size: dbItem.subtitle_font_size || 16,
+              body_font_size: dbItem.body_font_size || 14,
+              text_align: dbItem.text_align || 'left',
+              text_vertical_align: dbItem.text_vertical_align || 'top',
+              text_horizontal_align: dbItem.text_horizontal_align || 'left',
+            });
+          } else {
+            const defaultItem = createDefaultGridItem(r, c);
+            newGridItems.push(defaultItem);
+            itemsToUpsert.push(mapStateToDb(defaultItem, projectId, sectionId));
+          }
         }
-        
-        setGridItems(initialItems);
       }
+      
+      if (itemsToUpsert.length > 0) {
+        const { error: upsertError } = await supabase.from('grid_items').upsert(itemsToUpsert, {
+          onConflict: 'project_id,section_id_text,grid_item_id'
+        });
+        if (upsertError) {
+          console.error("Error backfilling grid items:", JSON.stringify(upsertError, null, 2));
+        }
+      }
+
+      setGridItems(newGridItems);
     };
-    fetchGridItems();
+
+    fetchAndStructureGridItems();
   }, [projectId, sectionId]);
 
   const updateAndSaveItem = async (itemId, updates) => {
@@ -570,14 +674,9 @@ const StepTemplate = () => {
     if ('title_font_size' in updates) dbUpdates.title_font_size = updates.title_font_size;
     if ('subtitle_font_size' in updates) dbUpdates.subtitle_font_size = updates.subtitle_font_size;
     if ('body_font_size' in updates) dbUpdates.body_font_size = updates.body_font_size;
-    if ('text_pos_x' in updates) dbUpdates.text_pos_x = updates.text_pos_x;
-    if ('text_pos_y' in updates) dbUpdates.text_pos_y = updates.text_pos_y;
-    if ('text_size_w' in updates) dbUpdates.text_size_w = updates.text_size_w;
-    if ('text_size_h' in updates) dbUpdates.text_size_h = updates.text_size_h;
-    if ('image_pos_x' in updates) dbUpdates.image_pos_x = updates.image_pos_x;
-    if ('image_pos_y' in updates) dbUpdates.image_pos_y = updates.image_pos_y;
-    if ('image_size_w' in updates) dbUpdates.image_size_w = updates.image_size_w;
-    if ('image_size_h' in updates) dbUpdates.image_size_h = updates.image_size_h;
+    if ('text_align' in updates) dbUpdates.text_align = updates.text_align;
+    if ('text_vertical_align' in updates) dbUpdates.text_vertical_align = updates.text_vertical_align;
+    if ('text_horizontal_align' in updates) dbUpdates.text_horizontal_align = updates.text_horizontal_align;
 
     const { error } = await supabase
       .from('grid_items')
@@ -608,14 +707,9 @@ const StepTemplate = () => {
       if ('title_font_size' in itemUpdates) dbUpdates.title_font_size = itemUpdates.title_font_size;
       if ('subtitle_font_size' in itemUpdates) dbUpdates.subtitle_font_size = itemUpdates.subtitle_font_size;
       if ('body_font_size' in itemUpdates) dbUpdates.body_font_size = itemUpdates.body_font_size;
-      if ('text_pos_x' in itemUpdates) dbUpdates.text_pos_x = itemUpdates.text_pos_x;
-      if ('text_pos_y' in itemUpdates) dbUpdates.text_pos_y = itemUpdates.text_pos_y;
-      if ('text_size_w' in itemUpdates) dbUpdates.text_size_w = itemUpdates.text_size_w;
-      if ('text_size_h' in itemUpdates) dbUpdates.text_size_h = itemUpdates.text_size_h;
-      if ('image_pos_x' in itemUpdates) dbUpdates.image_pos_x = itemUpdates.image_pos_x;
-      if ('image_pos_y' in itemUpdates) dbUpdates.image_pos_y = itemUpdates.image_pos_y;
-      if ('image_size_w' in itemUpdates) dbUpdates.image_size_w = itemUpdates.image_size_w;
-      if ('image_size_h' in itemUpdates) dbUpdates.image_size_h = itemUpdates.image_size_h;
+      if ('text_align' in itemUpdates) dbUpdates.text_align = itemUpdates.text_align;
+      if ('text_vertical_align' in itemUpdates) dbUpdates.text_vertical_align = itemUpdates.text_vertical_align;
+      if ('text_horizontal_align' in itemUpdates) dbUpdates.text_horizontal_align = itemUpdates.text_horizontal_align;
 
       const { error } = await supabase
         .from('grid_items')
@@ -653,7 +747,7 @@ const StepTemplate = () => {
               <button 
                 className="btn btn-sm btn-outline" 
                 onClick={handleRemoveRow}
-                disabled={rows <= 1}
+                disabled={rows <= MIN_ROWS}
               >
                 - Row
               </button>

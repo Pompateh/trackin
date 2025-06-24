@@ -246,7 +246,7 @@ WITH CHECK (auth.uid() = (SELECT user_id FROM project_members WHERE project_id =
 DROP POLICY IF EXISTS "Project members can manage grid items" ON public.grid_items;
 CREATE POLICY "Project members can manage grid items" ON public.grid_items
 FOR ALL USING (
-    EXISTS (
+  EXISTS (
         SELECT 1 FROM project_members 
         WHERE project_members.project_id = grid_items.project_id 
         AND project_members.user_id = auth.uid()
@@ -257,7 +257,7 @@ FOR ALL USING (
 DROP POLICY IF EXISTS "Project members can read and create comments" ON public.comments;
 CREATE POLICY "Project members can read and create comments" ON public.comments
 FOR ALL USING (
-    EXISTS (
+  EXISTS (
         SELECT 1 FROM project_members 
         WHERE project_members.project_id = comments.project_id 
         AND project_members.user_id = auth.uid()
