@@ -7,6 +7,7 @@ import TaskList from '../components/tasks/TaskList';
 import CommentSection from '../components/comments/CommentSection';
 import SectionList from '../components/projects/SectionList';
 import RecapList from '../components/projects/RecapList';
+import ProjectSidebar from '../components/projects/ProjectSidebar';
 // Placeholder for new components
 // import RecapList from '../components/projects/RecapList';
 
@@ -17,6 +18,7 @@ const Project = () => {
   // State for selected section/task for NOTE panel
   const [selectedSection, setSelectedSection] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   useEffect(() => {
     if (projectId && user) {
@@ -42,31 +44,32 @@ const Project = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-120px)]">
-      {/* INDEX panel */}
-      <div className="w-full md:w-1/2 border-r border-gray-300 p-4 overflow-y-auto">
-        <h1 className="text-4xl font-serif mb-4">INDEX</h1>
-        <SectionList projectId={projectId} onSelectSection={setSelectedSection} selectedSection={selectedSection} isAdmin={role === 'admin'} />
+    <div className="flex h-[calc(100vh-120px)]">
+      {/* Main content */}
+      <div className={`flex-grow p-4 h-full transition-all duration-300 ${isSidebarVisible ? 'w-3/4' : 'w-full'}`}>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-4xl font-serif">INDEX</h1>
+          <button 
+            className="btn btn-secondary"
+            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+          >
+            {isSidebarVisible ? 'Hide Panel' : 'Show Panel'}
+          </button>
+        </div>
+        <SectionList 
+          projectId={projectId} 
+          onSelectSection={setSelectedSection} 
+          selectedSection={selectedSection} 
+          isAdmin={role === 'admin'} 
+        />
       </div>
-      {/* NOTE panel */}
-      <div className="w-full md:w-1/2 p-4 overflow-y-auto">
-        <h1 className="text-4xl font-serif mb-4">NOTE</h1>
-        {/* TASKS */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold mb-2">TASK</h2>
-          <TaskList projectId={projectId} sectionId={selectedSection?.id} onSelectTask={setSelectedTask} selectedTask={selectedTask} />
-            </div>
-        {/* COMMENTS */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold mb-2">COMMENT</h2>
-          <CommentSection projectId={projectId} taskId={selectedTask?.id} />
-          </div>
-        {/* RECAP */}
-        <div>
-          <h2 className="text-xl font-bold mb-2">RECAP</h2>
-          <RecapList projectId={projectId} />
-            </div>
-      </div>
+
+      {/* Sidebar */}
+      {isSidebarVisible && (
+        <div className="w-1/4 h-full border-l border-base-300">
+          <ProjectSidebar projectId={projectId} />
+        </div>
+      )}
     </div>
   );
 };

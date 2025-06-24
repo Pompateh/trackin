@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { debounce } from 'lodash';
 import TaskList from '../tasks/TaskList';
@@ -7,6 +8,7 @@ import RecapList from './RecapList';
 
 const ProjectSidebar = ({ projectId }) => {
   const [notes, setNotes] = useState('');
+  const navigate = useNavigate();
 
   // Fetch initial notes
   useEffect(() => {
@@ -50,7 +52,17 @@ const ProjectSidebar = ({ projectId }) => {
 
   return (
     <div className="bg-base-200 p-4 h-full overflow-y-auto">
-      <h2 className="text-xl font-bold mb-4">NOTE</h2>
+      <div className="mb-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold">NOTE</h2>
+          <button 
+            className="btn btn-primary btn-sm"
+            onClick={() => navigate(`/project/${projectId}/invite`)}
+          >
+            Share
+          </button>
+        </div>
+      </div>
       <textarea
         className="textarea textarea-bordered w-full h-32"
         placeholder="Project-wide notes..."
