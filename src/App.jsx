@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Project from './pages/Project';
 import Invite from './pages/Invite';
+import StepTemplate from './pages/StepTemplate';
 
 function App() {
   const { onAuthStateChange } = useAuthStore();
@@ -44,6 +45,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Invite />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/project/:projectId/step/:sectionId"
+            element={
+              <ProtectedRoute>
+                <StepTemplate />
               </ProtectedRoute>
             }
           />

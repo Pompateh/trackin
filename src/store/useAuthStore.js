@@ -4,27 +4,6 @@ import { supabase } from '../lib/supabaseClient';
 const useAuthStore = create((set, get) => ({
   user: null,
   loading: true,
-  
-  // Fetch user session and full user data
-  fetchSession: async () => {
-    set({ loading: true });
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // When session is restored, user metadata might be stale.
-        // Refreshing the user object gets the latest metadata.
-        const { data: { user } } = await supabase.auth.refreshSession();
-        set({ user: user ?? null });
-      } else {
-        set({ user: null });
-      }
-    } catch (error) {
-      console.error('Error fetching session:', error);
-      set({ user: null });
-    } finally {
-      set({ loading: false });
-    }
-  },
 
   // Sign in
   signIn: async (email, password) => {
@@ -52,19 +31,11 @@ const useAuthStore = create((set, get) => ({
 
   // Listen to auth state changes
   onAuthStateChange: () => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        // This handles SIGNED_IN and INITIAL_SESSION events
-        set({ user: session.user });
-      } else if (_event === 'SIGNED_OUT') {
-        set({ user: null });
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      set({ user: session?.user ?? null, loading: false });
     });
     return () => subscription.unsubscribe();
   }
 }));
-
-// Initialize auth state
-useAuthStore.getState().fetchSession();
 
 export default useAuthStore; 

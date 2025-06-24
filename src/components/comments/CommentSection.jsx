@@ -1,17 +1,24 @@
-import React, { useState } from 'react';
-import useProjectStore from '../../store/useProjectStore';
+import React, { useEffect, useState } from 'react';
+// import { supabase } from '../../lib/supabaseClient';
 
-const CommentSection = () => {
-  const { comments, addComment } = useProjectStore();
+const CommentSection = ({ projectId, taskId }) => {
+  const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // TODO: Replace with Supabase fetch
+    // Example: fetch comments for projectId and taskId
+    // supabase.from('comments').select('*').eq('project_id', projectId).eq('task_id', taskId)
+    //   .then(({ data }) => setComments(data));
+    setComments([]); // Placeholder
+  }, [projectId, taskId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-
     setIsSubmitting(true);
-    await addComment(newComment);
+    // TODO: Add comment to Supabase
     setIsSubmitting(false);
     setNewComment('');
   };
@@ -23,12 +30,12 @@ const CommentSection = () => {
           comments.map((comment) => (
             <div key={comment.id} className="chat chat-start">
               <div className="chat-header">
-                {comment.user.email}
+                {comment.user_email}
                 <time className="text-xs opacity-50 ml-2">
-                  {new Date(comment.timestamp).toLocaleTimeString()}
+                  {new Date(comment.created_at).toLocaleTimeString()}
                 </time>
               </div>
-              <div className="chat-bubble">{comment.content}</div>
+              <div className="chat-bubble">{comment.message}</div>
             </div>
           ))
         ) : (

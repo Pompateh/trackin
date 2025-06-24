@@ -1,15 +1,22 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import useProjectStore from '../store/useProjectStore';
 import useAuthStore from '../store/useAuthStore';
-import TldrawCanvas from '../components/board/TldrawCanvas';
+// import TldrawCanvas from '../components/board/TldrawCanvas';
 import TaskList from '../components/tasks/TaskList';
 import CommentSection from '../components/comments/CommentSection';
+import SectionList from '../components/projects/SectionList';
+import RecapList from '../components/projects/RecapList';
+// Placeholder for new components
+// import RecapList from '../components/projects/RecapList';
 
 const Project = () => {
   const { projectId } = useParams();
   const { user } = useAuthStore();
-  const { project, role, loading, fetchProjectData, members } = useProjectStore();
+  const { project, role, loading, fetchProjectData } = useProjectStore();
+  // State for selected section/task for NOTE panel
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
     if (projectId && user) {
@@ -34,72 +41,31 @@ const Project = () => {
     );
   }
 
-  const canEditBoard = role === 'admin' || role === 'member';
-  const isAdmin = role === 'admin';
-
   return (
-    <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-120px)]">
-      {/* Main content - Tldraw Canvas */}
-      <div className="flex-grow h-full">
-        <h1 className="text-3xl font-bold mb-2">{project.name}</h1>
-        <p className="mb-4">{project.description}</p>
-        <div className="relative h-[calc(100%-80px)] rounded-lg shadow-lg">
-          <TldrawCanvas projectId={projectId} canEdit={canEditBoard} />
-        </div>
+    <div className="flex flex-col md:flex-row h-[calc(100vh-120px)]">
+      {/* INDEX panel */}
+      <div className="w-full md:w-1/2 border-r border-gray-300 p-4 overflow-y-auto">
+        <h1 className="text-4xl font-serif mb-4">INDEX</h1>
+        <SectionList projectId={projectId} onSelectSection={setSelectedSection} selectedSection={selectedSection} isAdmin={role === 'admin'} />
       </div>
-
-      {/* Sidebar */}
-      <div className="w-full lg:w-96 flex-shrink-0 space-y-4">
-          <div className="card bg-base-100 shadow-md">
-            <div className="card-body">
-              <h2 className="card-title">Tasks</h2>
-              <TaskList projectId={projectId} isAdmin={isAdmin} />
+      {/* NOTE panel */}
+      <div className="w-full md:w-1/2 p-4 overflow-y-auto">
+        <h1 className="text-4xl font-serif mb-4">NOTE</h1>
+        {/* TASKS */}
+        <div className="mb-6">
+          <h2 className="text-xl font-bold mb-2">TASK</h2>
+          <TaskList projectId={projectId} sectionId={selectedSection?.id} onSelectTask={setSelectedTask} selectedTask={selectedTask} />
             </div>
+        {/* COMMENTS */}
+        <div className="mb-6">
+          <h2 className="text-xl font-bold mb-2">COMMENT</h2>
+          <CommentSection projectId={projectId} taskId={selectedTask?.id} />
           </div>
-          <div className="card bg-base-100 shadow-md">
-            <div className="card-body">
-              <h2 className="card-title">Comments</h2>
-              <CommentSection projectId={projectId} />
+        {/* RECAP */}
+        <div>
+          <h2 className="text-xl font-bold mb-2">RECAP</h2>
+          <RecapList projectId={projectId} />
             </div>
-          </div>
-          {/* Admin: Show all project members */}
-          {isAdmin && (
-            <div className="card bg-base-100 shadow-md">
-              <div className="card-body">
-                <h2 className="card-title">Project Members</h2>
-                {members && members.length > 0 ? (
-                  <ul>
-                    {members.map((m) => (
-                      <li key={m.user_id}>
-                        {m.email} ({m.role})
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div>No members found.</div>
-                )}
-              </div>
-            </div>
-          )}
-          {/* Non-admin: Show own role */}
-          {!isAdmin && (
-            <div className="card bg-base-100 shadow-md">
-              <div className="card-body">
-                <h2 className="card-title">Your Role</h2>
-                <div>{role}</div>
-              </div>
-            </div>
-          )}
-          {isAdmin && (
-             <div className="card bg-base-100 shadow-md">
-                <div className="card-body">
-                    <h2 className="card-title">Admin Actions</h2>
-                    <Link to={`/project/${projectId}/invite`} className="btn btn-secondary">
-                        Invite Users
-                    </Link>
-                </div>
-            </div>
-          )}
       </div>
     </div>
   );

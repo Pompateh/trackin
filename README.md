@@ -11,6 +11,41 @@ This is a full-stack web application that functions as a Milanote-style collabor
 - **Task Management**: Assign and track tasks with different statuses.
 - **Commenting**: Users can leave comments on projects.
 
+---
+
+## Project Detail UI (INDEX & NOTE Panels)
+
+The project detail page is split into two main panels:
+
+### INDEX (Left Panel)
+- Displays a list of project steps/sections (e.g., Brief, Q&A, Debrief, Quotation, Brand Strategy, Planner, Brand Story, Moodboard, Concept & Direction, Delivery).
+- Some steps (like Concept & Direction) can have subsections (e.g., Logo, Typography, Colour, Illustration, Icon).
+- **Admin users** can remove any default step and re-add it later using the UI.
+- Steps are always shown by default unless removed by an admin.
+- Steps can be expanded/collapsed to show subsections.
+
+### NOTE (Right Panel)
+- **TASK**: Shows tasks for the selected section. Tasks can be assigned and have statuses.
+- **COMMENT**: Shows a threaded comment section for the selected task.
+- **RECAP**: Shows a recap/activity log for the project. Users can add new recap entries.
+
+---
+
+## Admin Features for Project Steps
+- Admins can remove any of the default steps from the INDEX panel.
+- Removed steps are listed at the bottom of the INDEX panel with a "+ Step" button to re-add them.
+- Only admins see the remove/re-add controls.
+- All users see the current steps and can interact with tasks and comments as usual.
+
+---
+
+## Extending the UI
+- To add new default steps, update the `DEFAULT_STEPS` array in `SectionList.jsx`.
+- To add new recap types or activity log features, update the `RecapList.jsx` component.
+- All data fetching and mutations are prepared for Supabase integration.
+
+---
+
 ## Setup Instructions
 
 ### 1. Clone the repository
@@ -99,9 +134,18 @@ CREATE TABLE IF NOT EXISTS projects (
     direction TEXT,
     revision TEXT,
     delivery TEXT,
+    status project_status DEFAULT 'on_going',
     created_by UUID REFERENCES auth.users(id),
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- PROJECT STATUS enum (NEW)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'project_status') THEN
+        CREATE TYPE project_status AS ENUM ('on_going', 'onhold', 'complete');
+    END IF;
+END$$;
 
 -- ROLES enum
 DO $$
@@ -154,6 +198,49 @@ CREATE TABLE IF NOT EXISTS comments (
     "timestamp" TIMESTAMPTZ DEFAULT now()
 );
 
+-- GRID ITEMS TEMPLATE TYPE enum
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'grid_item_template_type') THEN
+        CREATE TYPE grid_item_template_type AS ENUM ('text', 'image', 'textAndImage');
+    END IF;
+END$$;
+
+-- GRID_ITEMS table (for Step Templates)
+CREATE TABLE IF NOT EXISTS grid_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    section_id_text TEXT NOT NULL, -- e.g., 'brief', 'q-a', 'concept-&-direction'
+    
+    -- Grid properties
+    grid_item_id INT NOT NULL,
+    "row" INT NOT NULL,
+    "col" INT NOT NULL,
+    "rowSpan" INT NOT NULL DEFAULT 1,
+    "colSpan" INT NOT NULL DEFAULT 1,
+    hidden BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- Content properties
+    template_type grid_item_template_type,
+    content TEXT, -- Will store HTML from rich text editor
+    image_url TEXT,
+
+    -- Position and size of internal elements (as percentages of the grid cell)
+    text_pos_x REAL DEFAULT 0,
+    text_pos_y REAL DEFAULT 0,
+    image_pos_x REAL DEFAULT 0,
+    image_pos_y REAL DEFAULT 0,
+    text_size_w REAL DEFAULT 100,
+    text_size_h REAL DEFAULT 100,
+    image_size_w REAL DEFAULT 100,
+    image_size_h REAL DEFAULT 100,
+
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    
+    -- Make sure each cell in a section grid is unique
+    UNIQUE(project_id, section_id_text, grid_item_id)
+);
+
 -- Helper function to check project membership and break recursion
 CREATE OR REPLACE FUNCTION public.is_project_member(p_project_id uuid, p_user_id uuid)
 RETURNS boolean AS $$
@@ -182,6 +269,7 @@ ALTER TABLE project_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE boards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE grid_items ENABLE ROW LEVEL SECURITY;
 
 --- POLICIES
 --- They are safe to re-run, as they will be replaced.
@@ -385,11 +473,15 @@ CREATE OR REPLACE FUNCTION public.create_new_project(
     debrief TEXT,
     direction TEXT,
     revision TEXT,
-    delivery TEXT
+    delivery TEXT,
+    status project_status DEFAULT 'on_going',
+    team_member_emails TEXT[] DEFAULT '{}'
 )
 RETURNS uuid AS $$
 DECLARE
   new_project_id uuid;
+  member_email TEXT;
+  member_id uuid;
 BEGIN
   -- 1. Check if the user has the 'can_create_projects' role.
   IF NOT (auth.jwt() -> 'raw_user_meta_data' ->> 'can_create_projects')::boolean THEN
@@ -397,13 +489,24 @@ BEGIN
   END IF;
 
   -- 2. Insert the new project
-  INSERT INTO public.projects (name, description, deadline, q_and_a, debrief, direction, revision, delivery, created_by)
-  VALUES (name, description, deadline, q_and_a, debrief, direction, revision, delivery, auth.uid())
+  INSERT INTO public.projects (name, description, deadline, q_and_a, debrief, direction, revision, delivery, status, created_by)
+  VALUES (name, description, deadline, q_and_a, debrief, direction, revision, delivery, status, auth.uid())
   RETURNING id INTO new_project_id;
 
   -- 3. Add the creator as an admin in the project_members table
   INSERT INTO public.project_members (project_id, user_id, role)
   VALUES (new_project_id, auth.uid(), 'admin');
+
+  -- 4. Add additional team members as 'member' role
+  FOREACH member_email IN ARRAY team_member_emails
+  LOOP
+    SELECT id INTO member_id FROM public.users WHERE email = member_email;
+    IF member_id IS NOT NULL AND member_id != auth.uid() THEN
+      INSERT INTO public.project_members (project_id, user_id, role)
+      VALUES (new_project_id, member_id, 'member')
+      ON CONFLICT DO NOTHING;
+    END IF;
+  END LOOP;
 
   RETURN new_project_id;
 END;
@@ -496,11 +599,54 @@ We have already created the function for you in the `supabase/functions` directo
     *   Go to **Edge Functions** in your Supabase dashboard.
     *   Click on the `grant-creator-role` function.
     *   Go to the **Invoke** tab.
-    *   In the **Payload** section, paste the following JSON, replacing the `userId` with the one you copied:
-        ```json
-        {
-          "userId": "paste-the-user-id-here"
-        }
-        ```
-    *   Click **Invoke function**.
+    *   In the **Payload** section, paste the following JSON, replacing the `userId`
 
+--- GRID_ITEMS POLICIES
+-- Allow members to view grid items
+DROP POLICY IF EXISTS "Members can view grid items for their projects." ON grid_items;
+CREATE POLICY "Members can view grid items for their projects." ON grid_items FOR SELECT USING (
+  is_project_member(project_id, auth.uid())
+);
+
+-- Allow members to insert their own grid items
+DROP POLICY IF EXISTS "Members can insert grid items for their projects." ON grid_items;
+CREATE POLICY "Members can insert grid items for their projects." ON grid_items FOR INSERT WITH CHECK (
+  is_project_member(project_id, auth.uid())
+);
+
+-- Allow members to update their own grid items
+DROP POLICY IF EXISTS "Members can update grid items for their projects." ON grid_items;
+CREATE POLICY "Members can update grid items for their projects." ON grid_items FOR UPDATE USING (
+  is_project_member(project_id, auth.uid())
+);
+
+-- Allow admins to delete grid items
+DROP POLICY IF EXISTS "Admins can delete grid items." ON grid_items;
+CREATE POLICY "Admins can delete grid items." ON grid_items FOR DELETE USING (
+  is_project_admin(project_id, auth.uid())
+);
+
+--- SETUP FOR FILE STORAGE
+
+-- 1. Create a new storage bucket named 'project_images' in your Supabase dashboard.
+--    Go to Storage -> Buckets -> Create Bucket.
+--    Make it a PUBLIC bucket.
+
+-- 2. Set up policies for the 'project_images' bucket.
+--    Go to Storage -> Policies and create the following policies for the 'project_images' bucket.
+
+--    This policy allows any authenticated user to see all images.
+--    Adjust as needed for more privacy.
+CREATE POLICY "Authenticated users can view images."
+  ON storage.objects FOR SELECT
+  USING ( bucket_id = 'project_images' AND auth.role() = 'authenticated' );
+
+--    This policy allows project members to upload images into a folder named after the project_id.
+CREATE POLICY "Project members can upload images."
+  ON storage.objects FOR INSERT
+  WITH CHECK ( bucket_id = 'project_images' AND is_project_member( (storage.foldername(name))[1]::uuid, auth.uid() ) );
+
+--    This policy allows project members to update/delete their own images.
+CREATE POLICY "Project members can update their own images."
+  ON storage.objects FOR UPDATE
+  USING ( bucket_id = 'project_images' AND is_project_member( (storage.foldername(name))[1]::uuid, auth.uid() ) );

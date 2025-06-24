@@ -4,49 +4,64 @@ import useAuthStore from '../../store/useAuthStore';
 import toast from 'react-hot-toast';
 import Modal from '../ui/Modal';
 
+const statusOptions = [
+  { value: 'on_going', label: 'On Going' },
+  { value: 'onhold', label: 'On Hold' },
+  { value: 'complete', label: 'Complete' },
+];
+
 const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [deadline, setDeadline] = useState('');
-  const [qAndA, setQAndA] = useState('');
-  const [debrief, setDebrief] = useState('');
-  const [direction, setDirection] = useState('');
-  const [revision, setRevision] = useState('');
-  const [delivery, setDelivery] = useState('');
-
+  const [status, setStatus] = useState('on_going');
+  const [teamMembers, setTeamMembers] = useState(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuthStore();
+
+  const handleTeamMemberChange = (idx, value) => {
+    const updated = [...teamMembers];
+    updated[idx] = value;
+    setTeamMembers(updated);
+  };
+
+  const addTeamMemberField = () => {
+    setTeamMembers([...teamMembers, '']);
+  };
+
+  const removeTeamMemberField = (idx) => {
+    setTeamMembers(teamMembers.filter((_, i) => i !== idx));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      // Filter out empty emails and the creator's own email
+      const emails = teamMembers
+        .map((email) => email.trim().toLowerCase())
+        .filter((email) => email && email !== user.email);
       const { error } = await supabase.rpc('create_new_project', {
         name,
         description,
         deadline: deadline || null,
-        q_and_a: qAndA,
-        debrief,
-        direction,
-        revision,
-        delivery,
+        q_and_a: null,
+        debrief: null,
+        direction: null,
+        revision: null,
+        delivery: null,
+        status,
+        team_member_emails: emails,
       });
-
       if (error) throw error;
-
       toast.success(`Project "${name}" created successfully!`);
       onProjectCreated();
       onClose();
-      // Reset form
       setName('');
       setDescription('');
       setDeadline('');
-      setQAndA('');
-      setDebrief('');
-      setDirection('');
-      setRevision('');
-      setDelivery('');
-
+      setStatus('on_going');
+      setTeamMembers(['']);
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -60,7 +75,7 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
       <form onSubmit={handleSubmit} className="py-4 space-y-4">
         <div className="form-control">
           <label className="label">
-            <span className="label-text">Project Name</span>
+            <span className="label-text">Project Title</span>
           </label>
           <input
             type="text"
@@ -84,6 +99,21 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
         </div>
         <div className="form-control">
           <label className="label">
+            <span className="label-text">Project Status</span>
+          </label>
+          <select
+            className="select select-bordered w-full"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            required
+          >
+            {statusOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-control">
+          <label className="label">
             <span className="label-text">Deadline</span>
           </label>
           <input
@@ -93,38 +123,30 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
             onChange={(e) => setDeadline(e.target.value)}
           />
         </div>
-        {/* Additional fields */}
         <div className="form-control">
           <label className="label">
-            <span className="label-text">Q&A for Viewer</span>
+            <span className="label-text">Team Members (emails)</span>
           </label>
-          <input type="text" className="input input-bordered w-full" value={qAndA} onChange={(e) => setQAndA(e.target.value)} />
+          {teamMembers.map((email, idx) => (
+            <div key={idx} className="flex items-center gap-2 mb-2">
+              <input
+                type="email"
+                className="input input-bordered w-full"
+                placeholder="user@example.com"
+                value={email}
+                onChange={(e) => handleTeamMemberChange(idx, e.target.value)}
+              />
+              {teamMembers.length > 1 && (
+                <button type="button" className="btn btn-error btn-xs" onClick={() => removeTeamMemberField(idx)}>
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+          <button type="button" className="btn btn-outline btn-sm mt-1" onClick={addTeamMemberField}>
+            + Add Team Member
+          </button>
         </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Debrief</span>
-          </label>
-          <input type="text" className="input input-bordered w-full" value={debrief} onChange={(e) => setDebrief(e.target.value)} />
-        </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Direction</span>
-          </label>
-          <input type="text" className="input input-bordered w-full" value={direction} onChange={(e) => setDirection(e.target.value)} />
-        </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Revision</span>
-          </label>
-          <input type="text" className="input input-bordered w-full" value={revision} onChange={(e) => setRevision(e.target.value)} />
-        </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Delivery</span>
-          </label>
-          <input type="text" className="input input-bordered w-full" value={delivery} onChange={(e) => setDelivery(e.target.value)} />
-        </div>
-
         <div className="modal-action">
           <button type="button" className="btn" onClick={onClose}>
             Cancel

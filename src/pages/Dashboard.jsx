@@ -36,18 +36,21 @@ const Dashboard = () => {
   }, [user]);
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Your Projects</h1>
+    <div className="max-w-[1600px] mx-auto px-6 py-8">
+      <div className="flex justify-between items-center mb-8 border-b border-gray-200 pb-4">
+        <h1 className="text-4xl font-serif">YOUR WORK</h1>
         {canCreateProjects && (
-          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+          <button 
+            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            onClick={() => setIsModalOpen(true)}
+          >
             Create Project
           </button>
         )}
       </div>
       {loading ? (
-        <div className="text-center">
-          <span className="loading loading-lg"></span>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
         </div>
       ) : (
         <ProjectList projects={projects} />
