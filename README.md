@@ -208,37 +208,35 @@ END$$;
 
 -- GRID_ITEMS table (for Step Templates)
 CREATE TABLE IF NOT EXISTS grid_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    project_id UUID REFERENCES projects(id) ON DELETE CASCADE NOT NULL,
     section_id_text TEXT NOT NULL, -- e.g., 'brief', 'q-a', 'concept-&-direction'
+    grid_item_id INT NOT NULL,
     
     -- Grid properties
-    grid_item_id INT NOT NULL,
-    "row" INT NOT NULL,
-    "col" INT NOT NULL,
-    "rowSpan" INT NOT NULL DEFAULT 1,
-    "colSpan" INT NOT NULL DEFAULT 1,
-    hidden BOOLEAN NOT NULL DEFAULT FALSE,
+    row_num INT NOT NULL,
+    col_num INT NOT NULL,
+    row_span INT NOT NULL DEFAULT 1,
+    col_span INT NOT NULL DEFAULT 1,
+    is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Content properties
-    template_type grid_item_template_type,
-    content TEXT, -- Will store HTML from rich text editor
+    template_type TEXT, -- Can be 'text', 'image', or 'textAndImage'
     image_url TEXT,
 
-    -- Position and size of internal elements (as percentages of the grid cell)
-    text_pos_x REAL DEFAULT 0,
-    text_pos_y REAL DEFAULT 0,
-    image_pos_x REAL DEFAULT 0,
-    image_pos_y REAL DEFAULT 0,
-    text_size_w REAL DEFAULT 100,
-    text_size_h REAL DEFAULT 100,
-    image_size_w REAL DEFAULT 100,
-    image_size_h REAL DEFAULT 100,
+    -- Structured text content
+    title_text TEXT,
+    subtitle_text TEXT,
+    body_text TEXT,
+
+    -- Visibility flags for structured text
+    is_title_visible BOOLEAN DEFAULT TRUE,
+    is_subtitle_visible BOOLEAN DEFAULT TRUE,
+    is_body_visible BOOLEAN DEFAULT TRUE,
 
     updated_at TIMESTAMPTZ DEFAULT now(),
     
     -- Make sure each cell in a section grid is unique
-    UNIQUE(project_id, section_id_text, grid_item_id)
+    PRIMARY KEY(project_id, section_id_text, grid_item_id)
 );
 
 -- Helper function to check project membership and break recursion

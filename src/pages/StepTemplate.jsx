@@ -4,7 +4,7 @@ import { Rnd } from 'react-rnd';
 import { supabase } from '../lib/supabaseClient';
 
 // A single editable text row with a delete button
-const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, className, isVisible }) => {
+const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, className, isVisible, fontSize, onFontSizeChange }) => {
   if (!isVisible) return null;
 
   return (
@@ -14,11 +14,17 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
         suppressContentEditableWarning
         onBlur={e => onChange(e.currentTarget.textContent)}
         className={`w-full outline-none focus:bg-gray-100 p-1 rounded ${className}`}
+        style={{ fontSize: `${fontSize}px` }}
         dangerouslySetInnerHTML={{ __html: value || '' }}
       />
+      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
+        <button onClick={() => onFontSizeChange(fontSize - 1)} className="btn btn-xs btn-ghost">-</button>
+        <span className="text-xs w-6 text-center tabular-nums">{fontSize}px</span>
+        <button onClick={() => onFontSizeChange(fontSize + 1)} className="btn btn-xs btn-ghost">+</button>
+      </div>
       <button 
         onClick={onVisibilityChange}
-        className="ml-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="ml-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto"
       >
         &times;
       </button>
@@ -41,6 +47,8 @@ const TextContent = ({ item, onUpdate }) => {
         placeholder="Big Title"
         className="text-2xl font-bold"
         isVisible={item.is_title_visible}
+        fontSize={item.title_font_size}
+        onFontSizeChange={size => handleUpdate('title_font_size', size)}
       />
       <EditableTextRow
         value={item.subtitle_text}
@@ -49,6 +57,8 @@ const TextContent = ({ item, onUpdate }) => {
         placeholder="Small Description"
         className="text-md text-gray-600"
         isVisible={item.is_subtitle_visible}
+        fontSize={item.subtitle_font_size}
+        onFontSizeChange={size => handleUpdate('subtitle_font_size', size)}
       />
       <EditableTextRow
         value={item.body_text}
@@ -57,6 +67,8 @@ const TextContent = ({ item, onUpdate }) => {
         placeholder="Word processing added..."
         className="text-base mt-4"
         isVisible={item.is_body_visible}
+        fontSize={item.body_font_size}
+        onFontSizeChange={size => handleUpdate('body_font_size', size)}
       />
     </div>
   );
@@ -99,6 +111,8 @@ const TextAndImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => 
           placeholder="Big Title"
           className="text-2xl font-bold !text-white pointer-events-auto"
           isVisible={item.is_title_visible}
+          fontSize={item.title_font_size}
+          onFontSizeChange={size => onUpdate({ title_font_size: size })}
         />
         <EditableTextRow
           value={item.subtitle_text}
@@ -107,6 +121,8 @@ const TextAndImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => 
           placeholder="Small Description"
           className="text-md !text-white pointer-events-auto"
           isVisible={item.is_subtitle_visible}
+          fontSize={item.subtitle_font_size}
+          onFontSizeChange={size => onUpdate({ subtitle_font_size: size })}
         />
         <EditableTextRow
           value={item.body_text}
@@ -115,6 +131,8 @@ const TextAndImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => 
           placeholder="Word processing added..."
           className="text-base mt-4 !text-white pointer-events-auto"
           isVisible={item.is_body_visible}
+          fontSize={item.body_font_size}
+          onFontSizeChange={size => onUpdate({ body_font_size: size })}
         />
       </div>
     </div>
@@ -221,6 +239,9 @@ const generateInitialItems = (rows, cols) => {
     is_title_visible: true,
     is_subtitle_visible: true,
     is_body_visible: true,
+    title_font_size: 24,
+    subtitle_font_size: 16,
+    body_font_size: 14,
     template_type: null,
     image_url: null,
     text_pos_x: 0,
@@ -349,6 +370,9 @@ const StepTemplate = () => {
           is_subtitle_visible: true,
           is_body_visible: true,
           image_url: null,
+          title_font_size: 24,
+          subtitle_font_size: 16,
+          body_font_size: 14,
         }
       });
     });
@@ -391,6 +415,9 @@ const StepTemplate = () => {
       is_title_visible: true,
       is_subtitle_visible: true,
       is_body_visible: true,
+      title_font_size: 24,
+      subtitle_font_size: 16,
+      body_font_size: 14,
       template_type: null,
       image_url: null,
       text_pos_x: 0,
@@ -485,7 +512,10 @@ const StepTemplate = () => {
           body_text: item.body_text,
           is_title_visible: item.is_title_visible,
           is_subtitle_visible: item.is_subtitle_visible,
-          is_body_visible: item.is_body_visible
+          is_body_visible: item.is_body_visible,
+          title_font_size: item.title_font_size,
+          subtitle_font_size: item.subtitle_font_size,
+          body_font_size: item.body_font_size
         }));
         setGridItems(mappedData);
         const maxRows = Math.max(...mappedData.map(i => i.row));
@@ -495,6 +525,25 @@ const StepTemplate = () => {
           ...item,
           project_id: projectId,
           section_id_text: sectionId,
+          body_text: item.body_text,
+          is_title_visible: item.is_title_visible,
+          is_subtitle_visible: item.is_subtitle_visible,
+          is_body_visible: item.is_body_visible,
+          title_font_size: item.title_font_size,
+          subtitle_font_size: item.subtitle_font_size,
+          body_font_size: item.body_font_size,
+          template_type: item.template_type,
+          image_url: item.image_url,
+          text_pos_x: item.text_pos_x,
+          text_pos_y: item.text_pos_y,
+          text_size_w: item.text_size_w,
+          text_size_h: item.text_size_h,
+          image_pos_x: item.image_pos_x,
+          image_pos_y: item.image_pos_y,
+          image_size_w: item.image_size_w,
+          image_size_h: item.image_size_h,
+          project_id: item.project_id,
+          section_id_text: item.section_id_text
         }));
         
         const { error: upsertError } = await supabase
@@ -512,6 +561,9 @@ const StepTemplate = () => {
             is_title_visible: item.is_title_visible,
             is_subtitle_visible: item.is_subtitle_visible,
             is_body_visible: item.is_body_visible,
+            title_font_size: item.title_font_size,
+            subtitle_font_size: item.subtitle_font_size,
+            body_font_size: item.body_font_size,
             template_type: item.template_type,
             image_url: item.image_url,
             text_pos_x: item.text_pos_x,
@@ -551,6 +603,10 @@ const StepTemplate = () => {
     if ('is_title_visible' in updates) dbUpdates.is_title_visible = updates.is_title_visible;
     if ('is_subtitle_visible' in updates) dbUpdates.is_subtitle_visible = updates.is_subtitle_visible;
     if ('is_body_visible' in updates) dbUpdates.is_body_visible = updates.is_body_visible;
+    // font sizes
+    if ('title_font_size' in updates) dbUpdates.title_font_size = updates.title_font_size;
+    if ('subtitle_font_size' in updates) dbUpdates.subtitle_font_size = updates.subtitle_font_size;
+    if ('body_font_size' in updates) dbUpdates.body_font_size = updates.body_font_size;
     // positioning
     if ('text_pos_x' in updates) dbUpdates.text_pos_x = updates.text_pos_x;
     if ('text_pos_y' in updates) dbUpdates.text_pos_y = updates.text_pos_y;
@@ -583,6 +639,22 @@ const StepTemplate = () => {
       if ('template_type' in itemUpdates) dbUpdates.template_type = itemUpdates.template_type;
       if ('image_url' in itemUpdates) dbUpdates.image_url = itemUpdates.image_url;
       if ('title_text' in itemUpdates) dbUpdates.title_text = itemUpdates.title_text;
+      if ('subtitle_text' in itemUpdates) dbUpdates.subtitle_text = itemUpdates.subtitle_text;
+      if ('body_text' in itemUpdates) dbUpdates.body_text = itemUpdates.body_text;
+      if ('is_title_visible' in itemUpdates) dbUpdates.is_title_visible = itemUpdates.is_title_visible;
+      if ('is_subtitle_visible' in itemUpdates) dbUpdates.is_subtitle_visible = itemUpdates.is_subtitle_visible;
+      if ('is_body_visible' in itemUpdates) dbUpdates.is_body_visible = itemUpdates.is_body_visible;
+      if ('title_font_size' in itemUpdates) dbUpdates.title_font_size = itemUpdates.title_font_size;
+      if ('subtitle_font_size' in itemUpdates) dbUpdates.subtitle_font_size = itemUpdates.subtitle_font_size;
+      if ('body_font_size' in itemUpdates) dbUpdates.body_font_size = itemUpdates.body_font_size;
+      if ('text_pos_x' in itemUpdates) dbUpdates.text_pos_x = itemUpdates.text_pos_x;
+      if ('text_pos_y' in itemUpdates) dbUpdates.text_pos_y = itemUpdates.text_pos_y;
+      if ('text_size_w' in itemUpdates) dbUpdates.text_size_w = itemUpdates.text_size_w;
+      if ('text_size_h' in itemUpdates) dbUpdates.text_size_h = itemUpdates.text_size_h;
+      if ('image_pos_x' in itemUpdates) dbUpdates.image_pos_x = itemUpdates.image_pos_x;
+      if ('image_pos_y' in itemUpdates) dbUpdates.image_pos_y = itemUpdates.image_pos_y;
+      if ('image_size_w' in itemUpdates) dbUpdates.image_size_w = itemUpdates.image_size_w;
+      if ('image_size_h' in itemUpdates) dbUpdates.image_size_h = itemUpdates.image_size_h;
 
       const { error } = await supabase
         .from('grid_items')
