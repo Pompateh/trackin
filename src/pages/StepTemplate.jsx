@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Rnd } from 'react-rnd';
 import { supabase } from '../lib/supabaseClient';
+import ProjectSidebar from '../components/projects/ProjectSidebar';
 
 // A single editable text row with a delete button
 const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, className, isVisible, fontSize, onFontSizeChange }) => {
@@ -224,15 +225,17 @@ const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId })
   );
 };
 
-// Generate initial grid state
+// Generate initial grid state. This is the canonical structure for local state.
 const generateInitialItems = (rows, cols) => {
   return Array.from({ length: rows * cols }, (_, i) => ({
     grid_item_id: i + 1,
-    row_num: Math.floor(i / cols) + 1,
-    col_num: (i % cols) + 1,
-    row_span: 1,
-    col_span: 1,
-    is_hidden: false,
+    row: Math.floor(i / cols) + 1,
+    col: (i % cols) + 1,
+    rowSpan: 1,
+    colSpan: 1,
+    hidden: false,
+    template_type: null,
+    image_url: null,
     title_text: '',
     subtitle_text: '',
     body_text: '',
@@ -242,20 +245,31 @@ const generateInitialItems = (rows, cols) => {
     title_font_size: 24,
     subtitle_font_size: 16,
     body_font_size: 14,
-    template_type: null,
-    image_url: null,
-    text_pos_x: 0,
-    text_pos_y: 0,
-    text_size_w: '100%',
-    text_size_h: '200px',
-    image_pos_x: 0,
-    image_pos_y: 0,
-    image_size_w: '100%',
-    image_size_h: '200px',
-    project_id: null,
-    section_id_text: null
   }));
 };
+
+// Maps a local state grid item to the structure the database expects.
+const mapStateToDb = (item, projectId, sectionId) => ({
+  project_id: projectId,
+  section_id_text: sectionId,
+  grid_item_id: item.grid_item_id,
+  row_num: item.row,
+  col_num: item.col,
+  row_span: item.rowSpan,
+  col_span: item.colSpan,
+  is_hidden: item.hidden,
+  template_type: item.template_type,
+  image_url: item.image_url,
+  title_text: item.title_text,
+  subtitle_text: item.subtitle_text,
+  body_text: item.body_text,
+  is_title_visible: item.is_title_visible,
+  is_subtitle_visible: item.is_subtitle_visible,
+  is_body_visible: item.is_body_visible,
+  title_font_size: item.title_font_size,
+  subtitle_font_size: item.subtitle_font_size,
+  body_font_size: item.body_font_size,
+});
 
 // The main template selection component
 const StepTemplate = () => {
@@ -265,6 +279,7 @@ const StepTemplate = () => {
   const [selectedGrids, setSelectedGrids] = useState(new Set());
   const [menu, setMenu] = useState({ visible: false, x: 0, y: 0, gridId: null });
   const [projectName, setProjectName] = useState('');
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   // Handle grid selection
   const handleSelect = (id) => {
@@ -301,59 +316,81 @@ const StepTemplate = () => {
     const topLeftItem = selectedItems.find(item => item.row === minRow && item.col === minCol);
     if (!topLeftItem) return;
 
-    const itemsToUpdate = [];
-    const itemsToHideIds = [];
-    
-    // Prepare updates
-    itemsToUpdate.push({ 
-      ...topLeftItem, 
-      row_span: newRowSpan, 
-      col_span: newColSpan,
-      body_text: 'Merged Cell' // Default text
+    const itemsToHideIds = selectedItems
+      .filter(item => item.grid_item_id !== topLeftItem.grid_item_id)
+      .map(item => item.grid_item_id);
+
+    const { error } = await supabase.rpc('merge_grid_items', {
+      p_project_id: projectId,
+      p_section_id_text: sectionId,
+      p_top_left_item_id: topLeftItem.grid_item_id,
+      p_new_row_span: newRowSpan,
+      p_new_col_span: newColSpan,
+      p_item_ids_to_hide: itemsToHideIds,
     });
 
-    selectedItems.forEach(item => {
-      if (item.grid_item_id !== topLeftItem.grid_item_id) {
-        itemsToHideIds.push(item.grid_item_id);
-      }
-    });
-
-    // Perform DB operations
-    try {
-      const { error: updateError } = await supabase
-        .from('grid_items')
-        .update({ row_span: newRowSpan, col_span: newColSpan, body_text: 'Merged Cell' })
-        .eq('grid_item_id', topLeftItem.grid_item_id);
-
-      if (updateError) throw updateError;
-
-      if (itemsToHideIds.length > 0) {
-        const { error: hideError } = await supabase
-          .from('grid_items')
-          .update({ is_hidden: true })
-          .in('grid_item_id', itemsToHideIds);
-
-        if (hideError) throw hideError;
-      }
-      
-      // Update local state on success
-      setGridItems(prevItems => {
-        return prevItems.map(item => {
-          if (item.grid_item_id === topLeftItem.grid_item_id) {
-            return { ...item, rowSpan: newRowSpan, colSpan: newColSpan, body_text: 'Merged Cell' };
-          }
-          if (itemsToHideIds.includes(item.grid_item_id)) {
-            return { ...item, hidden: true };
-          }
-          return item;
-        });
-      });
-
-      setSelectedGrids(new Set());
-
-    } catch (error) {
-      console.error("Error merging items:", error);
+    if (error) {
+      console.error('Error merging items:', JSON.stringify(error, null, 2));
+      return;
     }
+      
+    // Update local state on success
+    setGridItems(prevItems => {
+      return prevItems.map(item => {
+        if (item.grid_item_id === topLeftItem.grid_item_id) {
+          return { ...item, rowSpan: newRowSpan, colSpan: newColSpan, body_text: 'Merged Cell' };
+        }
+        if (itemsToHideIds.includes(item.grid_item_id)) {
+          return { ...item, hidden: true };
+        }
+        return item;
+      });
+    });
+
+    setSelectedGrids(new Set());
+  };
+
+  const handleUnmerge = async () => {
+    if (!menu.gridId) return;
+
+    const itemToUnmerge = gridItems.find(item => item.grid_item_id === menu.gridId);
+    if (!itemToUnmerge) return;
+
+    const { error } = await supabase.rpc('unmerge_grid_items', {
+      p_project_id: projectId,
+      p_section_id_text: sectionId,
+      p_item_id_to_unmerge: menu.gridId,
+    });
+
+    if (error) {
+      console.error('Error unmerging items:', JSON.stringify(error, null, 2));
+      return;
+    }
+      
+    // Update local state on success
+    setGridItems(prevItems => {
+      return prevItems.map(item => {
+        // Reset the main item
+        if (item.grid_item_id === itemToUnmerge.grid_item_id) {
+          return { ...item, rowSpan: 1, colSpan: 1, body_text: '' };
+        }
+        // Unhide items that were part of the merge
+        const wasCovered = 
+          item.row >= itemToUnmerge.row &&
+          item.row < itemToUnmerge.row + itemToUnmerge.rowSpan &&
+          item.col >= itemToUnmerge.col &&
+          item.col < itemToUnmerge.col + itemToUnmerge.colSpan;
+        
+        if (wasCovered) {
+          return { ...item, hidden: false };
+        }
+        
+        return item;
+      });
+    });
+
+    setMenu({ visible: false });
+    setSelectedGrids(new Set());
   };
 
   const handleResetGrids = () => {
@@ -403,43 +440,21 @@ const StepTemplate = () => {
     const maxId = gridItems.reduce((max, item) => Math.max(max, item.grid_item_id), 0);
 
     const newItems = Array.from({ length: 4 }, (_, i) => ({
+      ...generateInitialItems(1, 1)[0],
       grid_item_id: maxId + i + 1,
-      row_num: newRowsCount,
-      col_num: i + 1,
-      row_span: 1,
-      col_span: 1,
-      is_hidden: false,
-      title_text: '',
-      subtitle_text: '',
-      body_text: '',
-      is_title_visible: true,
-      is_subtitle_visible: true,
-      is_body_visible: true,
-      title_font_size: 24,
-      subtitle_font_size: 16,
-      body_font_size: 14,
-      template_type: null,
-      image_url: null,
-      text_pos_x: 0,
-      text_pos_y: 0,
-      text_size_w: '100%',
-      text_size_h: '200px',
-      image_pos_x: 0,
-      image_pos_y: 0,
-      image_size_w: '100%',
-      image_size_h: '200px',
-      project_id: projectId,
-      section_id_text: sectionId,
+      row: newRowsCount,
+      col: i + 1,
     }));
 
-    const { error } = await supabase.from('grid_items').insert(newItems);
+    const dbItems = newItems.map(item => mapStateToDb(item, projectId, sectionId));
+    const { error } = await supabase.from('grid_items').insert(dbItems);
 
     if (error) {
-      console.error("Error adding new row:", error);
+      console.error("Error adding new row:", JSON.stringify(error, null, 2));
       return;
     }
 
-    setGridItems(prevItems => [...prevItems, ...newItems.map(item => ({...item, row: item.row_num, col: item.col_num, rowSpan: item.row_span, colSpan: item.col_span, hidden: item.is_hidden}))]);
+    setGridItems(prevItems => [...prevItems, ...newItems]);
     setRows(newRowsCount);
   };
 
@@ -457,7 +472,7 @@ const StepTemplate = () => {
         .in('grid_item_id', itemIdsToDelete);
 
       if (error) {
-        console.error("Error removing row:", error);
+        console.error("Error removing row:", JSON.stringify(error, null, 2));
         return;
       }
     }
@@ -476,7 +491,7 @@ const StepTemplate = () => {
         .single();
       
       if (error) {
-        console.error("Error fetching project name:", error);
+        console.error("Error fetching project name:", JSON.stringify(error, null, 2));
       } else if (data) {
         setProjectName(data.name);
       }
@@ -493,95 +508,45 @@ const StepTemplate = () => {
         .order('grid_item_id', { ascending: true });
       
       if (error) {
-        console.error("Error fetching grid items:", error);
+        console.error("Error fetching grid items:", JSON.stringify(error, null, 2));
         return;
       }
 
       if (data && data.length > 0) {
-        // Map database column names to component props
         const mappedData = data.map(item => ({
-          ...item,
-          id: item.grid_item_id,
+          grid_item_id: item.grid_item_id,
           row: item.row_num,
           col: item.col_num,
           rowSpan: item.row_span,
           colSpan: item.col_span,
           hidden: item.is_hidden,
+          template_type: item.template_type,
+          image_url: item.image_url,
           title_text: item.title_text,
           subtitle_text: item.subtitle_text,
           body_text: item.body_text,
           is_title_visible: item.is_title_visible,
           is_subtitle_visible: item.is_subtitle_visible,
           is_body_visible: item.is_body_visible,
-          title_font_size: item.title_font_size,
-          subtitle_font_size: item.subtitle_font_size,
-          body_font_size: item.body_font_size
+          title_font_size: item.title_font_size || 24,
+          subtitle_font_size: item.subtitle_font_size || 16,
+          body_font_size: item.body_font_size || 14
         }));
         setGridItems(mappedData);
         const maxRows = Math.max(...mappedData.map(i => i.row));
         setRows(maxRows);
       } else {
-        const initialItems = generateInitialItems(2, 4).map(item => ({
-          ...item,
-          project_id: projectId,
-          section_id_text: sectionId,
-          body_text: item.body_text,
-          is_title_visible: item.is_title_visible,
-          is_subtitle_visible: item.is_subtitle_visible,
-          is_body_visible: item.is_body_visible,
-          title_font_size: item.title_font_size,
-          subtitle_font_size: item.subtitle_font_size,
-          body_font_size: item.body_font_size,
-          template_type: item.template_type,
-          image_url: item.image_url,
-          text_pos_x: item.text_pos_x,
-          text_pos_y: item.text_pos_y,
-          text_size_w: item.text_size_w,
-          text_size_h: item.text_size_h,
-          image_pos_x: item.image_pos_x,
-          image_pos_y: item.image_pos_y,
-          image_size_w: item.image_size_w,
-          image_size_h: item.image_size_h,
-          project_id: item.project_id,
-          section_id_text: item.section_id_text
-        }));
+        const initialItems = generateInitialItems(2, 4);
+        const dbItems = initialItems.map(item => mapStateToDb(item, projectId, sectionId));
         
         const { error: upsertError } = await supabase
           .from('grid_items')
-          .upsert(initialItems.map(item => ({
-            grid_item_id: item.grid_item_id,
-            row_num: item.row_num,
-            col_num: item.col_num,
-            row_span: item.row_span,
-            col_span: item.col_span,
-            is_hidden: item.is_hidden,
-            title_text: item.title_text,
-            subtitle_text: item.subtitle_text,
-            body_text: item.body_text,
-            is_title_visible: item.is_title_visible,
-            is_subtitle_visible: item.is_subtitle_visible,
-            is_body_visible: item.is_body_visible,
-            title_font_size: item.title_font_size,
-            subtitle_font_size: item.subtitle_font_size,
-            body_font_size: item.body_font_size,
-            template_type: item.template_type,
-            image_url: item.image_url,
-            text_pos_x: item.text_pos_x,
-            text_pos_y: item.text_pos_y,
-            text_size_w: item.text_size_w,
-            text_size_h: item.text_size_h,
-            image_pos_x: item.image_pos_x,
-            image_pos_y: item.image_pos_y,
-            image_size_w: item.image_size_w,
-            image_size_h: item.image_size_h,
-            project_id: item.project_id,
-            section_id_text: item.section_id_text
-          })), {
+          .upsert(dbItems, {
             onConflict: 'project_id,section_id_text,grid_item_id'
           });
           
         if (upsertError) {
-          console.error("Error upserting initial items:", upsertError);
+          console.error("Error upserting initial items:", JSON.stringify(upsertError, null, 2));
           return;
         }
         
@@ -592,22 +557,19 @@ const StepTemplate = () => {
   }, [projectId, sectionId]);
 
   const updateAndSaveItem = async (itemId, updates) => {
-    // Map component props to database column names
     const dbUpdates = {};
+    // This is a bit of a manual mapping for updates, but it's clear.
     if ('template_type' in updates) dbUpdates.template_type = updates.template_type;
     if ('image_url' in updates) dbUpdates.image_url = updates.image_url;
-    // text fields
     if ('title_text' in updates) dbUpdates.title_text = updates.title_text;
     if ('subtitle_text' in updates) dbUpdates.subtitle_text = updates.subtitle_text;
     if ('body_text' in updates) dbUpdates.body_text = updates.body_text;
     if ('is_title_visible' in updates) dbUpdates.is_title_visible = updates.is_title_visible;
     if ('is_subtitle_visible' in updates) dbUpdates.is_subtitle_visible = updates.is_subtitle_visible;
     if ('is_body_visible' in updates) dbUpdates.is_body_visible = updates.is_body_visible;
-    // font sizes
     if ('title_font_size' in updates) dbUpdates.title_font_size = updates.title_font_size;
     if ('subtitle_font_size' in updates) dbUpdates.subtitle_font_size = updates.subtitle_font_size;
     if ('body_font_size' in updates) dbUpdates.body_font_size = updates.body_font_size;
-    // positioning
     if ('text_pos_x' in updates) dbUpdates.text_pos_x = updates.text_pos_x;
     if ('text_pos_y' in updates) dbUpdates.text_pos_y = updates.text_pos_y;
     if ('text_size_w' in updates) dbUpdates.text_size_w = updates.text_size_w;
@@ -623,7 +585,7 @@ const StepTemplate = () => {
       .eq('grid_item_id', itemId);
 
     if (error) {
-      console.error("Error updating item:", error);
+      console.error("Error updating item:", JSON.stringify(error, null, 2));
       return;
     }
 
@@ -634,7 +596,6 @@ const StepTemplate = () => {
   
   const batchUpdateAndSave = async (updates) => {
     for (const { id, updates: itemUpdates } of updates) {
-      // Map component props to database column names
       const dbUpdates = {};
       if ('template_type' in itemUpdates) dbUpdates.template_type = itemUpdates.template_type;
       if ('image_url' in itemUpdates) dbUpdates.image_url = itemUpdates.image_url;
@@ -662,7 +623,7 @@ const StepTemplate = () => {
         .eq('grid_item_id', id);
 
       if (error) {
-        console.error(`Error updating item ${id}:`, error);
+        console.error(`Error updating item ${id}:`, JSON.stringify(error, null, 2));
         continue;
       }
 
@@ -673,65 +634,94 @@ const StepTemplate = () => {
   };
 
   return (
-    <div className="p-4 h-full" onClick={handleCloseMenu}>
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">
-          {projectName && <span className="text-gray-500">{projectName} / </span>}
-          Step: {sectionId} - Select Template
-        </h1>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+    <div className="flex h-screen">
+      <div className={`flex-grow p-4 h-full transition-all duration-300 ${isSidebarVisible ? 'w-3/4' : 'w-full'}`}>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">
+            {projectName && (
+              <>
+                <Link to={`/project/${projectId}`} className="text-gray-500 hover:underline">
+                  {projectName}
+                </Link>
+                <span className="text-gray-500"> / </span>
+              </>
+            )}
+            Step: {sectionId} - Select Template
+          </h1>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <button 
+                className="btn btn-sm btn-outline" 
+                onClick={handleRemoveRow}
+                disabled={rows <= 1}
+              >
+                - Row
+              </button>
+              <span className="px-2">{rows} rows</span>
+              <button 
+                className="btn btn-sm btn-outline" 
+                onClick={handleAddRow}
+              >
+                + Row
+              </button>
+            </div>
+            {selectedGrids.size > 1 && (
+              <button className="btn btn-primary" onClick={handleMerge}>
+                Merge {selectedGrids.size} Items
+              </button>
+            )}
             <button 
-              className="btn btn-sm btn-outline" 
-              onClick={handleRemoveRow}
-              disabled={rows <= 1}
+              className="btn btn-secondary"
+              onClick={() => setIsSidebarVisible(!isSidebarVisible)}
             >
-              - Row
-            </button>
-            <span className="px-2">{rows} rows</span>
-            <button 
-              className="btn btn-sm btn-outline" 
-              onClick={handleAddRow}
-            >
-              + Row
+              {isSidebarVisible ? 'Hide Panel' : 'Show Panel'}
             </button>
           </div>
-          {selectedGrids.size > 1 && (
-            <button className="btn btn-primary" onClick={handleMerge}>
-              Merge {selectedGrids.size} Items
-            </button>
+        </div>
+
+        <div
+          className="grid grid-cols-4"
+          style={{ gap: '10px 5px' }}
+        >
+          {gridItems.map(item =>
+            !item.hidden ? (
+              <GridItem
+                key={item.grid_item_id}
+                item={item}
+                selected={selectedGrids.has(item.grid_item_id)}
+                onSelect={handleSelect}
+                onShowMenu={handleShowMenu}
+                onUpdate={updateAndSaveItem}
+                projectId={projectId}
+              />
+            ) : null
           )}
         </div>
-      </div>
 
-      <div
-        className="grid grid-cols-4"
-        style={{ gap: '10px 5px' }}
-      >
-        {gridItems.map(item =>
-          !item.hidden ? (
-            <GridItem
-              key={item.grid_item_id}
-              item={item}
-              selected={selectedGrids.has(item.grid_item_id)}
-              onSelect={handleSelect}
-              onShowMenu={handleShowMenu}
-              onUpdate={updateAndSaveItem}
-              projectId={projectId}
-            />
-          ) : null
-        )}
-      </div>
+        {menu.visible && (() => {
+          const item = gridItems.find(i => i.grid_item_id === menu.gridId);
+          const isMerged = item && (item.rowSpan > 1 || item.colSpan > 1);
 
-      {menu.visible && (
-        <ul className="menu bg-base-100 w-56 rounded-box absolute shadow-lg z-50" style={{ top: menu.y, left: menu.x }}>
-          <li className="menu-title"><span>Template for Grid {menu.gridId}</span></li>
-          <li><a onClick={() => handleTemplateSelect('text')}>1. Text</a></li>
-          <li><a onClick={() => handleTemplateSelect('textAndImage')}>2. Text and Image</a></li>
-          <li><a onClick={() => handleTemplateSelect('image')}>3. Image only</a></li>
-          <div className="divider my-0"></div>
-          <li><a onClick={handleResetGrids} className="text-error">Reset Item(s)</a></li>
-        </ul>
+          return (
+            <ul className="menu bg-base-100 w-56 rounded-box absolute shadow-lg z-50" style={{ top: menu.y, left: menu.x }}>
+              <li className="menu-title"><span>Template for Grid {menu.gridId}</span></li>
+              <li><a onClick={() => handleTemplateSelect('text')}>1. Text</a></li>
+              <li><a onClick={() => handleTemplateSelect('textAndImage')}>2. Text and Image</a></li>
+              <li><a onClick={() => handleTemplateSelect('image')}>3. Image only</a></li>
+              <div className="divider my-0"></div>
+              {isMerged && (
+                <li><a onClick={handleUnmerge}>Unmerge</a></li>
+              )}
+              <li><a onClick={handleResetGrids} className="text-error">Reset Item(s)</a></li>
+            </ul>
+          );
+        })()}
+      </div>
+      
+      {isSidebarVisible && (
+        <div className="w-1/4 h-full border-l border-base-300">
+          <ProjectSidebar projectId={projectId} />
+        </div>
       )}
     </div>
   );
