@@ -1,5 +1,10 @@
 import React from "react";
 
+// Function to convert section title to URL format (matching what's stored in database)
+const sectionTitleToUrl = (title) => {
+  return title.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-');
+};
+
 // Minimal stateless versions of the content renderers from StepTemplate
 const TextContent = ({ item }) => {
   const justifyMap = {
@@ -63,12 +68,12 @@ const TextAndImageContent = ({ item }) => (
 const NUM_COLS = 4;
 
 const PrintableProject = ({ project, sections, gridItems }) => {
-  // Get all unique section titles from grid items (convert to lowercase for comparison)
-  const sectionTitles = [...new Set(gridItems?.map(item => item.section_id_text?.toLowerCase()).filter(Boolean))];
+  // Get all unique section titles from grid items (these are URL-encoded)
+  const sectionTitles = [...new Set(gridItems?.map(item => item.section_id_text).filter(Boolean))];
   
-  // Filter sections to only include those that have grid content (case-insensitive comparison)
+  // Filter sections to only include those that have grid content (convert section titles to URL format for comparison)
   const sectionsWithContent = sections?.filter(section => 
-    sectionTitles.includes(section.title.toLowerCase())
+    sectionTitles.includes(sectionTitleToUrl(section.title))
   ) || [];
 
   // Debug logging
@@ -96,7 +101,7 @@ const PrintableProject = ({ project, sections, gridItems }) => {
       {/* Render each section with its grid content */}
       {sectionsWithContent.map((section, sectionIndex) => {
         const sectionGridItems = gridItems?.filter(item => 
-          item.section_id_text?.toLowerCase() === section.title.toLowerCase() && !item.is_hidden
+          item.section_id_text === sectionTitleToUrl(section.title) && !item.is_hidden
         ) || [];
         
         console.log(`Section "${section.title}":`, {

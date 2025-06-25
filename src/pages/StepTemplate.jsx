@@ -681,6 +681,8 @@ const StepTemplate = () => {
     const { error } = await supabase
       .from('grid_items')
       .update(dbUpdates)
+      .eq('project_id', projectId)
+      .eq('section_id_text', sectionId)
       .eq('grid_item_id', itemId);
 
     if (error) {
@@ -714,6 +716,8 @@ const StepTemplate = () => {
       const { error } = await supabase
         .from('grid_items')
         .update(dbUpdates)
+        .eq('project_id', projectId)
+        .eq('section_id_text', sectionId)
         .eq('grid_item_id', id);
 
       if (error) {
