@@ -51,6 +51,7 @@ const Project = () => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [gridItems, setGridItems] = useState([]);
   const printableRef = useRef();
+  const hiddenPdfRef = useRef();
 
   useEffect(() => {
     if (projectId && user) {
@@ -97,7 +98,7 @@ const Project = () => {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-4xl font-serif">INDEX</h1>
           <div className="flex gap-2 items-center">
-            <DownloadPDFButton printableRef={printableRef} />
+            <DownloadPDFButton printableRef={hiddenPdfRef} />
             <button 
               className="btn btn-secondary"
               onClick={() => setIsSidebarVisible(!isSidebarVisible)}
@@ -112,21 +113,35 @@ const Project = () => {
           selectedSection={selectedSection} 
           isAdmin={role === 'admin'} 
         />
-        {/* Debug: Printable area for PDF export, fully visible */}
-        <div style={{ display: 'block', background: '#fff', border: '2px solid red', padding: '16px', margin: '16px 0' }}>
+        {/* On-screen preview (can keep debug info and border) */}
+        <div style={{ background: '#fff', border: '2px solid red', padding: '16px', margin: '16px 0' }}>
           <div ref={printableRef}>
-            {/* Debug info */}
+            {/* Debug info and on-screen PrintableProject */}
             <div style={{ color: 'blue', fontSize: '12px', marginBottom: '10px' }}>
               Debug: Sections: {DEFAULT_SECTIONS.length}, GridItems: {gridItems.length}, 
               Project: {project?.name || 'No project'}, 
               GridItems with content: {gridItems.filter(item => item.section_id_text).length}
             </div>
-            
-            {(!DEFAULT_SECTIONS.length || !gridItems.length) ? (
-              <div style={{ color: 'red', fontWeight: 'bold' }}>No sections or grid items to display</div>
-            ) : (
-              <PrintableProject project={project} sections={DEFAULT_SECTIONS} gridItems={gridItems} />
-            )}
+            <PrintableProject project={project} sections={DEFAULT_SECTIONS} gridItems={gridItems} />
+          </div>
+        </div>
+        {/* HIDDEN PDF EXPORT CONTAINER - clean, no debug, no border */}
+        <div style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 0,
+          width: '210mm',
+          background: '#fff',
+          zIndex: -1,
+          pointerEvents: 'none'
+        }}>
+          <div ref={hiddenPdfRef}>
+            <PrintableProject
+              project={project}
+              sections={DEFAULT_SECTIONS}
+              gridItems={gridItems}
+              pdfMode={true}
+            />
           </div>
         </div>
       </div>
