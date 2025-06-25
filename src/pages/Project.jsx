@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import useProjectStore from '../store/useProjectStore';
 import useAuthStore from '../store/useAuthStore';
@@ -8,8 +8,38 @@ import CommentSection from '../components/comments/CommentSection';
 import SectionList from '../components/projects/SectionList';
 import RecapList from '../components/projects/RecapList';
 import ProjectSidebar from '../components/projects/ProjectSidebar';
+import PrintableProject from '../components/projects/PrintableProject';
+import DownloadPDFButton from '../components/projects/DownloadPDFButton';
+import { supabase } from '../lib/supabaseClient';
 // Placeholder for new components
 // import RecapList from '../components/projects/RecapList';
+
+const DEFAULT_SECTIONS = [
+  { id: 1, title: 'Brief', status: 'To Do', parent_section_id: null },
+  { id: 2, title: 'Q & A', status: 'To Do', parent_section_id: null },
+  { id: 3, title: 'Debrief', status: 'To Do', parent_section_id: null },
+  { id: 4, title: 'Quotation', status: 'To Do', parent_section_id: null },
+  { id: 5, title: 'Contract', status: 'To Do', parent_section_id: 9 },
+  { id: 6, title: 'Brand Strategy', status: 'To Do', parent_section_id: null },
+  { id: 7, title: 'Planner', status: 'To Do', parent_section_id: null },
+  { id: 8, title: 'Brand Story', status: 'To Do', parent_section_id: null },
+  { id: 9, title: 'Moodboard', status: 'To Do', parent_section_id: null },
+  { id: 10, title: 'Concept & Direction', status: 'To Do', parent_section_id: null },
+  { id: 11, title: 'Logo', status: 'To Do', parent_section_id: 9 },
+  { id: 12, title: 'Typography', status: 'To Do', parent_section_id: 9 },
+  { id: 13, title: 'Colour', status: 'To Do', parent_section_id: 9 },
+  { id: 14, title: 'Illustration', status: 'To Do', parent_section_id: 9 },
+  { id: 15, title: 'Icon', status: 'To Do', parent_section_id: 9 },
+  { id: 16, title: 'Pattern', status: 'To Do', parent_section_id: 9 },
+  { id: 17, title: 'Motion', status: 'To Do', parent_section_id: 9 },
+  { id: 18, title: 'Photograph', status: 'To Do', parent_section_id: 9 },
+  { id: 19, title: 'Packaging', status: 'To Do', parent_section_id: 9 },
+  { id: 20, title: 'Guideline Book', status: 'To Do', parent_section_id: 9 },
+  { id: 21, title: 'P.0.S.M', status: 'To Do', parent_section_id: 9 },
+  { id: 22, title: 'Social Template', status: 'To Do', parent_section_id: 9 },
+  { id: 23, title: 'Layout', status: 'To Do', parent_section_id: 9 },
+  { id: 24, title: 'Delivery', status: 'To Do', parent_section_id: null },
+];
 
 const Project = () => {
   const { projectId } = useParams();
@@ -19,12 +49,29 @@ const Project = () => {
   const [selectedSection, setSelectedSection] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  const [gridItems, setGridItems] = useState([]);
+  const printableRef = useRef();
 
   useEffect(() => {
     if (projectId && user) {
       fetchProjectData(projectId, user.id);
     }
   }, [projectId, user, fetchProjectData]);
+
+  useEffect(() => {
+    const fetchGridItems = async () => {
+      if (!projectId) return;
+      const { data, error } = await supabase
+        .from('grid_items')
+        .select('*')
+        .eq('project_id', projectId);
+      
+      console.log('GridItems fetch result:', { data, error, count: data?.length });
+      
+      if (!error) setGridItems(data || []);
+    };
+    fetchGridItems();
+  }, [projectId]);
 
   if (loading) {
     return (
@@ -49,12 +96,15 @@ const Project = () => {
       <div className={`flex-grow p-4 h-full transition-all duration-300 ${isSidebarVisible ? 'w-3/4' : 'w-full'}`}>
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-4xl font-serif">INDEX</h1>
-          <button 
-            className="btn btn-secondary"
-            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-          >
-            {isSidebarVisible ? 'Hide Panel' : 'Show Panel'}
-          </button>
+          <div className="flex gap-2 items-center">
+            <DownloadPDFButton printableRef={printableRef} />
+            <button 
+              className="btn btn-secondary"
+              onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+            >
+              {isSidebarVisible ? 'Hide Panel' : 'Show Panel'}
+            </button>
+          </div>
         </div>
         <SectionList 
           projectId={projectId} 
@@ -62,6 +112,23 @@ const Project = () => {
           selectedSection={selectedSection} 
           isAdmin={role === 'admin'} 
         />
+        {/* Debug: Printable area for PDF export, fully visible */}
+        <div style={{ display: 'block', background: '#fff', border: '2px solid red', padding: '16px', margin: '16px 0' }}>
+          <div ref={printableRef}>
+            {/* Debug info */}
+            <div style={{ color: 'blue', fontSize: '12px', marginBottom: '10px' }}>
+              Debug: Sections: {DEFAULT_SECTIONS.length}, GridItems: {gridItems.length}, 
+              Project: {project?.name || 'No project'}, 
+              GridItems with content: {gridItems.filter(item => item.section_id_text).length}
+            </div>
+            
+            {(!DEFAULT_SECTIONS.length || !gridItems.length) ? (
+              <div style={{ color: 'red', fontWeight: 'bold' }}>No sections or grid items to display</div>
+            ) : (
+              <PrintableProject project={project} sections={DEFAULT_SECTIONS} gridItems={gridItems} />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Sidebar */}

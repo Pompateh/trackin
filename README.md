@@ -123,12 +123,12 @@ CREATE TABLE IF NOT EXISTS grid_items (
     section_id_text TEXT NOT NULL,
     grid_item_id INT NOT NULL,
     
-    -- Grid properties
-    "row" INT NOT NULL,
-    "col" INT NOT NULL,
-    "rowSpan" INT NOT NULL DEFAULT 1,
-    "colSpan" INT NOT NULL DEFAULT 1,
-    hidden BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Grid properties (fixed column names)
+    row_num INT NOT NULL,
+    col_num INT NOT NULL,
+    row_span INT NOT NULL DEFAULT 1,
+    col_span INT NOT NULL DEFAULT 1,
+    is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Content properties
     template_type TEXT,
@@ -144,10 +144,15 @@ CREATE TABLE IF NOT EXISTS grid_items (
     is_subtitle_visible BOOLEAN DEFAULT TRUE,
     is_body_visible BOOLEAN DEFAULT TRUE,
 
-    -- Text font sizes
-    title_font_size TEXT DEFAULT '24px',
-    subtitle_font_size TEXT DEFAULT '18px',
-    body_font_size TEXT DEFAULT '14px',
+    -- Text font sizes (as integers)
+    title_font_size INT DEFAULT 24,
+    subtitle_font_size INT DEFAULT 16,
+    body_font_size INT DEFAULT 14,
+    
+    -- Text alignment properties
+    text_align TEXT DEFAULT 'left',
+    text_vertical_align TEXT DEFAULT 'top',
+    text_horizontal_align TEXT DEFAULT 'left',
     
     updated_at TIMESTAMPTZ DEFAULT now(),
     
@@ -161,23 +166,23 @@ CREATE TABLE IF NOT EXISTS grid_items (
 CREATE OR REPLACE FUNCTION merge_grid_items(
     p_project_id UUID,
     p_section_id_text TEXT,
-    p_main_item_id INT,
-    p_row_span INT,
-    p_col_span INT,
+    p_top_left_item_id INT,
+    p_new_row_span INT,
+    p_new_col_span INT,
     p_item_ids_to_hide INT[]
 )
 RETURNS void AS $$
 BEGIN
     -- Update the main item to span across the selected area
     UPDATE grid_items
-    SET "rowSpan" = p_row_span, "colSpan" = p_col_span
+    SET row_span = p_new_row_span, col_span = p_new_col_span
     WHERE project_id = p_project_id
       AND section_id_text = p_section_id_text
-      AND grid_item_id = p_main_item_id;
+      AND grid_item_id = p_top_left_item_id;
 
     -- Hide the other items that are now covered by the main item
     UPDATE grid_items
-    SET hidden = TRUE
+    SET is_hidden = TRUE
     WHERE project_id = p_project_id
       AND section_id_text = p_section_id_text
       AND grid_item_id = ANY(p_item_ids_to_hide);
@@ -196,7 +201,7 @@ DECLARE
     unmerge_item record;
 BEGIN
     -- Get the state of the item we want to unmerge
-    SELECT "row", "col", "rowSpan", "colSpan"
+    SELECT row_num, col_num, row_span, col_span
     INTO unmerge_item
     FROM grid_items
     WHERE project_id = p_project_id
@@ -205,17 +210,17 @@ BEGIN
 
     -- Un-hide all items that were covered by this merge
     UPDATE grid_items
-    SET hidden = FALSE
+    SET is_hidden = FALSE
     WHERE project_id = p_project_id
       AND section_id_text = p_section_id_text
-      AND "row" >= unmerge_item."row"
-      AND "row" < unmerge_item."row" + unmerge_item."rowSpan"
-      AND "col" >= unmerge_item."col"
-      AND "col" < unmerge_item."col" + unmerge_item."colSpan";
+      AND row_num >= unmerge_item.row_num
+      AND row_num < unmerge_item.row_num + unmerge_item.row_span
+      AND col_num >= unmerge_item.col_num
+      AND col_num < unmerge_item.col_num + unmerge_item.col_span;
       
     -- Reset the main item itself back to its default state
     UPDATE grid_items
-    SET "rowSpan" = 1, "colSpan" = 1, body_text = ''
+    SET row_span = 1, col_span = 1, body_text = ''
     WHERE project_id = p_project_id
       AND section_id_text = p_section_id_text
       AND grid_item_id = p_item_id_to_unmerge;
