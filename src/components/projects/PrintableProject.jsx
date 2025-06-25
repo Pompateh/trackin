@@ -67,6 +67,38 @@ const TextAndImageContent = ({ item }) => (
 
 const NUM_COLS = 4;
 
+// Function to calculate the actual grid structure based on grid items
+const calculateGridStructure = (gridItems) => {
+  if (!gridItems || gridItems.length === 0) return { rows: 0, items: [] };
+  
+  // Find the maximum row number to determine total rows
+  const maxRow = Math.max(...gridItems.map(item => (item.row_num || item.row || 1) + (item.row_span || item.rowSpan || 1) - 1));
+  
+  // Create a 2D grid structure
+  const grid = Array.from({ length: maxRow }, () => Array(NUM_COLS).fill(null));
+  
+  // Place items in the grid
+  const visibleItems = gridItems.filter(item => !item.is_hidden && !item.hidden);
+  
+  visibleItems.forEach(item => {
+    const row = (item.row_num || item.row || 1) - 1; // Convert to 0-based index
+    const col = (item.col_num || item.col || 1) - 1; // Convert to 0-based index
+    const rowSpan = item.row_span || item.rowSpan || 1;
+    const colSpan = item.col_span || item.colSpan || 1;
+    
+    // Mark the cells this item occupies
+    for (let r = row; r < row + rowSpan; r++) {
+      for (let c = col; c < col + colSpan; c++) {
+        if (r < grid.length && c < NUM_COLS) {
+          grid[r][c] = item.grid_item_id;
+        }
+      }
+    }
+  });
+  
+  return { rows: maxRow, grid, items: visibleItems };
+};
+
 const PrintableProject = ({ project, sections, gridItems }) => {
   // Get all unique section titles from grid items (these are URL-encoded)
   const sectionTitles = [...new Set(gridItems?.map(item => item.section_id_text).filter(Boolean))];
@@ -104,8 +136,12 @@ const PrintableProject = ({ project, sections, gridItems }) => {
           item.section_id_text === sectionTitleToUrl(section.title) && !item.is_hidden
         ) || [];
         
+        // Calculate grid structure for this section
+        const { rows, grid, items } = calculateGridStructure(sectionGridItems);
+        
         console.log(`Section "${section.title}":`, {
           sectionGridItemsCount: sectionGridItems.length,
+          calculatedRows: rows,
           items: sectionGridItems
         });
         
@@ -129,32 +165,39 @@ const PrintableProject = ({ project, sections, gridItems }) => {
               {section.title}
             </h2>
             
-            {/* Section Grid */}
+            {/* Section Grid - Now using calculated structure */}
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: `repeat(${NUM_COLS}, 1fr)`, 
+              gridTemplateColumns: `repeat(${NUM_COLS}, 1fr)`,
+              gridTemplateRows: `repeat(${rows}, minmax(50mm, auto))`,
               gap: '8px 4px', 
               minHeight: '80mm' 
             }}>
-              {sectionGridItems.map(item => (
-                <div
-                  key={item.grid_item_id}
-                  style={{
-                    gridColumn: `span ${item.col_span || 1}`,
-                    gridRow: `span ${item.row_span || 1}`,
-                    minHeight: '50mm',
-                    border: '1px solid #ddd',
-                    background: '#fafafa',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    display: item.is_hidden ? 'none' : 'block',
-                  }}
-                >
-                  {item.template_type === 'text' && <TextContent item={item} />}
-                  {item.template_type === 'image' && <ImageContent item={item} />}
-                  {item.template_type === 'textAndImage' && <TextAndImageContent item={item} />}
-                </div>
-              ))}
+              {items.map(item => {
+                const row = (item.row_num || item.row || 1) - 1; // Convert to 0-based index
+                const col = (item.col_num || item.col || 1) - 1; // Convert to 0-based index
+                const rowSpan = item.row_span || item.rowSpan || 1;
+                const colSpan = item.col_span || item.colSpan || 1;
+                
+                return (
+                  <div
+                    key={item.grid_item_id}
+                    style={{
+                      gridColumn: `${col + 1} / span ${colSpan}`,
+                      gridRow: `${row + 1} / span ${rowSpan}`,
+                      minHeight: '50mm',
+                      border: '1px solid #ddd',
+                      background: '#fafafa',
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}
+                  >
+                    {item.template_type === 'text' && <TextContent item={item} />}
+                    {item.template_type === 'image' && <ImageContent item={item} />}
+                    {item.template_type === 'textAndImage' && <TextAndImageContent item={item} />}
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
