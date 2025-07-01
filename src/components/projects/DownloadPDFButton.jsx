@@ -6,34 +6,24 @@ const DownloadPDFButton = ({ printableRef }) => {
   const [loading, setLoading] = useState(false);
 
   const handleDownload = async () => {
-    if (!printableRef.current) {
-      console.error('DownloadPDFButton: printableRef.current is null');
-      return;
-    }
     setLoading(true);
     try {
-      const element = printableRef.current;
-      console.log('DownloadPDFButton: Using dom-to-image-more', element);
-      const dataUrl = await domtoimage.toPng(element, { bgcolor: '#fff' });
-      console.log('DownloadPDFButton: PNG generated');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const img = new window.Image();
-      img.src = dataUrl;
-      img.onload = function () {
+      // Select all printable steps
+      const steps = Array.from(document.querySelectorAll('.printable-step'));
+      if (!steps.length) throw new Error('No printable steps found');
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        // Use dom-to-image-more to capture each step
+        const dataUrl = await domtoimage.toPng(step, { bgcolor: '#fff', width: step.offsetWidth, height: step.offsetHeight });
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = pageWidth;
-        const imgHeight = (img.height * imgWidth) / img.width;
-        pdf.addImage(dataUrl, 'PNG', 0, 0, imgWidth, imgHeight);
-        pdf.save('project.pdf');
-        setLoading(false);
-        console.log('DownloadPDFButton: PDF saved successfully');
-      };
-      img.onerror = function (err) {
-        setLoading(false);
-        console.error('DownloadPDFButton: Failed to load image for PDF', err);
-        alert('Failed to generate PDF. Please try again.');
-      };
+        if (i > 0) pdf.addPage();
+        pdf.addImage(dataUrl, 'PNG', 0, 0, pageWidth, pageHeight);
+      }
+      pdf.save('project.pdf');
+      setLoading(false);
+      console.log('DownloadPDFButton: PDF saved successfully');
     } catch (err) {
       setLoading(false);
       console.error('DownloadPDFButton: Failed to generate PDF', err);

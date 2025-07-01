@@ -101,30 +101,32 @@ const calculateGridStructure = (gridItems) => {
   return { rows: maxRow, grid, items: visibleItems };
 };
 
-const PrintableProject = ({ project, sections, gridItems }) => {
+const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
   // Get all unique section titles from grid items (these are URL-encoded)
   const sectionTitles = [...new Set(gridItems?.map(item => item.section_id_text).filter(Boolean))];
-  
-  // Filter sections to only include those that have grid content (convert section titles to URL format for comparison)
-  const sectionsWithContent = sections?.filter(section => 
-    sectionTitles.includes(sectionTitleToUrl(section.title))
-  ) || [];
 
-  // Debug logging
-  console.log('PrintableProject Debug:', {
-    project,
-    sectionsCount: sections?.length,
-    gridItemsCount: gridItems?.length,
-    sectionTitles,
-    sectionsWithContentCount: sectionsWithContent.length,
-    gridItemsSample: gridItems?.slice(0, 3)
-  });
+  // For PDF, include all sections; for screen, filter as before
+  const sectionsToRender = pdfMode
+    ? sections
+    : (sections?.filter(section => sectionTitles.includes(sectionTitleToUrl(section.title))) || []);
+
+  // Remove debug logging in PDF mode
+  if (!pdfMode) {
+    console.log('PrintableProject Debug:', {
+      project,
+      sectionsCount: sections?.length,
+      gridItemsCount: gridItems?.length,
+      sectionTitles,
+      sectionsWithContentCount: sectionsToRender.length,
+      gridItemsSample: gridItems?.slice(0, 3)
+    });
+  }
 
   return (
-    <div style={{ 
-      width: '100%', 
-      background: '#fff', 
-      color: '#222', 
+    <div style={{
+      width: pdfMode ? '210mm' : '100%',
+      background: '#fff',
+      color: '#222',
       fontFamily: 'Arial, sans-serif',
       overflow: 'hidden'
     }}>
@@ -159,7 +161,7 @@ const PrintableProject = ({ project, sections, gridItems }) => {
       {/* Content Area */}
       <div style={{ padding: '30px' }}>
         {/* Render each section with its grid content */}
-        {sectionsWithContent.map((section, sectionIndex) => {
+        {sectionsToRender.map((section, sectionIndex) => {
           const sectionGridItems = gridItems?.filter(item => 
             item.section_id_text === sectionTitleToUrl(section.title) && !item.is_hidden
           ) || [];
@@ -167,20 +169,27 @@ const PrintableProject = ({ project, sections, gridItems }) => {
           // Calculate grid structure for this section
           const { rows, grid, items } = calculateGridStructure(sectionGridItems);
           
-          console.log(`Section "${section.title}":`, {
-            sectionGridItemsCount: sectionGridItems.length,
-            calculatedRows: rows,
-            items: sectionGridItems
-          });
-          
           if (sectionGridItems.length === 0) return null;
 
           return (
-            <div key={section.title} style={{ 
-              marginBottom: '40px', 
-              pageBreakInside: 'avoid',
-              pageBreakBefore: sectionIndex > 0 ? 'always' : 'auto'
-            }}>
+            <div
+              key={section.title}
+              className={pdfMode ? 'printable-step' : ''}
+              style={pdfMode ? {
+                marginBottom: '0',
+                pageBreakInside: 'avoid',
+                pageBreakBefore: sectionIndex > 0 ? 'always' : 'auto',
+                background: '#fff',
+                minHeight: '210mm',
+                width: '297mm',
+                boxSizing: 'border-box',
+                padding: '0'
+              } : {
+                marginBottom: '40px',
+                pageBreakInside: 'avoid',
+                pageBreakBefore: sectionIndex > 0 ? 'always' : 'auto'
+              }}
+            >
               {/* Section Title */}
               <h2 style={{ 
                 borderBottom: '3px solid #667eea', 
@@ -234,7 +243,7 @@ const PrintableProject = ({ project, sections, gridItems }) => {
           );
         })}
         
-        {sectionsWithContent.length === 0 && (
+        {sectionsToRender.length === 0 && (
           <div style={{ 
             color: '#666', 
             textAlign: 'center', 
