@@ -20,8 +20,16 @@ const TextContent = ({ item }) => {
   let effectiveTextAlign = 'left';
   if (item.text_horizontal_align === 'right') effectiveTextAlign = 'right';
   return (
-    <div className={`h-full w-full flex flex-col relative ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}
-      style={{ minHeight: '120px' }}
+    <div
+      className={`h-full w-full flex flex-col relative ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}
+      style={{
+        minHeight: '120px',
+        border: '2px solid #222',
+        borderRadius: '0',
+        background: '#fff',
+        boxSizing: 'border-box',
+        padding: '16px',
+      }}
     >
       <div style={{ textAlign: effectiveTextAlign, width: '100%' }}>
         {item.is_title_visible && item.title_text && (
@@ -39,9 +47,9 @@ const TextContent = ({ item }) => {
 };
 
 const ImageContent = ({ item }) => (
-  <div style={{ width: '100%', height: '100%', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0' }}>
+  <div style={{ width: '100%', height: '100%', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0', padding: 0, margin: 0 }}>
     {item.image_url ? (
-      <img src={item.image_url} alt="Project asset" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '0' }} />
+      <img src={item.image_url} alt="Project asset" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '0', margin: 0, padding: 0 }} />
     ) : (
       <div style={{ color: '#999', fontSize: '14px' }}>No Image</div>
     )}
@@ -124,12 +132,21 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
 
   return (
     <div style={{
-      width: pdfMode ? '210mm' : '100%',
+      width: pdfMode ? '297mm' : '100%',
       background: '#fff',
       color: '#222',
       fontFamily: 'Arial, sans-serif',
       overflow: 'hidden'
     }}>
+      {pdfMode && (
+        <style>{`
+          .printable-step, .printable-step * {
+            background: #fff !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+        `}</style>
+      )}
       {/* Project Title */}
       <div style={{ 
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -228,7 +245,7 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                         borderRadius: '0',
                         overflow: 'hidden',
                         position: 'relative',
-                        padding: item.template_type === 'text' ? '0' : '10px',
+                        padding: item.template_type === 'text' ? '0' : '0px',
                         boxShadow: 'none',
                       }}
                     >

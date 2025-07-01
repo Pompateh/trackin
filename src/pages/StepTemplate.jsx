@@ -99,7 +99,7 @@ const TextContent = ({ item, onUpdate }) => {
   if (item.text_horizontal_align === 'right') effectiveTextAlign = 'right';
 
   return (
-    <div className={`p-2 h-full w-full flex flex-col relative ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}>
+    <div className={`p-2 h-full w-full flex flex-col relative border-2 border-black bg-transparent ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}>
       <div style={{ textAlign: effectiveTextAlign, width: '100%' }}>
         <EditableTextRow
           value={item.title_text}
@@ -158,46 +158,6 @@ const ImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => (
         )}
       </div>
     )}
-  </div>
-);
-
-const TextAndImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => (
-  <div className="relative w-full h-full">
-    <ImageContent item={item} onUpdate={onUpdate} onImageSelect={onImageSelect} isUploading={isUploading} />
-    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent pointer-events-none">
-      <div className="p-4 h-full flex flex-col justify-end text-white">
-        <EditableTextRow
-          value={item.title_text}
-          onChange={text => onUpdate({ title_text: text })}
-          onVisibilityChange={() => onUpdate({ is_title_visible: false })}
-          placeholder="Big Title"
-          className="text-2xl font-bold !text-white pointer-events-auto"
-          isVisible={item.is_title_visible}
-          fontSize={item.title_font_size}
-          onFontSizeChange={size => onUpdate({ title_font_size: size })}
-        />
-        <EditableTextRow
-          value={item.subtitle_text}
-          onChange={text => onUpdate({ subtitle_text: text })}
-          onVisibilityChange={() => onUpdate({ is_subtitle_visible: false })}
-          placeholder="Small Description"
-          className="text-md !text-white pointer-events-auto"
-          isVisible={item.is_subtitle_visible}
-          fontSize={item.subtitle_font_size}
-          onFontSizeChange={size => onUpdate({ subtitle_font_size: size })}
-        />
-        <EditableTextRow
-          value={item.body_text}
-          onChange={text => onUpdate({ body_text: text })}
-          onVisibilityChange={() => onUpdate({ is_body_visible: false })}
-          placeholder="Word processing added..."
-          className="text-base mt-4 !text-white pointer-events-auto"
-          isVisible={item.is_body_visible}
-          fontSize={item.body_font_size}
-          onFontSizeChange={size => onUpdate({ body_font_size: size })}
-        />
-      </div>
-    </div>
   </div>
 );
 
@@ -260,8 +220,6 @@ const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId })
         return <TextContent item={item} onUpdate={onUpdateItem} />;
       case 'image':
         return <ImageContent item={item} onUpdate={onUpdateItem} onImageSelect={onImageSelect} isUploading={isUploading} />;
-      case 'textAndImage':
-        return <TextAndImageContent item={item} onUpdate={onUpdateItem} onImageSelect={onImageSelect} isUploading={isUploading} />;
       default:
         return (
           <div className="w-full h-full flex justify-center items-center">
@@ -804,8 +762,7 @@ const StepTemplate = () => {
             <ul className="menu bg-base-100 w-56 rounded-box absolute shadow-lg z-50" style={{ top: menu.y, left: menu.x }}>
               <li className="menu-title"><span>Template for Grid {menu.gridId}</span></li>
               <li><a onClick={() => handleTemplateSelect('text')}>1. Text</a></li>
-              <li><a onClick={() => handleTemplateSelect('textAndImage')}>2. Text and Image</a></li>
-              <li><a onClick={() => handleTemplateSelect('image')}>3. Image only</a></li>
+              <li><a onClick={() => handleTemplateSelect('image')}>2. Image only</a></li>
               <div className="divider my-0"></div>
               {isMerged && (
                 <li><a onClick={handleUnmerge}>Unmerge</a></li>

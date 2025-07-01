@@ -15,7 +15,7 @@ const DownloadPDFButton = ({ printableRef }) => {
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
         // Use dom-to-image-more to capture each step
-        const dataUrl = await domtoimage.toPng(step, { bgcolor: '#fff', width: step.offsetWidth, height: step.offsetHeight });
+        const dataUrl = await domtoimage.toPng(step, { bgcolor: '#fff', style: { background: '#fff' }, width: step.offsetWidth, height: step.offsetHeight });
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         if (i > 0) pdf.addPage();
