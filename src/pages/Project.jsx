@@ -12,6 +12,7 @@ import PrintableProject from '../components/projects/PrintableProject';
 import DownloadPDFButton from '../components/projects/DownloadPDFButton';
 import { supabase } from '../lib/supabaseClient';
 import Modal from '../components/ui/Modal';
+import { HiOutlineChevronRight } from 'react-icons/hi';
 // Placeholder for new components
 // import RecapList from '../components/projects/RecapList';
 
@@ -109,19 +110,14 @@ const Project = () => {
         {/* Left vertical divider */}
         <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
         {/* SectionList */}
-        <div className="w-2/3 h-full border-t border-b border-black">
+        <div className={`${isSidebarVisible ? 'w-2/3' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300`}>
           <div className="flex justify-between items-center mb-4 px-2 py-4">
-            <h1 className="text-4xl font-serif">INDEX</h1>
+            <h1 className="font-serif font-extralight" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '100px', lineHeight: '96px' }}>INDEX</h1>
             <div className="flex gap-4 items-center">
-              <DownloadPDFButton printableRef={hiddenPdfRef} className="custom-action-btn" />
-              <button 
-                className="custom-action-btn"
-                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-              >
-                {isSidebarVisible ? 'Hide Panel' : 'Show Panel'}
-              </button>
+              <DownloadPDFButton printableRef={hiddenPdfRef} className="custom-action-btn font-serif font-extralight" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '25px', lineHeight: '100px', border: '1px solid #000', color: '#000', background: '#fff', borderRadius: 0, padding: '0 24px', height: '100px', minWidth: '180px' }} />
               <button
-                className="custom-action-btn"
+                className="custom-action-btn font-serif font-extralight"
+                style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '25px', lineHeight: '100px', border: '1px solid #000', color: '#000', background: '#fff', borderRadius: 0, padding: '0 24px', height: '100px', minWidth: '180px' }}
                 onClick={() => setShowPrintable(true)}
               >
                 Show Printable Project
@@ -138,9 +134,13 @@ const Project = () => {
         {/* Middle vertical divider */}
         <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
         {/* ProjectSidebar */}
-        {isSidebarVisible && (
+        {isSidebarVisible ? (
           <div className="w-1/3 h-full border-l-0 border-base-300">
-            <ProjectSidebar projectId={projectId} />
+            <ProjectSidebar projectId={projectId} onToggleSidebar={() => setIsSidebarVisible(false)} role={role} />
+          </div>
+        ) : (
+          <div className="h-full flex flex-col justify-center items-center border-l border-black bg-white" style={{ width: '40px', cursor: 'pointer' }} onClick={() => setIsSidebarVisible(true)}>
+            <HiOutlineChevronRight style={{ transform: 'rotate(180deg)', fontWeight: 200, fontSize: '2.5rem', userSelect: 'none' }} />
           </div>
         )}
       </div>

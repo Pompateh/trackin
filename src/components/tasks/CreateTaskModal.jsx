@@ -3,7 +3,7 @@ import useProjectStore from '../../store/useProjectStore';
 import Modal from '../ui/Modal';
 import toast from 'react-hot-toast';
 
-const CreateTaskModal = ({ isOpen, onClose }) => {
+const CreateTaskModal = ({ isOpen, onClose, onAddTask }) => {
   const { members, addTask } = useProjectStore();
   const [title, setTitle] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
@@ -12,7 +12,15 @@ const CreateTaskModal = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await addTask(title, assignedTo || null);
+    // Simulate task creation (replace with real addTask logic as needed)
+    const newTask = {
+      id: Date.now(),
+      title,
+      assignedTo,
+      assignee_email: members.find(m => m.user_id === assignedTo)?.email || null,
+      status: 'To Do',
+    };
+    if (onAddTask) onAddTask(newTask);
     setIsSubmitting(false);
     setTitle('');
     setAssignedTo('');

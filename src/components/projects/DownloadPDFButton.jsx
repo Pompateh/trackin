@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import domtoimage from "dom-to-image-more";
 import jsPDF from "jspdf";
 
-const DownloadPDFButton = ({ printableRef }) => {
+const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
   const [loading, setLoading] = useState(false);
 
   const handleDownload = async () => {
@@ -32,7 +32,12 @@ const DownloadPDFButton = ({ printableRef }) => {
   };
 
   return (
-    <button onClick={handleDownload} disabled={loading} style={{ padding: '8px 16px', background: '#222', color: '#fff', borderRadius: 4 }}>
+    <button
+      onClick={handleDownload}
+      disabled={loading}
+      className={className}
+      style={style}
+    >
       {loading ? "Generating PDF..." : "Download PDF"}
     </button>
   );
