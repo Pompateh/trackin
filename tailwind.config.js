@@ -5,7 +5,12 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        crimson: ["'Crimson Pro'", 'serif'],
+        gothic: ["'Gothic A1'", 'sans-serif'],
+      },
+    },
   },
   plugins: [require("daisyui")],
   daisyui: {

@@ -24,9 +24,8 @@ const TextContent = ({ item }) => {
       className={`h-full w-full flex flex-col relative ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}
       style={{
         minHeight: '120px',
-        border: '2px solid #222',
         borderRadius: '0',
-        background: '#fff',
+        background: 'transparent',
         boxSizing: 'border-box',
         padding: '16px',
       }}
@@ -199,8 +198,11 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                 background: '#fff',
                 minHeight: '210mm',
                 width: '297mm',
+                height: '210mm', // Fill A4 landscape
                 boxSizing: 'border-box',
-                padding: '0'
+                padding: '0',
+                display: 'flex',
+                flexDirection: 'column',
               } : {
                 marginBottom: '40px',
                 pageBreakInside: 'avoid',
@@ -224,9 +226,11 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
               <div style={{ 
                 display: 'grid', 
                 gridTemplateColumns: `repeat(${NUM_COLS}, 1fr)`,
-                gridTemplateRows: `repeat(${rows}, minmax(120px, auto))`,
+                gridTemplateRows: pdfMode ? `repeat(${rows}, 1fr)` : `repeat(${rows}, minmax(120px, auto))`,
                 gap: '20px 15px', 
-                minHeight: '120px' 
+                minHeight: pdfMode ? undefined : '120px',
+                height: pdfMode ? '100%' : undefined, // Fill available height in PDF mode
+                flex: pdfMode ? 1 : undefined,
               }}>
                 {items.map(item => {
                   const row = (item.row_num || item.row || 1) - 1; // Convert to 0-based index
@@ -240,13 +244,14 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                       style={{
                         gridColumn: `${col + 1} / span ${colSpan}`,
                         gridRow: `${row + 1} / span ${rowSpan}`,
-                        minHeight: '120px',
+                        minHeight: pdfMode ? undefined : '120px',
                         background: item.template_type === 'text' ? 'transparent' : '#f8f9fa',
                         borderRadius: '0',
                         overflow: 'hidden',
                         position: 'relative',
                         padding: item.template_type === 'text' ? '0' : '0px',
                         boxShadow: 'none',
+                        height: '100%', // Ensure it fills the grid cell
                       }}
                     >
                       {item.template_type === 'text' && <TextContent item={item} />}

@@ -99,7 +99,7 @@ const TextContent = ({ item, onUpdate }) => {
   if (item.text_horizontal_align === 'right') effectiveTextAlign = 'right';
 
   return (
-    <div className={`p-2 h-full w-full flex flex-col relative border-2 border-black bg-transparent ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}>
+    <div className={`p-2 h-full w-full flex flex-col relative bg-transparent ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}>
       <div style={{ textAlign: effectiveTextAlign, width: '100%' }}>
         <EditableTextRow
           value={item.title_text}

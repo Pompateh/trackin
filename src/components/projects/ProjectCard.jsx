@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const statusLabels = {
   on_going: 'On Going',
@@ -14,6 +14,8 @@ const statusColors = {
 };
 
 const ProjectCard = ({ project }) => {
+  const navigate = useNavigate();
+
   // Format date to match the design (e.g., "Jan 06, 2025")
   const formatDate = (date) => {
     if (!date) return '';
@@ -30,47 +32,44 @@ const ProjectCard = ({ project }) => {
     : 'You';
 
   return (
-    <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-300">
+    <div className="border border-black bg-white w-full flex flex-col justify-between" style={{height: '100%'}}>
       {/* Team Member Section */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <span className="text-sm text-gray-600">Team Member{Array.isArray(project.team_emails) && project.team_emails.length > 1 ? 's' : ''}</span>
-          <button className="ml-2 text-gray-400 hover:text-gray-600">×</button>
-        </div>
-        <div className="text-xs text-gray-500 truncate max-w-[160px] text-right">{teamMembers}</div>
+      <div className="flex items-center justify-between pb-1 mb-2 px-2 font-crimson font-semibold text-[25px]">
+        <div>Team Member</div>
+        <button className="text-lg text-gray-600 hover:text-black">×</button>
       </div>
+      <div className="italic text-xs text-gray-500 mb-2 -mt-2 px-2 font-gothic font-normal">{teamMembers}</div>
+      <div className="border-b border-black w-full h-px"></div>
 
       {/* Project Title */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">{project.name}</h2>
-        <button className="text-gray-400 hover:text-gray-600">×</button>
+      <div className="flex items-center justify-between pb-1 mb-2 px-2 font-crimson font-semibold text-[25px]">
+        <div>{project.name}</div>
+        <button className="text-lg text-gray-600 hover:text-black">×</button>
       </div>
-
-      {/* Project Description */}
-      <p className="text-gray-600 text-sm mb-6 line-clamp-2">
+      <div className="text-xs text-gray-600 mb-2 px-2 font-gothic font-normal">
         {project.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'}
-      </p>
-
-      {/* Project Status Badge */}
-      <div className="mb-6">
-        <span className={`inline-block px-4 py-2 rounded-full font-semibold text-lg ${statusColors[project.status] || 'bg-gray-100 text-gray-700'}`}>{statusLabels[project.status] || project.status}</span>
       </div>
+      <div className="border-b border-black w-full h-px"></div>
+
+      {/* Project Status (big, centered) */}
+      <div className="flex justify-center items-center my-4 px-2 font-gothic font-normal" style={{minHeight: '90px'}}>
+        <span className="font-serif text-[4rem] leading-none">{statusLabels[project.status] || project.status}</span>
+      </div>
+      <div className="border-b border-black w-full h-px"></div>
 
       {/* Deadline */}
-      <div className="mb-4">
-        <div className="text-sm font-medium">Deadline</div>
-        <div className="text-red-500">{formatDate(project.deadline)}</div>
+      <div className="flex items-center justify-between px-2 font-crimson font-semibold text-[25px]">
+        <div>Deadline</div>
+        <div className="italic text-sm text-red-500 font-gothic font-normal">{formatDate(project.deadline)}</div>
       </div>
+      <div className="border-b border-black w-full h-px"></div>
 
       {/* Detail Section */}
-      <div>
-        <div className="text-sm font-medium">Detail</div>
-        <Link 
-          to={`/project/${project.id}`} 
-          className="text-gray-600 hover:text-gray-800 text-sm"
-        >
-          View Project Details →
-        </Link>
+      <div
+        className="flex items-center justify-between px-2 font-crimson font-semibold text-[25px] cursor-pointer hover:bg-gray-100 transition"
+        onClick={() => navigate(`/project/${project.id}`)}
+      >
+        <div>Detail</div>
       </div>
     </div>
   );

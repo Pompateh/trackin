@@ -12,9 +12,9 @@ const ProjectList = ({ projects }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-      {projects.map((project) => (
-        <div key={project.id} className="relative">
+    <div className="flex flex-wrap w-full">
+      {projects.map((project, idx) => (
+        <div key={project.id} className="w-1/3">
           <ProjectCard project={project} />
         </div>
       ))}

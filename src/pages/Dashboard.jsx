@@ -36,12 +36,13 @@ const Dashboard = () => {
   }, [user]);
 
   return (
-    <div className="max-w-[1600px] mx-auto px-6 py-8">
+    <div className="w-full mx-0 max-w-none">
+      <div className="w-full h-5 border-b border-t border-black flex items-end mb-6" style={{backgroundImage: 'repeating-linear-gradient(to right, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
       <div className="flex justify-between items-center mb-8 border-b border-gray-200 pb-4">
-        <h1 className="text-4xl font-serif">YOUR WORK</h1>
+        <h1 className="text-6xl font-serif font-normal tracking-tight pl-2">YOUR WORK</h1>
         {canCreateProjects && (
           <button 
-            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            className="px-2 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
             onClick={() => setIsModalOpen(true)}
           >
             Create Project
