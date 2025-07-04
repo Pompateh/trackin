@@ -32,14 +32,6 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          <Route 
-            path="/project/:projectId" 
-            element={
-              <ProtectedRoute>
-                <Project />
-              </ProtectedRoute>
-            }
-          />
           <Route
             path="/project/:projectId/invite"
             element={
@@ -57,6 +49,14 @@ function App() {
             }
           />
         </Route>
+        <Route
+          path="/project/:projectId"
+          element={
+            <ProtectedRoute>
+              <Project />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </>
   );

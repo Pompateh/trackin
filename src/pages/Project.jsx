@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import useProjectStore from '../store/useProjectStore';
 import useAuthStore from '../store/useAuthStore';
 // import TldrawCanvas from '../components/board/TldrawCanvas';
@@ -11,6 +11,7 @@ import ProjectSidebar from '../components/projects/ProjectSidebar';
 import PrintableProject from '../components/projects/PrintableProject';
 import DownloadPDFButton from '../components/projects/DownloadPDFButton';
 import { supabase } from '../lib/supabaseClient';
+import Modal from '../components/ui/Modal';
 // Placeholder for new components
 // import RecapList from '../components/projects/RecapList';
 
@@ -52,6 +53,8 @@ const Project = () => {
   const [gridItems, setGridItems] = useState([]);
   const printableRef = useRef();
   const hiddenPdfRef = useRef();
+  const [showPrintable, setShowPrintable] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (projectId && user) {
@@ -92,66 +95,83 @@ const Project = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-120px)]">
-      {/* Main content */}
-      <div className={`flex-grow p-4 h-full transition-all duration-300 ${isSidebarVisible ? 'w-3/4' : 'w-full'}`}>
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-4xl font-serif">INDEX</h1>
-          <div className="flex gap-2 items-center">
-            <DownloadPDFButton printableRef={hiddenPdfRef} />
-            <button 
-              className="btn btn-secondary"
-              onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-            >
-              {isSidebarVisible ? 'Hide Panel' : 'Show Panel'}
-            </button>
-          </div>
-        </div>
-        <SectionList 
-          projectId={projectId} 
-          onSelectSection={setSelectedSection} 
-          selectedSection={selectedSection} 
-          isAdmin={role === 'admin'} 
-        />
-        {/* On-screen preview (can keep debug info and border) */}
-        <div style={{ background: '#fff', border: '2px solid red', padding: '16px', margin: '16px 0' }}>
-          <div ref={printableRef}>
-            {/* Debug info and on-screen PrintableProject */}
-            <div style={{ color: 'blue', fontSize: '12px', marginBottom: '10px' }}>
-              Debug: Sections: {DEFAULT_SECTIONS.length}, GridItems: {gridItems.length}, 
-              Project: {project?.name || 'No project'}, 
-              GridItems with content: {gridItems.filter(item => item.section_id_text).length}
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Back button at the top, header position */}
+      <div className="p-4">
+        <button
+          className="btn btn-outline btn-sm"
+          onClick={() => navigate('/')}
+        >
+          ← Back
+        </button>
+      </div>
+      <div className="flex w-full h-full">
+        {/* Left vertical divider */}
+        <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
+        {/* SectionList */}
+        <div className="w-2/3 h-full border-t border-b border-black">
+          <div className="flex justify-between items-center mb-4 px-2 py-4">
+            <h1 className="text-4xl font-serif">INDEX</h1>
+            <div className="flex gap-4 items-center">
+              <DownloadPDFButton printableRef={hiddenPdfRef} className="custom-action-btn" />
+              <button 
+                className="custom-action-btn"
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+              >
+                {isSidebarVisible ? 'Hide Panel' : 'Show Panel'}
+              </button>
+              <button
+                className="custom-action-btn"
+                onClick={() => setShowPrintable(true)}
+              >
+                Show Printable Project
+              </button>
             </div>
-            <PrintableProject project={project} sections={DEFAULT_SECTIONS} gridItems={gridItems} />
           </div>
+          <SectionList 
+            projectId={projectId} 
+            onSelectSection={setSelectedSection} 
+            selectedSection={selectedSection} 
+            isAdmin={role === 'admin'} 
+          />
         </div>
-        {/* HIDDEN PDF EXPORT CONTAINER - clean, no debug, no border */}
-        <div style={{
-          position: 'absolute',
-          left: '-9999px',
-          top: 0,
-          width: '210mm',
-          background: '#fff',
-          zIndex: -1,
-          pointerEvents: 'none'
-        }}>
-          <div ref={hiddenPdfRef}>
-            <PrintableProject
-              project={project}
-              sections={DEFAULT_SECTIONS}
-              gridItems={gridItems}
-              pdfMode={true}
-            />
+        {/* Middle vertical divider */}
+        <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
+        {/* ProjectSidebar */}
+        {isSidebarVisible && (
+          <div className="w-1/3 h-full border-l-0 border-base-300">
+            <ProjectSidebar projectId={projectId} />
           </div>
+        )}
+      </div>
+      {/* PrintableProject Modal */}
+      {showPrintable && (
+        <Modal isOpen={showPrintable} onClose={() => setShowPrintable(false)}>
+          <div className="max-h-[90vh] overflow-auto bg-white p-4 rounded shadow-lg">
+            <PrintableProject project={project} sections={DEFAULT_SECTIONS} gridItems={gridItems} />
+            <button className="btn btn-secondary mt-4" onClick={() => setShowPrintable(false)}>Close</button>
+          </div>
+        </Modal>
+      )}
+      {/* HIDDEN PDF EXPORT CONTAINER - clean, no debug, no border */}
+      <div style={{
+        position: 'absolute',
+        left: '-9999px',
+        top: 0,
+        width: '210mm',
+        background: '#fff',
+        zIndex: -1,
+        pointerEvents: 'none'
+      }}>
+        <div ref={hiddenPdfRef}>
+          <PrintableProject
+            project={project}
+            sections={DEFAULT_SECTIONS}
+            gridItems={gridItems}
+            pdfMode={true}
+          />
         </div>
       </div>
-
-      {/* Sidebar */}
-      {isSidebarVisible && (
-        <div className="w-1/4 h-full border-l border-base-300">
-          <ProjectSidebar projectId={projectId} />
-        </div>
-      )}
     </div>
   );
 };

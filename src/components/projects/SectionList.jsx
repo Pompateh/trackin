@@ -7,6 +7,7 @@ const DEFAULT_STEPS = [
   'Q & A',
   'Debrief',
   'Quotation',
+  'Contract',
   'Brand Strategy',
   'Planner',
   'Brand Story',
@@ -19,6 +20,16 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
   const [sections, setSections] = useState([]);
   const [expanded, setExpanded] = useState({});
   const [removedSteps, setRemovedSteps] = useState([]);
+  const [conceptPage, setConceptPage] = useState(0);
+  const ITEMS_PER_PAGE = 5;
+
+  const sectionPercentages = {
+    'Q & A': '10%',
+    'Contract': '10%',
+    'Brand Story': '10%',
+    'Moodboard': '20%',
+    'Concept & Direction': '50%',
+  };
 
   useEffect(() => {
     // TODO: Replace with Supabase fetch
@@ -71,45 +82,95 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
     step => removedSteps.includes(step)
   );
 
-  const renderSection = (section, isSubsection = false) => (
-    <Link
-      to={`/project/${projectId}/step/${section.title.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}
-      key={section.id}
-      className={`block ${selectedSection?.id === section.id ? (isSubsection ? 'bg-blue-50' : 'bg-blue-100') : ''}`}
-      onClick={() => onSelectSection(section)}
-    >
-      <div className={`flex justify-between items-center py-${isSubsection ? '1' : '2'} cursor-pointer`}>
-        <span className={isSubsection ? '' : 'font-semibold'}>{section.title}</span>
-        <div className="flex items-center">
-          <span className="text-xs text-gray-500">{section.status}</span>
-          {getSubsections(section.id).length > 0 && !isSubsection && (
-            <button className="ml-2" onClick={e => { e.preventDefault(); e.stopPropagation(); handleExpand(section.id); }}>
-              {expanded[section.id] ? '▼' : '▶'}
-            </button>
-          )}
-          {isAdmin && DEFAULT_STEPS.includes(section.title) && !isSubsection && (
-            <button
-              className="ml-2 text-xs text-red-500 hover:underline"
-              onClick={e => { e.preventDefault(); e.stopPropagation(); handleRemoveStep(section.title); }}
-            >
-              Remove
-            </button>
-          )}
+  const renderSection = (section, isSubsection = false, idx = 0) => {
+    const hasSubsections = getSubsections(section.id).length > 0 && !isSubsection;
+    const isExpanded = expanded[section.id];
+    // For dropdown items, remove border, remove todo, and make clickable
+    if (isSubsection) {
+      return (
+        <div
+          key={section.id}
+          className="flex-1 min-w-[120px] max-w-[180px] px-3 py-2 cursor-pointer font-gothic font-medium text-[20px] text-black text-center"
+          onClick={() => onSelectSection(section)}
+        >
+          {section.title}
         </div>
-      </div>
-    </Link>
-  );
+      );
+    }
+    return (
+      <Link
+        to={hasSubsections ? '#' : `/project/${projectId}/step/${section.title.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}
+        key={section.id}
+        className={`block border-b border-black ${idx === 0 ? 'border-t border-black' : ''}`}
+        onClick={e => {
+          if (hasSubsections) {
+            e.preventDefault();
+            setExpanded(exp => ({ ...exp, [section.id]: !exp[section.id] }));
+          } else {
+            onSelectSection(section);
+          }
+        }}
+      >
+        <div className={`flex justify-between items-stretch px-3 cursor-pointer`}>
+          <span className={`${isSubsection ? '' : 'font-crimson font-semibold text-[25px]'} flex-1`} style={{flexBasis: '80%', flexGrow: 0, flexShrink: 0}}>
+            {section.title}
+            {sectionPercentages[section.title] && (
+              <span className="font-normal"> ({sectionPercentages[section.title]})</span>
+            )}
+          </span>
+          <div className="flex items-center border-l border-black pl-3 justify-between" style={{flexBasis: '20%', flexGrow: 0, flexShrink: 0}}>
+            <span className="text-xs font-gothic font-medium text-[20px] text-black">{section.status}</span>
+            {isAdmin && DEFAULT_STEPS.includes(section.title) && !isSubsection && (
+              <button
+                className="ml-4 text-black text-lg font-bold hover:bg-gray-200 rounded font-gothic font-medium text-[20px]"
+                onClick={e => { e.preventDefault(); e.stopPropagation(); handleRemoveStep(section.title); }}
+                aria-label="Remove"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+      </Link>
+    );
+  };
 
   return (
     <div>
-      <button className="btn btn-primary btn-sm mb-4">+ Add Section</button>
+      {/* <button className="btn btn-primary btn-sm mb-4">+ Add Section</button> */}
       <div className="divide-y">
-        {rootSections.map(section => (
+        {rootSections.map((section, idx) => (
           <div key={section.id}>
-            {renderSection(section)}
+            {renderSection(section, false, idx)}
             {expanded[section.id] && getSubsections(section.id).length > 0 && (
               <div className="ml-6">
-                {getSubsections(section.id).map(sub => renderSection(sub, true))}
+                {section.title === 'Concept & Direction' ? (
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-center mb-2 w-full h-16">
+                      <button
+                        className="px-4 py-2 text-2xl font-bold bg-transparent mx-2"
+                        onClick={() => setConceptPage(p => Math.max(0, p - 1))}
+                        disabled={conceptPage === 0}
+                      >
+                        {'<'}
+                      </button>
+                      <div className="flex gap-2 flex-1 items-center h-full justify-center">
+                        {getSubsections(section.id)
+                          .slice(conceptPage * ITEMS_PER_PAGE, (conceptPage + 1) * ITEMS_PER_PAGE)
+                          .map(sub => renderSection(sub, true))}
+                      </div>
+                      <button
+                        className="px-4 py-2 text-2xl font-bold bg-transparent mx-2"
+                        onClick={() => setConceptPage(p => p + 1)}
+                        disabled={(conceptPage + 1) * ITEMS_PER_PAGE >= getSubsections(section.id).length}
+                      >
+                        {'>'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  getSubsections(section.id).map(sub => renderSection(sub, true))
+                )}
               </div>
             )}
           </div>
