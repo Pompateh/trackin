@@ -32,18 +32,18 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
 
   return (
     <div>
-      <div className="max-h-64 overflow-y-auto divide-y divide-black border-b border-black">
+      <div className="border-b border-black">
         {tasks.length > 0 ? (
-          tasks.map((task) => {
+          tasks.map((task, idx) => {
             const statusObj = STATUS_OPTIONS.find(opt => opt.value === task.status);
             const statusLabel = statusObj ? statusObj.label : task.status;
             const isDisabled = updatingTaskId === task.id || task.status === 'done';
             return (
             <div
               key={task.id}
-                className={`flex items-stretch cursor-pointer border-b border-black last:border-b-0` + (selectedTask?.id === task.id ? ' bg-gray-100' : '')}
-                style={{ minHeight: '56px' }}
-                onClick={() => onSelectTask && onSelectTask(task)}
+              className={`flex items-stretch cursor-pointer${selectedTask?.id === task.id ? ' bg-gray-100' : ''}`}
+              style={{ minHeight: '56px', borderTop: idx === 0 ? 'none' : '1px solid #000' }}
+              onClick={() => onSelectTask && onSelectTask(task)}
             >
                 {/* Task info (7/10) */}
                 <div className="flex-1 basis-7/10 flex flex-col justify-center pl-2 py-2">

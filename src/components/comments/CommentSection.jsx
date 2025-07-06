@@ -95,30 +95,33 @@ const CommentSection = ({ projectId }) => {
             const isSelf = user && comment.user_id === user.id;
             return (
               <div key={comment.id} className={`w-full flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}>
-                <span className="italic text-xs mb-1 ml-1 font-serif font-bold">{comment.user_email || `${comment.user_id.substring(0, 8)}...`}</span>
+                <span
+                  className="mb-1 ml-1"
+                  style={{
+                    fontFamily: 'Crimson Pro, serif',
+                    fontWeight: 600,
+                    fontStyle: 'italic',
+                    fontSize: '15px',
+                  }}
+                >
+                  {comment.user_email || `${comment.user_id.substring(0, 8)}...`}
+                </span>
                 <div
                   className={
                     isSelf
                       ? 'relative bg-blue-500 text-white border border-black px-6 py-3 text-base max-w-[80%] mr-2'
                       : 'relative bg-gray-200 text-black border border-black px-6 py-3 text-base max-w-[80%] ml-2'
                   }
-                  style={
-                    isSelf
-                      ? {
-                          borderTopLeftRadius: '12px',
-                          borderTopRightRadius: '12px',
-                          borderBottomLeftRadius: '12px',
-                          borderBottomRightRadius: '0px',
-                          marginBottom: '8px',
-                        }
-                      : {
-                          borderTopLeftRadius: '12px',
-                          borderTopRightRadius: '12px',
-                          borderBottomRightRadius: '12px',
-                          borderBottomLeftRadius: '0px',
-                          marginBottom: '8px',
-                        }
-                  }
+                  style={{
+                    fontFamily: 'Gothic A1, sans-serif',
+                    fontWeight: 500,
+                    fontSize: '15px',
+                    borderTopLeftRadius: isSelf ? '12px' : '12px',
+                    borderTopRightRadius: isSelf ? '12px' : '12px',
+                    borderBottomLeftRadius: isSelf ? '12px' : '0px',
+                    borderBottomRightRadius: isSelf ? '0px' : '12px',
+                    marginBottom: '8px',
+                  }}
                 >
                   {comment.content}
                   {/* Bubble tail for self (right, bottom corner, seamless border, further outside, color match) */}
@@ -148,7 +151,7 @@ const CommentSection = ({ projectId }) => {
                           height: 0,
                           borderTop: '9px solid transparent',
                           borderBottom: '0 solid transparent',
-                          borderLeft: '9px solid #3b82f6', // match bubble color
+                          borderLeft: '9px solid #3b82f6',
                           zIndex: 2,
                         }}
                       />
@@ -198,8 +201,16 @@ const CommentSection = ({ projectId }) => {
       {/* Input and send button fixed at the bottom */}
       <form onSubmit={handleSubmit} className="flex flex-col w-full border-t border-black bg-white p-0">
         <textarea
-          className="w-full border-none outline-none px-4 py-3 resize-none text-base font-sans placeholder-gray-400"
-          style={{minHeight: '48px', maxHeight: '80px', borderRadius: 0, borderBottom: '1px solid #000'}}
+          className="w-full border-none outline-none px-4 py-3 resize-none text-base placeholder-gray-400"
+          style={{
+            minHeight: '48px',
+            maxHeight: '80px',
+            borderRadius: 0,
+            borderBottom: '1px solid #000',
+            fontFamily: 'Gothic A1, sans-serif',
+            fontWeight: 500,
+            fontSize: '15px',
+          }}
           placeholder="Add a comment…"
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
@@ -207,8 +218,16 @@ const CommentSection = ({ projectId }) => {
         />
         <button
           type="submit"
-          className="w-full py-3 font-bold text-lg bg-white border-t border-black hover:bg-gray-100 transition disabled:opacity-50"
-          style={{borderRadius: 0}}
+          className="w-full border-t border-black hover:bg-gray-100 transition disabled:opacity-50"
+          style={{
+            borderRadius: 0,
+            fontFamily: 'Crimson Pro, serif',
+            fontWeight: 700,
+            fontSize: '18px',
+            fontStyle: 'bold',
+            padding: '12px 0',
+            color: 'black !important',
+          }}
           disabled={isSubmitting || !newComment.trim()}
         >
           {isSubmitting ? <span className="loading loading-spinner"></span> : 'Send'}

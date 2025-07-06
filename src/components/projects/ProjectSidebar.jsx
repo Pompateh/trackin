@@ -131,17 +131,19 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role }) => {
       </div>
       {/* TASK Section (auto height, up to max) */}
       <div className="border-b border-black" style={{maxHeight: '220px', overflow: 'auto'}}>
-        <div className="flex items-center justify-between px-0" style={{height: '60px'}}>
+        <div className="flex items-center justify-between px-0 sticky top-0 z-10 bg-white border-b border-black" style={{height: '60px'}}>
           <span className="font-gothic font-bold" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', paddingLeft: '16px' }}>TASK</span>
           <button className="flex items-center justify-center text-black border-none bg-transparent hover:bg-gray-100" style={{ fontSize: '2rem', width: '60px', height: '100%', borderRadius: 0, marginRight: '8px' }} onClick={() => setIsTaskModalOpen(true)}>+</button>
         </div>
-        <TaskList
-          projectId={projectId}
-          tasks={tasks}
-          setTasks={setTasks}
-          customStyle
-          role={role}
-        />
+        <div style={{overflowY: 'hidden', maxHeight: 'none'}}>
+          <TaskList
+            projectId={projectId}
+            tasks={tasks}
+            setTasks={setTasks}
+            customStyle
+            role={role}
+          />
+        </div>
         <CreateTaskModal
           isOpen={isTaskModalOpen}
           onClose={() => setIsTaskModalOpen(false)}
