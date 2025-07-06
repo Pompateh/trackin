@@ -129,8 +129,8 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role }) => {
           <HiOutlineChevronRight style={{ fontWeight: 200, fontSize: '2.5rem' }} />
         </button>
       </div>
-      {/* TASK Section */}
-      <div className="border-b border-black">
+      {/* TASK Section (auto height, up to max) */}
+      <div className="border-b border-black" style={{maxHeight: '220px', overflow: 'auto'}}>
         <div className="flex items-center justify-between px-0" style={{height: '60px'}}>
           <span className="font-gothic font-bold" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', paddingLeft: '16px' }}>TASK</span>
           <button className="flex items-center justify-center text-black border-none bg-transparent hover:bg-gray-100" style={{ fontSize: '2rem', width: '60px', height: '100%', borderRadius: 0, marginRight: '8px' }} onClick={() => setIsTaskModalOpen(true)}>+</button>
@@ -148,24 +148,25 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role }) => {
           onAddTask={handleAddTask}
         />
       </div>
-      {/* COMMENT & RECAP Split */}
-      <div className="flex flex-1 min-h-0 border-b border-black">
+      {/* COMMENT & RECAP Row (fills all available space above delete button) */}
+      <div className="flex flex-row flex-1 min-h-0 border-b border-black">
         {/* COMMENT */}
-        <div className="w-1/2 border-r border-black flex flex-col">
+        <div className="w-1/2 border-r border-black flex flex-col h-full">
           <div className="font-gothic font-bold border-b border-black px-0" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', height: '60px', display: 'flex', alignItems: 'center', paddingLeft: '16px' }}>COMMENT</div>
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-y-auto">
             <CommentSection projectId={projectId} customStyle />
           </div>
         </div>
         {/* RECAP */}
-        <div className="w-1/2 flex flex-col border-l border-black">
+        <div className="w-1/2 flex flex-col border-l border-black h-full">
           <div className="font-gothic font-bold border-b border-black px-0" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', height: '60px', display: 'flex', alignItems: 'center', paddingLeft: '16px' }}>RECAP</div>
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-y-auto">
             <RecapList projectId={projectId} customStyle />
           </div>
         </div>
       </div>
-      <div className="mt-8 flex-1 flex flex-col justify-end">
+      {/* Delete button at the bottom */}
+      <div className="mt-8 flex-0 flex flex-col justify-end">
         <button
           className="btn btn-error btn-outline w-full"
           onClick={handleDeleteProject}

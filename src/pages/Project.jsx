@@ -115,21 +115,21 @@ const Project = () => {
             <h1 className="font-serif font-extralight" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '100px', lineHeight: '96px' }}>INDEX</h1>
             <div className="flex gap-4 items-center">
               <DownloadPDFButton printableRef={hiddenPdfRef} className="custom-action-btn font-serif font-extralight" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '25px', lineHeight: '100px', border: '1px solid #000', color: '#000', background: '#fff', borderRadius: 0, padding: '0 24px', height: '100px', minWidth: '180px' }} />
-              <button
+            <button 
                 className="custom-action-btn font-serif font-extralight"
                 style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '25px', lineHeight: '100px', border: '1px solid #000', color: '#000', background: '#fff', borderRadius: 0, padding: '0 24px', height: '100px', minWidth: '180px' }}
                 onClick={() => setShowPrintable(true)}
-              >
+            >
                 Show Printable Project
-              </button>
-            </div>
+            </button>
           </div>
-          <SectionList 
-            projectId={projectId} 
-            onSelectSection={setSelectedSection} 
-            selectedSection={selectedSection} 
-            isAdmin={role === 'admin'} 
-          />
+        </div>
+        <SectionList 
+          projectId={projectId} 
+          onSelectSection={setSelectedSection} 
+          selectedSection={selectedSection} 
+          isAdmin={role === 'admin'} 
+        />
         </div>
         {/* Middle vertical divider */}
         <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
@@ -143,7 +143,7 @@ const Project = () => {
             <HiOutlineChevronRight style={{ transform: 'rotate(180deg)', fontWeight: 200, fontSize: '2.5rem', userSelect: 'none' }} />
           </div>
         )}
-      </div>
+            </div>
       {/* PrintableProject Modal */}
       {showPrintable && (
         <Modal isOpen={showPrintable} onClose={() => setShowPrintable(false)}>
@@ -153,25 +153,25 @@ const Project = () => {
           </div>
         </Modal>
       )}
-      {/* HIDDEN PDF EXPORT CONTAINER - clean, no debug, no border */}
-      <div style={{
-        position: 'absolute',
-        left: '-9999px',
-        top: 0,
-        width: '210mm',
-        background: '#fff',
-        zIndex: -1,
-        pointerEvents: 'none'
-      }}>
-        <div ref={hiddenPdfRef}>
-          <PrintableProject
-            project={project}
-            sections={DEFAULT_SECTIONS}
-            gridItems={gridItems}
-            pdfMode={true}
-          />
+        {/* HIDDEN PDF EXPORT CONTAINER - clean, no debug, no border */}
+        <div style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 0,
+          width: '210mm',
+          background: '#fff',
+          zIndex: -1,
+          pointerEvents: 'none'
+        }}>
+          <div ref={hiddenPdfRef}>
+            <PrintableProject
+              project={project}
+              sections={DEFAULT_SECTIONS}
+              gridItems={gridItems}
+              pdfMode={true}
+            />
+          </div>
         </div>
-      </div>
     </div>
   );
 };
