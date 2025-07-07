@@ -1,3 +1,8 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+/* Hide scrollbar and prevent scrolling globally */
+body {
+  overflow: hidden !important;
+} 

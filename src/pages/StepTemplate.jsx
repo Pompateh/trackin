@@ -4,6 +4,7 @@ import { Rnd } from 'react-rnd';
 import { supabase } from '../lib/supabaseClient';
 import ProjectSidebar from '../components/projects/ProjectSidebar';
 import { HiOutlineChevronRight } from 'react-icons/hi';
+import useProjectStore from '../store/useProjectStore';
 
 // A single editable text row with a delete button
 const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, className, isVisible, fontSize, onFontSizeChange }) => {
@@ -311,6 +312,7 @@ const mapStateToDb = (item, projectId, sectionId) => ({
 // The main template selection component
 const StepTemplate = () => {
   const { projectId, sectionId } = useParams();
+  const { role } = useProjectStore();
   const [rows, setRows] = useState(MIN_ROWS);
   const [gridItems, setGridItems] = useState([]);
   const [selectedGrids, setSelectedGrids] = useState(new Set());
@@ -739,12 +741,6 @@ const StepTemplate = () => {
                   Merge {selectedGrids.size} Items
                 </button>
               )}
-              <button 
-                className="btn btn-secondary"
-                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-              >
-                {isSidebarVisible ? 'Hide Panel' : 'Show Panel'}
-              </button>
             </div>
           </div>
 
@@ -790,7 +786,7 @@ const StepTemplate = () => {
         {/* ProjectSidebar */}
         {isSidebarVisible ? (
           <div className="w-1/3 h-full border-l-0 border-base-300">
-            <ProjectSidebar projectId={projectId} />
+            <ProjectSidebar projectId={projectId} onToggleSidebar={() => setIsSidebarVisible(false)} role={role} />
           </div>
         ) : (
           <div className="h-full flex flex-col justify-center items-center border-l border-black bg-white" style={{ width: '40px', cursor: 'pointer' }} onClick={() => setIsSidebarVisible(true)}>
