@@ -199,7 +199,7 @@ const CommentSection = ({ projectId }) => {
         )}
       </div>
       {/* Input and send button fixed at the bottom */}
-      <form onSubmit={handleSubmit} className="flex flex-col w-full border-t border-black bg-white p-0">
+      <form onSubmit={handleSubmit} className="flex flex-col w-full bg-white p-0">
         <textarea
           className="w-full border-none outline-none px-4 py-3 resize-none text-base placeholder-gray-400"
           style={{
@@ -218,7 +218,7 @@ const CommentSection = ({ projectId }) => {
         />
         <button
           type="submit"
-          className="w-full border-t border-black hover:bg-gray-100 transition disabled:opacity-50"
+          className="w-full hover:bg-gray-100 transition disabled:opacity-50"
           style={{
             borderRadius: 0,
             fontFamily: 'Crimson Pro, serif',

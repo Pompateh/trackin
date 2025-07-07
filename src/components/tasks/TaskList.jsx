@@ -32,7 +32,7 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
 
   return (
     <div>
-      <div className="border-b border-black">
+      <div>
         {tasks.length > 0 ? (
           tasks.map((task, idx) => {
             const statusObj = STATUS_OPTIONS.find(opt => opt.value === task.status);
@@ -42,18 +42,16 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
             <div
               key={task.id}
               className={`flex items-stretch cursor-pointer${selectedTask?.id === task.id ? ' bg-gray-100' : ''}`}
-              style={{ minHeight: '56px', borderTop: idx === 0 ? 'none' : '1px solid #000' }}
+              style={{ minHeight: '56px', borderTop: idx === 0 ? 'none' : '1px solid #000', width: '100%' }}
               onClick={() => onSelectTask && onSelectTask(task)}
             >
                 {/* Task info (7/10) */}
-                <div className="flex-1 basis-7/10 flex flex-col justify-center pl-2 py-2">
+                <div className="flex flex-col justify-center pl-4 py-2" style={{flexBasis: '70%', maxWidth: '70%', minWidth: '0'}}>
                   <span className="font-serif font-bold text-lg leading-tight">{task.title}</span>
                   <span className="text-xs italic text-gray-600 mt-1">{task.assigned_to_user && task.assigned_to_user.email ? `Assigned to: ${task.assigned_to_user.email}` : 'Unassigned'}</span>
                 </div>
-                {/* Divider */}
-                <div className="h-auto w-px bg-black self-stretch" />
                 {/* Status button (3/10) */}
-                <div className="flex-none basis-3/10 flex items-center justify-center px-4" style={{ minWidth: '110px', maxWidth: '110px' }}>
+                <div className="flex items-center justify-center border-l border-black" style={{flexBasis: '30%', maxWidth: '100%', minWidth: '110px'}}>
                   {canEditStatus ? (
                     <div className="relative w-full flex items-center justify-center">
                       <button

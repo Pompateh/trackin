@@ -153,14 +153,14 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role }) => {
       {/* COMMENT & RECAP Row (fills all available space above delete button) */}
       <div className="flex flex-row flex-1 min-h-0 border-b border-black">
         {/* COMMENT */}
-        <div className="w-1/2 border-r border-black flex flex-col h-full">
+        <div className="w-7/10 flex flex-col h-full" style={{width: '70%'}}>
           <div className="font-gothic font-bold border-b border-black px-0" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', height: '60px', display: 'flex', alignItems: 'center', paddingLeft: '16px' }}>COMMENT</div>
           <div className="flex-1 flex flex-col overflow-y-auto">
             <CommentSection projectId={projectId} customStyle />
           </div>
         </div>
         {/* RECAP */}
-        <div className="w-1/2 flex flex-col border-l border-black h-full">
+        <div className="w-3/10 flex flex-col border-l border-black h-full" style={{width: '30%'}}>
           <div className="font-gothic font-bold border-b border-black px-0" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', height: '60px', display: 'flex', alignItems: 'center', paddingLeft: '16px' }}>RECAP</div>
           <div className="flex-1 flex flex-col overflow-y-auto">
             <RecapList projectId={projectId} customStyle />
@@ -168,9 +168,10 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role }) => {
         </div>
       </div>
       {/* Delete button at the bottom */}
-      <div className="mt-8 flex-0 flex flex-col justify-end">
+      <div className="flex-0 flex flex-col justify-end" style={{marginTop: 0, paddingTop: 0}}>
         <button
-          className="btn btn-error btn-outline w-full"
+          className="btn w-full text-red-600 bg-white hover:bg-gray-100 border-none"
+          style={{ borderRadius: 0 }}
           onClick={handleDeleteProject}
         >
           Delete Project
