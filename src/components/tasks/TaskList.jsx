@@ -65,9 +65,9 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
                   <span className="text-xs italic text-gray-600 mt-1">{task.assigned_to_user && task.assigned_to_user.email ? `Assigned to: ${task.assigned_to_user.email}` : 'Unassigned'}</span>
                 </div>
                 {/* Status button (3/10) */}
-                <div className="flex items-center border-l border-black" style={{flexBasis: '30%', maxWidth: '100%', minWidth: '110px', paddingLeft: '16px', marginLeft: 0, position: 'relative', overflow: 'visible', zIndex: 999999}}>
+                <div className="flex items-center border-l border-black" style={{flexBasis: '30%', maxWidth: '100%', minWidth: '110px', paddingLeft: '16px', marginLeft: 0, position: 'relative', overflow: 'visible'}}>
                   {canEditStatus ? (
-                    <div className="relative w-full flex items-center" style={{overflow: 'visible', zIndex: 999999}}>
+                    <div className="relative w-full flex items-center" style={{overflow: 'visible'}}>
                       <button
                         ref={el => dropdownButtonRefs.current[task.id] = el}
                         className="flex items-center justify-between w-full border-0 bg-white text-left px-0 py-0 h-full font-sans text-base focus:outline-none"
@@ -83,9 +83,8 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
                       </button>
                       {dropdownOpenId === task.id && !isDisabled && ReactDOM.createPortal(
                         <div
-                          className="absolute w-32 bg-white border border-black z-[999999]"
+                          className="absolute w-32 bg-white border border-black"
                           style={{
-                            zIndex: 999999,
                             left: dropdownPosition.left,
                             top: dropdownPosition.top,
                             width: dropdownPosition.width,
