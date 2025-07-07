@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import CreateTaskModal from './CreateTaskModal';
 import { supabase } from '../../lib/supabaseClient';
 import { HiChevronDown } from 'react-icons/hi';
@@ -9,9 +10,11 @@ const STATUS_OPTIONS = [
   { value: 'done', label: 'Done' },
 ];
 
-const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = [], setTasks, role }) => {
+const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = [], setTasks, role, customStyle }) => {
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [dropdownOpenId, setDropdownOpenId] = useState(null);
+  const dropdownButtonRefs = useRef({});
+  const [dropdownPosition, setDropdownPosition] = useState({});
 
   const canEditStatus = role === 'admin' || role === 'member';
 
@@ -29,6 +32,17 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
     setUpdatingTaskId(null);
     setDropdownOpenId(null);
   };
+
+  useEffect(() => {
+    if (dropdownOpenId !== null && dropdownButtonRefs.current[dropdownOpenId]) {
+      const rect = dropdownButtonRefs.current[dropdownOpenId].getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  }, [dropdownOpenId]);
 
   return (
     <div>
@@ -51,12 +65,13 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
                   <span className="text-xs italic text-gray-600 mt-1">{task.assigned_to_user && task.assigned_to_user.email ? `Assigned to: ${task.assigned_to_user.email}` : 'Unassigned'}</span>
                 </div>
                 {/* Status button (3/10) */}
-                <div className="flex items-center justify-center border-l border-black" style={{flexBasis: '30%', maxWidth: '100%', minWidth: '110px'}}>
+                <div className="flex items-center border-l border-black" style={{flexBasis: '30%', maxWidth: '100%', minWidth: '110px', paddingLeft: '16px', marginLeft: 0, position: 'relative', overflow: 'visible', zIndex: 999999}}>
                   {canEditStatus ? (
-                    <div className="relative w-full flex items-center justify-center">
+                    <div className="relative w-full flex items-center" style={{overflow: 'visible', zIndex: 999999}}>
                       <button
+                        ref={el => dropdownButtonRefs.current[task.id] = el}
                         className="flex items-center justify-between w-full border-0 bg-white text-left px-0 py-0 h-full font-sans text-base focus:outline-none"
-                        style={{ borderRadius: 0, boxShadow: 'none', minHeight: '56px', width: '110px', maxWidth: '110px' }}
+                        style={{ borderRadius: 0, boxShadow: 'none', minHeight: '56px', width: '110px', maxWidth: '110px', paddingLeft: 0, marginLeft: 0 }}
                         disabled={isDisabled}
                         onClick={e => {
                           e.stopPropagation();
@@ -66,8 +81,18 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
                         <span className="truncate">{statusLabel}</span>
                         <HiChevronDown className="ml-2 text-lg" />
                       </button>
-                      {dropdownOpenId === task.id && !isDisabled && (
-                        <div className="absolute right-0 mt-1 w-32 bg-white border border-black z-10">
+                      {dropdownOpenId === task.id && !isDisabled && ReactDOM.createPortal(
+                        <div
+                          className="absolute w-32 bg-white border border-black z-[999999]"
+                          style={{
+                            zIndex: 999999,
+                            left: dropdownPosition.left,
+                            top: dropdownPosition.top,
+                            width: dropdownPosition.width,
+                            position: 'absolute',
+                            overflow: 'visible'
+                          }}
+                        >
                           {STATUS_OPTIONS.map(opt => (
                             <button
                               key={opt.value}
@@ -81,11 +106,12 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
                               {opt.label}
                             </button>
                           ))}
-                        </div>
+                        </div>,
+                        document.body
                       )}
                     </div>
                   ) : (
-                    <span className="flex items-center w-full text-left border-0 bg-white cursor-default font-sans text-base justify-center" style={{ minHeight: '56px', width: '110px', maxWidth: '110px' }}>
+                    <span className="flex items-center w-full text-left border-0 bg-white cursor-default font-sans text-base justify-center" style={{ minHeight: '56px', width: '110px', maxWidth: '110px', paddingLeft: 0, marginLeft: 0 }}>
                       <span className="truncate">{statusLabel}</span>
                       <HiChevronDown className="ml-2 text-lg text-gray-400" />
                     </span>
