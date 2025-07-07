@@ -25,7 +25,7 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/login" element={<Login />} />
           <Route 
-            path="/" 
+            path="/"
             element={
               <ProtectedRoute>
                 <Dashboard />
@@ -40,15 +40,15 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/project/:projectId/step/:sectionId"
-            element={
-              <ProtectedRoute>
-                <StepTemplate />
-              </ProtectedRoute>
-            }
-          />
         </Route>
+        <Route
+          path="/project/:projectId/step/:sectionId"
+          element={
+            <ProtectedRoute>
+              <StepTemplate />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/project/:projectId"
           element={

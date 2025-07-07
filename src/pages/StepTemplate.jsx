@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Rnd } from 'react-rnd';
 import { supabase } from '../lib/supabaseClient';
 import ProjectSidebar from '../components/projects/ProjectSidebar';
+import { HiOutlineChevronRight } from 'react-icons/hi';
 
 // A single editable text row with a delete button
 const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, className, isVisible, fontSize, onFontSizeChange }) => {
@@ -690,94 +691,113 @@ const StepTemplate = () => {
   };
 
   return (
-    <div className="flex h-screen">
-      <div className={`flex-grow p-4 h-full transition-all duration-300 ${isSidebarVisible ? 'w-3/4' : 'w-full'}`}>
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">
-            {projectName && (
-              <>
-                <Link to={`/project/${projectId}`} className="text-gray-500 hover:underline">
-                  {projectName}
-                </Link>
-                <span className="text-gray-500"> / </span>
-              </>
-            )}
-            Step: {sectionId} - Select Template
-          </h1>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      <div className="p-4">
+        <button
+          className="btn btn-outline btn-sm"
+          onClick={() => window.history.back()}
+        >
+          ← Back
+        </button>
+      </div>
+      <div className="flex w-full h-full">
+        {/* Left vertical divider */}
+        <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
+        {/* Main content */}
+        <div className={`${isSidebarVisible ? 'w-2/3' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300 p-4`}>
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold">
+              {projectName && (
+                <>
+                  <Link to={`/project/${projectId}`} className="text-gray-500 hover:underline">
+                    {projectName}
+                  </Link>
+                  <span className="text-gray-500"> / </span>
+                </>
+              )}
+              Step: {sectionId} - Select Template
+            </h1>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <button 
+                  className="btn btn-sm btn-outline" 
+                  onClick={handleRemoveRow}
+                  disabled={rows <= MIN_ROWS}
+                >
+                  - Row
+                </button>
+                <span className="px-2">{rows} rows</span>
+                <button 
+                  className="btn btn-sm btn-outline" 
+                  onClick={handleAddRow}
+                >
+                  + Row
+                </button>
+              </div>
+              {selectedGrids.size > 1 && (
+                <button className="btn btn-primary" onClick={handleMerge}>
+                  Merge {selectedGrids.size} Items
+                </button>
+              )}
               <button 
-                className="btn btn-sm btn-outline" 
-                onClick={handleRemoveRow}
-                disabled={rows <= MIN_ROWS}
+                className="btn btn-secondary"
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
               >
-                - Row
-              </button>
-              <span className="px-2">{rows} rows</span>
-              <button 
-                className="btn btn-sm btn-outline" 
-                onClick={handleAddRow}
-              >
-                + Row
+                {isSidebarVisible ? 'Hide Panel' : 'Show Panel'}
               </button>
             </div>
-            {selectedGrids.size > 1 && (
-              <button className="btn btn-primary" onClick={handleMerge}>
-                Merge {selectedGrids.size} Items
-              </button>
-            )}
-            <button 
-              className="btn btn-secondary"
-              onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-            >
-              {isSidebarVisible ? 'Hide Panel' : 'Show Panel'}
-            </button>
           </div>
+
+          <div
+            className="grid grid-cols-4"
+            style={{ gap: '10px 5px' }}
+          >
+            {gridItems.map(item =>
+              !item.hidden ? (
+                <GridItem
+                  key={item.grid_item_id}
+                  item={item}
+                  selected={selectedGrids.has(item.grid_item_id)}
+                  onSelect={handleSelect}
+                  onShowMenu={handleShowMenu}
+                  onUpdate={updateAndSaveItem}
+                  projectId={projectId}
+                />
+              ) : null
+            )}
+          </div>
+
+          {menu.visible && (() => {
+            const item = gridItems.find(i => i.grid_item_id === menu.gridId);
+            const isMerged = item && (item.rowSpan > 1 || item.colSpan > 1);
+
+            return (
+              <ul className="menu bg-base-100 w-56 rounded-box absolute shadow-lg z-50" style={{ top: menu.y, left: menu.x }}>
+                <li className="menu-title"><span>Template for Grid {menu.gridId}</span></li>
+                <li><a onClick={() => handleTemplateSelect('text')}>1. Text</a></li>
+                <li><a onClick={() => handleTemplateSelect('image')}>2. Image only</a></li>
+                <div className="divider my-0"></div>
+                {isMerged && (
+                  <li><a onClick={handleUnmerge}>Unmerge</a></li>
+                )}
+                <li><a onClick={handleResetGrids} className="text-error">Reset Item(s)</a></li>
+              </ul>
+            );
+          })()}
         </div>
-
-        <div
-          className="grid grid-cols-4"
-          style={{ gap: '10px 5px' }}
-        >
-          {gridItems.map(item =>
-            !item.hidden ? (
-              <GridItem
-                key={item.grid_item_id}
-                item={item}
-                selected={selectedGrids.has(item.grid_item_id)}
-                onSelect={handleSelect}
-                onShowMenu={handleShowMenu}
-                onUpdate={updateAndSaveItem}
-                projectId={projectId}
-              />
-            ) : null
-          )}
-        </div>
-
-        {menu.visible && (() => {
-          const item = gridItems.find(i => i.grid_item_id === menu.gridId);
-          const isMerged = item && (item.rowSpan > 1 || item.colSpan > 1);
-
-          return (
-            <ul className="menu bg-base-100 w-56 rounded-box absolute shadow-lg z-50" style={{ top: menu.y, left: menu.x }}>
-              <li className="menu-title"><span>Template for Grid {menu.gridId}</span></li>
-              <li><a onClick={() => handleTemplateSelect('text')}>1. Text</a></li>
-              <li><a onClick={() => handleTemplateSelect('image')}>2. Image only</a></li>
-              <div className="divider my-0"></div>
-              {isMerged && (
-                <li><a onClick={handleUnmerge}>Unmerge</a></li>
-              )}
-              <li><a onClick={handleResetGrids} className="text-error">Reset Item(s)</a></li>
-            </ul>
-          );
-        })()}
+        {/* Middle vertical divider */}
+        <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
+        {/* ProjectSidebar */}
+        {isSidebarVisible ? (
+          <div className="w-1/3 h-full border-l-0 border-base-300">
+            <ProjectSidebar projectId={projectId} />
+          </div>
+        ) : (
+          <div className="h-full flex flex-col justify-center items-center border-l border-black bg-white" style={{ width: '40px', cursor: 'pointer' }} onClick={() => setIsSidebarVisible(true)}>
+            <HiOutlineChevronRight style={{ transform: 'rotate(180deg)', fontWeight: 200, fontSize: '2.5rem', userSelect: 'none' }} />
+          </div>
+        )}
       </div>
-      
-      {isSidebarVisible && (
-        <div className="w-1/4 h-full border-l border-base-300">
-          <ProjectSidebar projectId={projectId} />
-        </div>
-      )}
     </div>
   );
 };
