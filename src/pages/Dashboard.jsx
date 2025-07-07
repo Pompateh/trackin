@@ -36,16 +36,21 @@ const Dashboard = () => {
   }, [user]);
 
   return (
-    <div className="w-full mx-0 max-w-none">
+    <div className="w-full mx-0 max-w-none overflow-auto scrollbar-hide" style={{height: '100vh'}}>
       <div className="w-full h-5 border-b border-t border-black flex items-end mb-6" style={{backgroundImage: 'repeating-linear-gradient(to right, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
       <div className="flex justify-between items-center mb-8 border-b border-gray-200 pb-4">
         <h1 className="text-6xl font-serif font-normal tracking-tight pl-2">YOUR WORK</h1>
         {canCreateProjects && (
           <button 
-            className="px-2 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            className="pl-2 pr-2 focus:outline-none"
+            style={{ background: 'none', border: 'none', boxShadow: 'none', lineHeight: 1, display: 'flex', alignItems: 'center' }}
             onClick={() => setIsModalOpen(true)}
+            aria-label="Create Project"
           >
-            Create Project
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="32" y1="8" x2="32" y2="56" stroke="#222" strokeWidth="2"/>
+              <line x1="8" y1="32" x2="56" y2="32" stroke="#222" strokeWidth="2"/>
+            </svg>
           </button>
         )}
       </div>

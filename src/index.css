@@ -3,6 +3,32 @@
 @tailwind utilities;
 
 /* Hide scrollbar and prevent scrolling globally */
-body {
+-body {
   overflow: hidden !important;
+}
+
+/* Utility to hide scrollbars */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+/* Universal scrollbar hide for all elements */
+*::-webkit-scrollbar {
+  display: none !important;
+}
+* {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;     /* Firefox */
 } 

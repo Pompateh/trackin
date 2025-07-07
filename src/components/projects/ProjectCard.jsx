@@ -32,7 +32,9 @@ const ProjectCard = ({ project }) => {
     : 'You';
 
   return (
-    <div className="border border-black bg-white w-full flex flex-col justify-between" style={{height: '100%'}}>
+    <div className="bg-white w-full flex flex-col justify-between" style={{height: '100%'}}>
+      {/* Project Name Section */}
+      <div className="px-2 pt-2 pb-1 font-serif font-bold text-2xl">{project.name}</div>
       {/* Team Member Section */}
       <div className="flex items-center justify-between pb-1 mb-2 px-2 font-crimson font-semibold text-[25px]">
         <div>Team Member</div>
@@ -46,7 +48,10 @@ const ProjectCard = ({ project }) => {
         <div>{project.name}</div>
         <button className="text-lg text-gray-600 hover:text-black">×</button>
       </div>
-      <div className="text-xs text-gray-600 mb-2 px-2 font-gothic font-normal">
+      <div
+        className="text-xs text-gray-600 mb-2 px-2 font-gothic font-normal"
+        style={{ height: '48px', overflow: 'hidden', display: 'flex', alignItems: 'flex-start' }}
+      >
         {project.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'}
       </div>
       <div className="border-b border-black w-full h-px"></div>
