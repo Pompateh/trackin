@@ -10,25 +10,28 @@ import useProjectStore from '../store/useProjectStore';
 const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, className, isVisible, fontSize, onFontSizeChange }) => {
   if (!isVisible) return null;
 
+  const isEmpty = !value || value.trim() === '';
+  const displayValue = isEmpty ? placeholder : value;
+
   return (
     <div className="relative group">
       <div
         contentEditable
         suppressContentEditableWarning
         onBlur={e => onChange(e.currentTarget.textContent)}
-        className={`w-full outline-none focus:bg-gray-100 p-1 rounded ${className}`}
-        style={{ fontSize: `${fontSize}px` }}
-        dangerouslySetInnerHTML={{ __html: value || '' }}
+        className={`w-full outline-none focus:bg-gray-100 p-1 rounded ${className} ${isEmpty ? 'text-gray-400 italic' : ''}`}
+        style={{ 
+          fontSize: `${fontSize}px`,
+          filter: isEmpty ? 'blur(0.5px)' : 'none',
+          opacity: isEmpty ? 0.7 : 1
+        }}
+        dangerouslySetInnerHTML={{ __html: displayValue || '' }}
+        data-placeholder={placeholder}
       />
       <div className="absolute top-0 right-0 h-full flex items-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto bg-gradient-to-l from-base-200 via-base-200 to-transparent pl-4">
-        <div className="flex items-center">
-            <button onClick={() => onFontSizeChange(fontSize - 1)} className="btn btn-xs btn-ghost">-</button>
-            <span className="text-xs w-6 text-center tabular-nums">{fontSize}px</span>
-            <button onClick={() => onFontSizeChange(fontSize + 1)} className="btn btn-xs btn-ghost">+</button>
-        </div>
         <button 
           onClick={onVisibilityChange}
-          className="ml-2 text-red-500"
+          className="text-red-500"
         >
           &times;
         </button>
@@ -37,22 +40,22 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
   );
 };
 
-// New toolbar for text formatting
-const TextFormatToolbar = ({ item, onUpdate }) => {
-  const handleUpdate = (updates) => {
-    // If a corner is selected, set text_align automatically
-    if (updates.text_vertical_align && updates.text_horizontal_align) {
-      let align = 'left';
-      if (updates.text_horizontal_align === 'right') align = 'right';
-      onUpdate({
-        ...updates,
-        text_align: align,
-      });
-      return;
-    }
-    onUpdate(updates);
-  };
+// New toolbar for text formatting - moved outside of grid items
+const TextFormatToolbar = ({ selectedItems, onUpdate }) => {
+  // Only show if we have selected text items
+  const textItems = selectedItems.filter(item => item.template_type === 'text');
+  if (textItems.length === 0) return null;
+
+  // Use the first selected item's values as reference
+  const firstItem = textItems[0];
   
+  const handleUpdate = (updates) => {
+    // Update all selected text items
+    textItems.forEach(item => {
+      onUpdate(item.grid_item_id, updates);
+    });
+  };
+
   const positions = [
     { v: 'top', h: 'left', label: 'TL' },
     { v: 'top', h: 'right', label: 'TR' },
@@ -61,18 +64,74 @@ const TextFormatToolbar = ({ item, onUpdate }) => {
   ];
 
   return (
-    <div className="absolute top-2 left-2 bg-base-300 p-1 rounded-lg shadow-lg flex flex-col gap-1 z-20">
-      <div className="btn-group" title="Set Block Position">
-        {positions.map(({ v, h, label }) => (
-          <button
-            key={`${v}-${h}`}
-            title={`Position ${v} ${h}`}
-            className={`btn btn-xs ${item.text_vertical_align === v && item.text_horizontal_align === h ? 'btn-active' : ''}`}
-            onClick={() => handleUpdate({ text_vertical_align: v, text_horizontal_align: h })}
+    <div className="bg-base-200 p-3 rounded-lg shadow-lg border border-gray-300">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">Text Position:</span>
+          <div className="btn-group">
+            {positions.map(({ v, h, label }) => (
+              <button
+                key={`${v}-${h}`}
+                title={`Position ${v} ${h}`}
+                className={`btn btn-xs ${firstItem.text_vertical_align === v && firstItem.text_horizontal_align === h ? 'btn-active' : ''}`}
+                onClick={() => handleUpdate({ text_vertical_align: v, text_horizontal_align: h })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">Title Size:</span>
+          <button 
+            className="btn btn-xs btn-outline" 
+            onClick={() => handleUpdate({ title_font_size: Math.max(12, firstItem.title_font_size - 2) })}
           >
-            {label}
+            -
           </button>
-        ))}
+          <span className="text-xs w-8 text-center">{firstItem.title_font_size}px</span>
+          <button 
+            className="btn btn-xs btn-outline" 
+            onClick={() => handleUpdate({ title_font_size: firstItem.title_font_size + 2 })}
+          >
+            +
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">Subtitle Size:</span>
+          <button 
+            className="btn btn-xs btn-outline" 
+            onClick={() => handleUpdate({ subtitle_font_size: Math.max(10, firstItem.subtitle_font_size - 2) })}
+          >
+            -
+          </button>
+          <span className="text-xs w-8 text-center">{firstItem.subtitle_font_size}px</span>
+          <button 
+            className="btn btn-xs btn-outline" 
+            onClick={() => handleUpdate({ subtitle_font_size: firstItem.subtitle_font_size + 2 })}
+          >
+            +
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">Body Size:</span>
+          <button 
+            className="btn btn-xs btn-outline" 
+            onClick={() => handleUpdate({ body_font_size: Math.max(8, firstItem.body_font_size - 2) })}
+          >
+            -
+          </button>
+          <span className="text-xs w-8 text-center">{firstItem.body_font_size}px</span>
+          <button 
+            className="btn btn-xs btn-outline" 
+            onClick={() => handleUpdate({ body_font_size: firstItem.body_font_size + 2 })}
+          >
+            +
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -111,7 +170,6 @@ const TextContent = ({ item, onUpdate }) => {
           className="text-2xl font-bold"
           isVisible={item.is_title_visible}
           fontSize={item.title_font_size}
-          onFontSizeChange={size => handleUpdate('title_font_size', size)}
         />
         <EditableTextRow
           value={item.subtitle_text}
@@ -121,7 +179,6 @@ const TextContent = ({ item, onUpdate }) => {
           className="text-md text-gray-600"
           isVisible={item.is_subtitle_visible}
           fontSize={item.subtitle_font_size}
-          onFontSizeChange={size => handleUpdate('subtitle_font_size', size)}
         />
         <EditableTextRow
           value={item.body_text}
@@ -131,7 +188,6 @@ const TextContent = ({ item, onUpdate }) => {
           className="text-base mt-4"
           isVisible={item.is_body_visible}
           fontSize={item.body_font_size}
-          onFontSizeChange={size => handleUpdate('body_font_size', size)}
         />
       </div>
     </div>
@@ -166,10 +222,6 @@ const ImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => (
 // A single grid item component
 const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId }) => {
   const [isUploading, setIsUploading] = useState(false);
-
-  const handleToolbarUpdate = (updates) => {
-    onUpdate(item.grid_item_id, updates);
-  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -241,12 +293,9 @@ const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId })
         gridRow: `span ${item.rowSpan}`,
         minHeight: '200px',
       }}
-      onClick={() => onSelect(item.grid_item_id)}
+      onClick={(e) => onSelect(item.grid_item_id, e)}
       onContextMenu={(e) => { e.preventDefault(); onShowMenu(e, item.grid_item_id); }}
     >
-      {selected && item.template_type === 'text' && (
-        <TextFormatToolbar item={item} onUpdate={handleToolbarUpdate} />
-      )}
       {renderContent()}
       <input type="file" id={`file-input-${item.grid_item_id}`} className="hidden" onChange={handleImageUpload} accept="image/*" />
     </div>
@@ -321,10 +370,19 @@ const StepTemplate = () => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   // Handle grid selection
-  const handleSelect = (id) => {
+  const handleSelect = (id, event) => {
     setSelectedGrids(prev => {
       const newSelection = new Set(prev);
-      newSelection.has(id) ? newSelection.delete(id) : newSelection.add(id);
+      
+      // If Ctrl/Cmd key is pressed, toggle the selection
+      if (event && (event.ctrlKey || event.metaKey)) {
+        newSelection.has(id) ? newSelection.delete(id) : newSelection.add(id);
+      } else {
+        // Otherwise, replace the selection with just this item
+        newSelection.clear();
+        newSelection.add(id);
+      }
+      
       return newSelection;
     });
     setMenu({ visible: false });
@@ -743,6 +801,17 @@ const StepTemplate = () => {
               )}
             </div>
           </div>
+
+          {/* Text Formatting Toolbar - only shows when text items are selected */}
+          {(() => {
+            const selectedItems = gridItems.filter(item => selectedGrids.has(item.grid_item_id));
+            return (
+              <TextFormatToolbar 
+                selectedItems={selectedItems} 
+                onUpdate={updateAndSaveItem} 
+              />
+            );
+          })()}
 
           <div
             className="grid grid-cols-4"
