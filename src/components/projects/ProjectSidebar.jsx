@@ -8,11 +8,14 @@ import RecapList from './RecapList';
 import { HiOutlineChevronRight } from 'react-icons/hi';
 import CreateTaskModal from '../tasks/CreateTaskModal';
 
-const ProjectSidebar = ({ projectId, onToggleSidebar, role }) => {
+const ProjectSidebar = ({ projectId, onToggleSidebar, role, projectName }) => {
   const [notes, setNotes] = useState('');
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteInput, setDeleteInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch initial notes
   useEffect(() => {
@@ -55,11 +58,18 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role }) => {
   };
 
   const handleDeleteProject = async () => {
-    if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) return;
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteProject = async () => {
+    setIsDeleting(true);
     const { error } = await supabase
       .from('projects')
       .delete()
       .eq('id', projectId);
+    setIsDeleting(false);
+    setShowDeleteModal(false);
+    setDeleteInput('');
     if (error) {
       alert('Failed to delete project: ' + error.message);
     } else {
@@ -119,14 +129,16 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role }) => {
   return (
     <div className="h-full flex flex-col border-t border-b border-black bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-black px-0" style={{height: '120px'}}>
-        <span className="font-serif font-extralight" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '100px', lineHeight: '96px', paddingLeft: '16px' }}>NOTE</span>
+      <div className="flex items-center justify-between border-b border-black px-0" style={{height: '149px'}}>
+        <span className="font-serif font-extralight" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '100px', lineHeight: '96px', paddingLeft: '13px', margin: 0 }}>NOTE</span>
         <button
           className="flex items-center justify-center border-none bg-transparent text-black hover:bg-gray-100"
           style={{ width: '60px', height: '100%', fontSize: '2rem', borderRadius: 0 }}
           onClick={onToggleSidebar}
         >
-          <HiOutlineChevronRight style={{ fontWeight: 200, fontSize: '2.5rem' }} />
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '8px', display: 'block'}}>
+            <path d="M9 18l6-6-6-6" />
+          </svg>
         </button>
       </div>
       {/* TASK Section (auto height, up to max) */}
@@ -181,6 +193,43 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role }) => {
           Delete Project
         </button>
       </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-6 min-w-[320px] max-w-[90vw] flex flex-col gap-4">
+            <h2 className="text-lg font-bold mb-2 text-red-600">Confirm Project Deletion</h2>
+            <p>To confirm deletion, type the project name below:</p>
+            <div className="mb-2">
+              <span className="font-semibold">Project Name:</span> <span className="italic">{projectName}</span>
+            </div>
+            <input
+              type="text"
+              className="input input-bordered w-full"
+              placeholder="Type project name to confirm"
+              value={deleteInput}
+              onChange={e => setDeleteInput(e.target.value)}
+              disabled={isDeleting}
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end mt-2">
+              <button
+                className="btn btn-sm"
+                onClick={() => { setShowDeleteModal(false); setDeleteInput(''); }}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-error btn-sm"
+                onClick={confirmDeleteProject}
+                disabled={deleteInput !== projectName || isDeleting}
+              >
+                {isDeleting ? <span className="loading loading-spinner"></span> : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

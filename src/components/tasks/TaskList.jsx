@@ -70,8 +70,8 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
                     <div className="relative w-full flex items-center" style={{overflow: 'visible'}}>
                       <button
                         ref={el => dropdownButtonRefs.current[task.id] = el}
-                        className="flex items-center justify-between w-full border-0 bg-white text-left px-0 py-0 h-full font-sans text-base focus:outline-none"
-                        style={{ borderRadius: 0, boxShadow: 'none', minHeight: '56px', width: '110px', maxWidth: '110px', paddingLeft: 0, marginLeft: 0 }}
+                        className="flex items-center justify-between w-full border-0 bg-white text-left px-0 py-0 h-full font-sans text-base focus:outline-none justify-between"
+                        style={{ borderRadius: 0, boxShadow: 'none', minHeight: '56px', width: '140px', maxWidth: '140px', paddingLeft: 0, marginLeft: 0 }}
                         disabled={isDisabled}
                         onClick={e => {
                           e.stopPropagation();
@@ -79,7 +79,9 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
                         }}
                       >
                         <span className="truncate">{statusLabel}</span>
-                        <HiChevronDown className="ml-2 text-lg" />
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{marginLeft: '8px', display: 'block'}}>
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
                       </button>
                       {dropdownOpenId === task.id && !isDisabled && ReactDOM.createPortal(
                         <div

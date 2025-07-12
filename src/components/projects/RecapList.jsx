@@ -158,11 +158,14 @@ const RecapList = ({ projectId }) => {
       <div className="flex items-center mb-4">
         <button
           className="text-6xl font-light text-black hover:text-gray-700 focus:outline-none"
-          style={{ lineHeight: 1, width: '56px', height: '56px', fontSize: '56px', marginLeft: 0, marginRight: 0, padding: 0 }}
+          style={{ lineHeight: 1, width: '56px', height: '56px', fontSize: '56px', marginLeft: 0, marginRight: 0, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setShowAddModal(true)}
           title="Add Recap"
         >
-          +
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
         </button>
       </div>
       {error && <div className="text-red-500 text-xs mb-2">{error}</div>}
@@ -183,7 +186,12 @@ const RecapList = ({ projectId }) => {
                   <span className="font-sans text-base font-normal text-black">{formatDate(recap.date)}</span>
                   <span className="text-xs mt-1 font-sans italic text-green-500">{getTypeLabel(recap.type)}</span>
                 </div>
-                <span className="text-2xl mr-2 select-none">&#8594;</span>
+                <span className="text-2xl mr-6 select-none" style={{ display: 'flex', alignItems: 'center' }}>
+                  <svg width="32" height="24" viewBox="0 0 32 24" fill="none" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
+                    <path d="M7 12h16" />
+                    <path d="M19 6l6 6-6 6" />
+                  </svg>
+                </span>
               </div>
             ))
           ) : (

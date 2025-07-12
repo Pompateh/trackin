@@ -136,7 +136,7 @@ const Project = () => {
         {/* ProjectSidebar */}
         {isSidebarVisible ? (
           <div className="w-1/3 h-full border-l-0 border-base-300">
-            <ProjectSidebar projectId={projectId} onToggleSidebar={() => setIsSidebarVisible(false)} role={role} />
+            <ProjectSidebar projectId={projectId} onToggleSidebar={() => setIsSidebarVisible(false)} role={role} projectName={project?.name} />
           </div>
         ) : (
           <div className="h-full flex flex-col justify-center items-center border-l border-black bg-white" style={{ width: '40px', cursor: 'pointer' }} onClick={() => setIsSidebarVisible(true)}>
