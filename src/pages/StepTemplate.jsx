@@ -13,12 +13,25 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
   const isEmpty = !value || value.trim() === '';
   const displayValue = isEmpty ? placeholder : value;
 
+  const handleTextClick = (e) => {
+    // Stop propagation to prevent grid selection when clicking on text
+    e.stopPropagation();
+  };
+
+  const handleDeleteClick = (e) => {
+    // Stop propagation to prevent grid selection when clicking delete button
+    e.stopPropagation();
+    onVisibilityChange();
+  };
+
   return (
     <div className="relative group">
       <div
         contentEditable
         suppressContentEditableWarning
         onBlur={e => onChange(e.currentTarget.textContent)}
+        onClick={handleTextClick}
+        onMouseDown={handleTextClick}
         className={`w-full outline-none focus:bg-gray-100 p-1 rounded ${className} ${isEmpty ? 'text-gray-400 italic' : ''}`}
         style={{ 
           fontSize: `${fontSize}px`,
@@ -30,7 +43,7 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
       />
       <div className="absolute top-0 right-0 h-full flex items-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto bg-gradient-to-l from-base-200 via-base-200 to-transparent pl-4">
         <button 
-          onClick={onVisibilityChange}
+          onClick={handleDeleteClick}
           className="text-red-500"
         >
           &times;
@@ -194,30 +207,40 @@ const TextContent = ({ item, onUpdate }) => {
   );
 };
 
-const ImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => (
-  <div 
-    className="w-full h-full flex justify-center items-center bg-gray-100 cursor-pointer"
-    onClick={!item.image_url && !isUploading ? onImageSelect : undefined}
-  >
-    {item.image_url ? (
-      <img src={item.image_url} alt="Project asset" className="w-full h-full object-cover" />
-    ) : (
-      <div className="text-center text-gray-500">
-        {isUploading ? (
-          <>
-            <span className="loading loading-spinner loading-md"></span>
-            <p>Uploading...</p>
-          </>
-        ) : (
-          <div>
-            <p>Select Image</p>
-            <p className="text-xs">(Click to upload)</p>
-          </div>
-        )}
-      </div>
-    )}
-  </div>
-);
+const ImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => {
+  const handleImageClick = (e) => {
+    // Stop propagation to prevent grid selection when clicking on image upload area
+    e.stopPropagation();
+    if (!item.image_url && !isUploading) {
+      onImageSelect();
+    }
+  };
+
+  return (
+    <div 
+      className="w-full h-full flex justify-center items-center bg-gray-100 cursor-pointer"
+      onClick={handleImageClick}
+    >
+      {item.image_url ? (
+        <img src={item.image_url} alt="Project asset" className="w-full h-full object-cover" />
+      ) : (
+        <div className="text-center text-gray-500">
+          {isUploading ? (
+            <>
+              <span className="loading loading-spinner loading-md"></span>
+              <p>Uploading...</p>
+            </>
+          ) : (
+            <div>
+              <p>Select Image</p>
+              <p className="text-xs">(Click to upload)</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // A single grid item component
 const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId }) => {
@@ -287,7 +310,8 @@ const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId })
     <div
       className={`bg-base-200 relative cursor-pointer
                   transition-all duration-300 overflow-hidden
-                  ${selected ? 'border-2 border-blue-500 shadow-lg' : 'border border-transparent'}`}
+                  hover:border-blue-300 hover:shadow-md
+                  ${selected ? 'border-2 border-blue-500 shadow-lg bg-blue-50' : 'border border-gray-300'}`}
       style={{
         gridColumn: `span ${item.colSpan}`,
         gridRow: `span ${item.rowSpan}`,
@@ -368,21 +392,35 @@ const StepTemplate = () => {
   const [menu, setMenu] = useState({ visible: false, x: 0, y: 0, gridId: null });
   const [projectName, setProjectName] = useState('');
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
 
   // Handle grid selection
   const handleSelect = (id, event) => {
+    console.log('Grid selection attempt:', { id, isMultiSelectMode, ctrlKey: event?.ctrlKey, metaKey: event?.metaKey });
+    
     setSelectedGrids(prev => {
       const newSelection = new Set(prev);
       
-      // If Ctrl/Cmd key is pressed, toggle the selection
-      if (event && (event.ctrlKey || event.metaKey)) {
-        newSelection.has(id) ? newSelection.delete(id) : newSelection.add(id);
+      // Check for multi-select mode (either from state or from event)
+      const shouldMultiSelect = isMultiSelectMode || (event && (event.ctrlKey || event.metaKey));
+      
+      if (shouldMultiSelect) {
+        console.log('Multi-selection mode - toggling item:', id);
+        if (newSelection.has(id)) {
+          newSelection.delete(id);
+          console.log('Removed from selection');
+        } else {
+          newSelection.add(id);
+          console.log('Added to selection');
+        }
       } else {
         // Otherwise, replace the selection with just this item
+        console.log('Single selection mode - replacing selection with:', id);
         newSelection.clear();
         newSelection.add(id);
       }
       
+      console.log('New selection:', Array.from(newSelection));
       return newSelection;
     });
     setMenu({ visible: false });
@@ -679,6 +717,29 @@ const StepTemplate = () => {
     fetchAndStructureGridItems();
   }, [projectId, sectionId]);
 
+  // Add keyboard event listeners for multi-select mode
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        setIsMultiSelectMode(true);
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (!e.ctrlKey && !e.metaKey) {
+        setIsMultiSelectMode(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   const updateAndSaveItem = async (itemId, updates) => {
     const dbUpdates = {};
     // This is a bit of a manual mapping for updates, but it's clear.
@@ -766,17 +827,25 @@ const StepTemplate = () => {
         {/* Main content */}
         <div className={`${isSidebarVisible ? 'w-2/3' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300 p-4`}>
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">
-              {projectName && (
-                <>
-                  <Link to={`/project/${projectId}`} className="text-gray-500 hover:underline">
-                    {projectName}
-                  </Link>
-                  <span className="text-gray-500"> / </span>
-                </>
-              )}
-              Step: {sectionId} - Select Template
-            </h1>
+            <div>
+              <h1 className="text-2xl font-bold">
+                {projectName && (
+                  <>
+                    <Link to={`/project/${projectId}`} className="text-gray-500 hover:underline">
+                      {projectName}
+                    </Link>
+                    <span className="text-gray-500"> / </span>
+                  </>
+                )}
+                Step: {sectionId} - Select Template
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Click to select single grid • Hold Ctrl/Cmd + Click to select multiple grids • Right-click for menu
+                {isMultiSelectMode && (
+                  <span className="ml-2 text-blue-600 font-semibold">[Multi-Select Mode Active]</span>
+                )}
+              </p>
+            </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <button 
@@ -799,9 +868,39 @@ const StepTemplate = () => {
                   Merge {selectedGrids.size} Items
                 </button>
               )}
+              <button 
+                className={`btn btn-sm ${isMultiSelectMode ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
+              >
+                {isMultiSelectMode ? 'Multi-Select ON' : 'Multi-Select OFF'}
+              </button>
             </div>
           </div>
 
+          {/* Selection Info and Text Formatting Toolbar */}
+          {selectedGrids.size > 0 && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-blue-800">
+                    {selectedGrids.size} grid{selectedGrids.size > 1 ? 's' : ''} selected
+                  </span>
+                  {selectedGrids.size > 1 && (
+                    <span className="text-xs text-blue-600">
+                      (Hold Ctrl/Cmd + Click to select more)
+                    </span>
+                  )}
+                </div>
+                <button 
+                  className="btn btn-xs btn-outline"
+                  onClick={() => setSelectedGrids(new Set())}
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          )}
+          
           {/* Text Formatting Toolbar - only shows when text items are selected */}
           {(() => {
             const selectedItems = gridItems.filter(item => selectedGrids.has(item.grid_item_id));

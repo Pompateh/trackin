@@ -48,7 +48,23 @@ const TextContent = ({ item }) => {
 const ImageContent = ({ item }) => (
   <div style={{ width: '100%', height: '100%', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0', padding: 0, margin: 0 }}>
     {item.image_url ? (
-      <img src={item.image_url} alt="Project asset" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '0', margin: 0, padding: 0 }} />
+      <img 
+        src={item.image_url} 
+        alt="Project asset" 
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          objectFit: 'cover', 
+          borderRadius: '0', 
+          margin: 0, 
+          padding: 0,
+          imageRendering: 'high-quality', // Improve image rendering quality
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high'
+        }} 
+        crossOrigin="anonymous" // Enable CORS for better image handling
+        loading="eager" // Load images immediately for PDF generation
+      />
     ) : (
       <div style={{ color: '#999', fontSize: '14px' }}>No Image</div>
     )}
@@ -132,10 +148,12 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
   return (
     <div style={{
       width: pdfMode ? '297mm' : '100%',
+      height: pdfMode ? '210mm' : 'auto',
       background: '#fff',
       color: '#222',
       fontFamily: 'Arial, sans-serif',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      position: pdfMode ? 'relative' : 'static'
     }}>
       {pdfMode && (
         <style>{`
@@ -143,6 +161,16 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
             background: #fff !important;
             box-shadow: none !important;
             border: none !important;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            image-rendering: high-quality !important;
+            image-rendering: -webkit-optimize-contrast !important;
+            image-rendering: crisp-edges !important;
+          }
+          .printable-step img {
+            image-rendering: high-quality !important;
+            image-rendering: -webkit-optimize-contrast !important;
+            image-rendering: crisp-edges !important;
           }
         `}</style>
       )}
@@ -196,13 +224,12 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                 pageBreakInside: 'avoid',
                 pageBreakBefore: sectionIndex > 0 ? 'always' : 'auto',
                 background: '#fff',
-                minHeight: '210mm',
-                width: '297mm',
-                height: '210mm', // Fill A4 landscape
                 boxSizing: 'border-box',
                 padding: '0',
                 display: 'flex',
                 flexDirection: 'column',
+                position: 'relative',
+                overflow: 'hidden'
               } : {
                 marginBottom: '40px',
                 pageBreakInside: 'avoid',
