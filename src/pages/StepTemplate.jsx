@@ -914,7 +914,7 @@ const StepTemplate = () => {
 
           <div
             className="grid grid-cols-4"
-            style={{ gap: '10px 5px' }}
+            style={{ gap: '10px 5px', gridAutoRows: 'auto', maxHeight: '700px', overflow: 'auto' }}
           >
             {gridItems.map(item =>
               !item.hidden ? (
