@@ -4,15 +4,17 @@ import '@tldraw/tldraw/tldraw.css';
 import useProjectStore from '../../store/useProjectStore';
 import { supabase } from '../../lib/supabaseClient';
 import { throttle } from 'lodash';
+import { useNavigate } from 'react-router-dom';
 
 // A unique ID for this browser session
 const sessionId = crypto.randomUUID();
 
-const TldrawCanvas = ({ projectId, canEdit, role }) => {
+const TldrawCanvas = ({ projectId, canEdit, role, onClose }) => {
   const { board, saveBoard, isUploading } = useProjectStore();
   const [editor, setEditor] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const containerRef = useRef(null);
+  const navigate = useNavigate();
 
   const handleSave = useMemo(() => throttle(async (snapshot) => {
     await saveBoard(snapshot);
@@ -23,6 +25,13 @@ const TldrawCanvas = ({ projectId, canEdit, role }) => {
       payload: { snapshot, sessionId },
     });
   }, 1000, { trailing: true }), [saveBoard, projectId]);
+
+  // Always load the latest board snapshot when either editor or board changes
+  useEffect(() => {
+    if (!editor || !board || !board.board_data) return;
+    loadSnapshot(editor.store, board.board_data);
+    console.log('Loaded board snapshot from DB', board.board_data);
+  }, [editor, board]);
 
   useEffect(() => {
     if (!editor) return;
@@ -56,14 +65,6 @@ const TldrawCanvas = ({ projectId, canEdit, role }) => {
 
   return (
     <div style={{ position: 'relative' }}>
-      <button
-        onClick={() => setIsOpen((v) => !v)}
-        style={{
-          position: 'absolute', top: 0, right: 0, zIndex: 1100, margin: 8, padding: '6px 16px', borderRadius: 6, background: '#6366f1', color: '#fff', fontWeight: 'bold', border: 'none', cursor: 'pointer',
-        }}
-      >
-        {isOpen ? 'Close Board' : 'Open Board'}
-      </button>
       {/* Fullscreen overlay when open */}
       {isOpen && (
         <div
@@ -81,7 +82,14 @@ const TldrawCanvas = ({ projectId, canEdit, role }) => {
         >
           <div style={{ width: '100%', display: 'flex', justifyContent: 'center', position: 'absolute', top: 0, left: 0, zIndex: 2100 }}>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+                if (onClose) {
+                  onClose();
+                } else {
+                  navigate(-1);
+                }
+              }}
               style={{
                 padding: '10px 32px', borderRadius: '0 0 16px 16px' , background: '#6366f1', color: '#fff', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
               }}

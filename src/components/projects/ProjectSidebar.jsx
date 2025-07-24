@@ -129,7 +129,7 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role, projectName }) => {
   return (
     <div className="h-full flex flex-col border-t border-b border-black bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-black px-0" style={{height: '149px'}}>
+      <div className="flex items-center justify-between border-b border-black px-0" style={{height: '155px'}}>
         <span className="font-serif font-extralight" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '100px', lineHeight: '96px', paddingLeft: '13px', margin: 0 }}>NOTE</span>
         <button
           className="flex items-center justify-center border-none bg-transparent text-black hover:bg-gray-100"
@@ -147,11 +147,23 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role, projectName }) => {
           .hide-scrollbar::-webkit-scrollbar { display: none; }
           .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
         `}</style>
-        <div className="flex items-center justify-between px-0 sticky top-0 bg-white border-b border-black hide-scrollbar" style={{height: '60px', zIndex: 100, position: 'sticky', top: 0}}>
+        <div className="flex items-center justify-between px-0 sticky top-0 bg-white border-b border-black hide-scrollbar" style={{height: '60px', zIndex: 100, position: 'sticky', top: 0, background: '#D9D9D9'}}>
           <span className="font-gothic font-bold" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', paddingLeft: '16px' }}>TASK</span>
-          <button className="flex items-center justify-center text-black border-none bg-transparent hover:bg-gray-100" style={{ fontSize: '2rem', width: '60px', height: '100%', borderRadius: 0, marginRight: '8px' }} onClick={() => setIsTaskModalOpen(true)}>+</button>
+          <button className="flex items-center justify-center text-black border-none bg-transparent hover:bg-gray-100" style={{ fontSize: '2rem', width: '60px', height: '100%', borderRadius: 0, marginRight: '8px' }} onClick={() => setIsTaskModalOpen(true)}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
         </div>
-        <div className="hide-scrollbar" style={{overflowY: 'auto', maxHeight: '160px'}}>
+        <div
+          className="hide-scrollbar"
+          style={
+            tasks.length >= 2
+              ? { overflowY: 'auto', maxHeight: '160px' }
+              : { overflowY: 'visible', maxHeight: 'none' }
+          }
+        >
           <TaskList
             projectId={projectId}
             tasks={tasks}
@@ -170,14 +182,14 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role, projectName }) => {
       <div className="flex flex-row flex-1 min-h-0 border-b border-black">
         {/* COMMENT */}
         <div className="w-7/10 flex flex-col h-full" style={{width: '70%'}}>
-          <div className="font-gothic font-bold border-b border-black px-0" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', height: '60px', display: 'flex', alignItems: 'center', paddingLeft: '16px' }}>COMMENT</div>
+          <div className="font-gothic font-bold border-b border-black px-0" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', height: '60px', display: 'flex', alignItems: 'center', paddingLeft: '16px', background: '#D9D9D9' }}>COMMENT</div>
           <div className="flex-1 flex flex-col overflow-y-auto">
             <CommentSection projectId={projectId} customStyle />
           </div>
         </div>
         {/* RECAP */}
         <div className="w-3/10 flex flex-col border-l border-black h-full" style={{width: '30%'}}>
-          <div className="font-gothic font-bold border-b border-black px-0" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', height: '60px', display: 'flex', alignItems: 'center', paddingLeft: '16px' }}>RECAP</div>
+          <div className="font-gothic font-bold border-b border-black px-0" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', height: '60px', display: 'flex', alignItems: 'center', paddingLeft: '16px', background: '#D9D9D9' }}>RECAP</div>
           <div className="flex-1 flex flex-col overflow-y-auto">
             <RecapList projectId={projectId} customStyle />
           </div>

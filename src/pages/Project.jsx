@@ -106,44 +106,51 @@ const Project = () => {
           ← Back
         </button>
       </div>
-      <div className="flex w-full h-full">
+      <div className="flex flex-col md:flex-row w-full h-full">
         {/* Left vertical divider */}
-        <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
+        <div className="hidden md:flex h-full w-5 border-r border-t border-l border-b bir border-black flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
         {/* SectionList */}
-        <div className={`${isSidebarVisible ? 'w-2/3' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300`}>
-          <div className="flex justify-between items-center mb-4 px-2 py-4">
-            <h1 className="font-serif font-extralight" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '100px', lineHeight: '96px' }}>INDEX</h1>
-            <div className="flex gap-4 items-center">
-              <DownloadPDFButton printableRef={hiddenPdfRef} className="custom-action-btn font-serif font-extralight" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '25px', lineHeight: '100px', border: '1px solid #000', color: '#000', background: '#fff', borderRadius: 0, padding: '0 24px', height: '100px', minWidth: '180px' }} />
+        <div className={`${isSidebarVisible ? 'md:w-2/3 w-full' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300`}>
+          <div className="flex flex-col md:flex-row justify-between items-center mb-4 px-2 py-4 gap-4 md:gap-0">
+            <h1 className="font-serif font-extralight text-4xl md:text-7xl lg:text-8xl" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, lineHeight: '1.1' }}>INDEX</h1>
+
+          </div>
+          <SectionList 
+            projectId={projectId} 
+            onSelectSection={setSelectedSection} 
+            selectedSection={selectedSection} 
+            isAdmin={role === 'admin'} 
+          />
+          <div className="flex w-full mb-2">
+            <DownloadPDFButton 
+              printableRef={hiddenPdfRef} 
+              className="custom-action-btn font-serif font-extralight text-base md:text-2xl border-b border-r border-black rounded-none px-0 py-6 bg-white hover:bg-gray-100 transition"
+              style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, minWidth: 0, width: '50%', borderLeft: 'none', borderTop: 'none', borderRadius: 0, borderRight: '1px solid #000', borderBottom: '1px solid #000', padding: 0 }} 
+            />
             <button 
-                className="custom-action-btn font-serif font-extralight"
-                style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, fontSize: '25px', lineHeight: '100px', border: '1px solid #000', color: '#000', background: '#fff', borderRadius: 0, padding: '0 24px', height: '100px', minWidth: '180px' }}
-                onClick={() => setShowPrintable(true)}
+              className="custom-action-btn font-serif font-extralight text-base md:text-2xl border-b border-black rounded-none px-0 py-6 bg-white hover:bg-gray-100 transition"
+              style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, minWidth: 0, width: '50%', borderLeft: 'none', borderTop: 'none', borderRadius: 0, borderRight: 'none', borderBottom: '1px solid #000', padding: 0 }}
+              onClick={() => setShowPrintable(true)}
             >
-                Show Printable Project
+              Show Printable Project
             </button>
           </div>
         </div>
-        <SectionList 
-          projectId={projectId} 
-          onSelectSection={setSelectedSection} 
-          selectedSection={selectedSection} 
-          isAdmin={role === 'admin'} 
-        />
-        </div>
         {/* Middle vertical divider */}
-        <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
+        <div className="hidden md:flex h-full w-5 border-r border-t border-l border-b bir border-black flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
         {/* ProjectSidebar */}
         {isSidebarVisible ? (
-          <div className="w-1/3 h-full border-l-0 border-base-300">
+          <div className="md:w-1/3 w-full h-full border-l-0 border-base-300">
             <ProjectSidebar projectId={projectId} onToggleSidebar={() => setIsSidebarVisible(false)} role={role} projectName={project?.name} />
           </div>
         ) : (
           <div className="h-full flex flex-col justify-center items-center border-l border-black bg-white" style={{ width: '40px', cursor: 'pointer' }} onClick={() => setIsSidebarVisible(true)}>
-            <HiOutlineChevronRight style={{ transform: 'rotate(180deg)', fontWeight: 200, fontSize: '2.5rem', userSelect: 'none' }} />
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ fontWeight: 200, fontSize: '2.5rem', userSelect: 'none', display: 'block' }}>
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
           </div>
         )}
-            </div>
+      </div>
       {/* PrintableProject Modal */}
       {showPrintable && (
         <Modal isOpen={showPrintable} onClose={() => setShowPrintable(false)}>

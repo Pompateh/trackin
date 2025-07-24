@@ -88,13 +88,14 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
     // For dropdown items, remove border, remove todo, and make clickable
     if (isSubsection) {
       return (
-        <div
+        <Link
           key={section.id}
+          to={`/project/${projectId}/step/${section.title.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}
           className="flex-1 min-w-[120px] max-w-[180px] px-3 py-2 cursor-pointer font-gothic font-medium text-[20px] text-black text-center"
           onClick={() => onSelectSection(section)}
         >
           {section.title}
-        </div>
+        </Link>
       );
     }
     return (
@@ -152,7 +153,9 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
                         onClick={() => setConceptPage(p => Math.max(0, p - 1))}
                         disabled={conceptPage === 0}
                       >
-                        {'<'}
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
+                          <path d="M15 18l-6-6 6-6" />
+                        </svg>
                       </button>
                       <div className="flex gap-2 flex-1 items-center h-full justify-center">
                         {getSubsections(section.id)
@@ -164,7 +167,9 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
                         onClick={() => setConceptPage(p => p + 1)}
                         disabled={(conceptPage + 1) * ITEMS_PER_PAGE >= getSubsections(section.id).length}
                       >
-                        {'>'}
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
+                          <path d="M9 6l6 6-6 6" />
+                        </svg>
                       </button>
                     </div>
                   </div>

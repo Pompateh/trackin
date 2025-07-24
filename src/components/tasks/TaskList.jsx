@@ -122,7 +122,7 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
             );
           })
         ) : (
-          <p className="text-sm text-gray-500 p-2">No tasks for this section yet.</p>
+          <p className="text-sm text-gray-500 p-2 pl-4">No tasks for this section yet.</p>
         )}
       </div>
       {/* Modal is now handled by parent */}

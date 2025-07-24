@@ -195,7 +195,7 @@ const RecapList = ({ projectId }) => {
               </div>
             ))
           ) : (
-            <div className="text-gray-400 italic">No recaps yet.</div>
+            <div className="text-gray-400 italic pl-4">No recaps yet.</div>
           )}
         </div>
       )}

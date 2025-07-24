@@ -13,8 +13,8 @@ const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
     const pdf = new jsPDF({ 
       orientation: 'landscape', 
       unit: 'mm', 
-      format: 'a4',
-      compress: true
+      format: 'a3',
+      compress: false // Disable compression for maximum quality
     });
     
     for (let i = 0; i < steps.length; i++) {
@@ -27,11 +27,17 @@ const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
       const dataUrl = await domtoimage.toPng(step, { 
         bgcolor: '#fff', 
         style: { background: '#fff' }, 
-        width: stepWidth,
-        height: stepHeight,
+        width: stepWidth * 3, // Triple the resolution for ultra-high quality
+        height: stepHeight * 3, // Triple the resolution for ultra-high quality
         quality: 1.0,
         imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-        filter: (node) => !node.classList?.contains('no-print')
+        filter: (node) => !node.classList?.contains('no-print'),
+        style: {
+          transform: 'scale(3)',
+          transformOrigin: 'top left',
+          width: stepWidth + 'px',
+          height: stepHeight + 'px'
+        }
       });
       
       if (i > 0) pdf.addPage();
@@ -49,8 +55,8 @@ const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
     const pdf = new jsPDF({ 
       orientation: 'landscape', 
       unit: 'mm', 
-      format: 'a4',
-      compress: true
+      format: 'a3',
+      compress: false // Disable compression for maximum quality
     });
     
     for (let i = 0; i < steps.length; i++) {
@@ -61,17 +67,26 @@ const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
       const pageMmHeight = pdf.internal.pageSize.getHeight();
       
       const canvas = await html2canvas(step, {
-        scale: 1,
+        scale: 3, // Triple scale for ultra-high quality
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
         width: stepWidth,
         height: stepHeight,
-        imageTimeout: 15000,
+        imageTimeout: 30000, // Increased timeout for higher quality processing
         removeContainer: true,
         foreignObjectRendering: true,
-        ignoreElements: (element) => element.classList?.contains('no-print')
+        ignoreElements: (element) => element.classList?.contains('no-print'),
+        imageRendering: 'high-quality',
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high',
+        allowTaint: true,
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: stepWidth,
+        windowHeight: stepHeight
       });
       
       const imgData = canvas.toDataURL('image/png', 1.0);
@@ -97,6 +112,9 @@ const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
           img.onerror = reject;
         });
       }));
+      
+      // Force a small delay to ensure all rendering is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Try html2canvas first (usually better quality), fallback to dom-to-image
       let pdf;

@@ -5,17 +5,32 @@ import { supabase } from '../lib/supabaseClient';
 import ProjectSidebar from '../components/projects/ProjectSidebar';
 import { HiOutlineChevronRight } from 'react-icons/hi';
 import useProjectStore from '../store/useProjectStore';
+import TldrawCanvas from '../components/board/TldrawCanvas';
 
 // A single editable text row with a delete button
-const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, className, isVisible, fontSize, onFontSizeChange }) => {
+const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, className, isVisible, fontSize, fontFamily, onFontSizeChange, textType, onTextFocus }) => {
   if (!isVisible) return null;
 
+  const [isEditing, setIsEditing] = useState(false);
   const isEmpty = !value || value.trim() === '';
-  const displayValue = isEmpty ? placeholder : value;
+  const displayValue = isEmpty && !isEditing ? placeholder : value;
 
   const handleTextClick = (e) => {
     // Stop propagation to prevent grid selection when clicking on text
     e.stopPropagation();
+    if (isEmpty) {
+      setIsEditing(true);
+    }
+  };
+
+  const handleFocus = () => {
+    setIsEditing(true);
+    onTextFocus(textType);
+  };
+
+  const handleBlur = (e) => {
+    setIsEditing(false);
+    onChange(e.currentTarget.textContent);
   };
 
   const handleDeleteClick = (e) => {
@@ -29,14 +44,15 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
       <div
         contentEditable
         suppressContentEditableWarning
-        onBlur={e => onChange(e.currentTarget.textContent)}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         onClick={handleTextClick}
         onMouseDown={handleTextClick}
-        className={`w-full outline-none focus:bg-gray-100 p-1 rounded ${className} ${isEmpty ? 'text-gray-400 italic' : ''}`}
+        className={`w-full outline-none focus:bg-gray-100 p-1 rounded ${className} ${isEmpty && !isEditing ? 'text-gray-400 italic' : ''} ${fontFamily === 'crimson pro' ? 'font-crimson-pro' : 'font-gothic-a1'}`}
         style={{ 
           fontSize: `${fontSize}px`,
-          filter: isEmpty ? 'blur(0.5px)' : 'none',
-          opacity: isEmpty ? 0.7 : 1
+          filter: isEmpty && !isEditing ? 'blur(0.5px)' : 'none',
+          opacity: isEmpty && !isEditing ? 0.7 : 1
         }}
         dangerouslySetInnerHTML={{ __html: displayValue || '' }}
         data-placeholder={placeholder}
@@ -54,7 +70,7 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
 };
 
 // New toolbar for text formatting - moved outside of grid items
-const TextFormatToolbar = ({ selectedItems, onUpdate }) => {
+const TextFormatToolbar = ({ selectedItems, onUpdate, activeTextType }) => {
   // Only show if we have selected text items
   const textItems = selectedItems.filter(item => item.template_type === 'text');
   if (textItems.length === 0) return null;
@@ -76,11 +92,59 @@ const TextFormatToolbar = ({ selectedItems, onUpdate }) => {
     { v: 'bottom', h: 'right', label: 'BR' },
   ];
 
+  const fonts = [
+    { value: 'gothic a1', label: 'Gothic A1' },
+    { value: 'crimson pro', label: 'Crimson Pro' },
+  ];
+
+  // Get the current values for the active text type
+  const getCurrentFontSize = () => {
+    switch (activeTextType) {
+      case 'title': return firstItem.title_font_size;
+      case 'subtitle': return firstItem.subtitle_font_size;
+      case 'body': return firstItem.body_font_size;
+      default: return firstItem.title_font_size;
+    }
+  };
+
+  const getCurrentFontFamily = () => {
+    switch (activeTextType) {
+      case 'title': return firstItem.title_font_family;
+      case 'subtitle': return firstItem.subtitle_font_family;
+      case 'body': return firstItem.body_font_family;
+      default: return firstItem.title_font_family;
+    }
+  };
+
+  const updateFontSize = (newSize) => {
+    const update = {};
+    switch (activeTextType) {
+      case 'title': update.title_font_size = newSize; break;
+      case 'subtitle': update.subtitle_font_size = newSize; break;
+      case 'body': update.body_font_size = newSize; break;
+    }
+    handleUpdate(update);
+  };
+
+  const updateFontFamily = (newFamily) => {
+    const update = {};
+    switch (activeTextType) {
+      case 'title': update.title_font_family = newFamily; break;
+      case 'subtitle': update.subtitle_font_family = newFamily; break;
+      case 'body': update.body_font_family = newFamily; break;
+    }
+    handleUpdate(update);
+  };
+
+  const currentFontSize = getCurrentFontSize();
+  const currentFontFamily = getCurrentFontFamily();
+
   return (
     <div className="bg-base-200 p-3 rounded-lg shadow-lg border border-gray-300">
       <div className="flex items-center gap-4">
+        {/* Always show position controls */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Text Position:</span>
+          <span className="text-sm font-semibold">Position:</span>
           <div className="btn-group">
             {positions.map(({ v, h, label }) => (
               <button
@@ -94,64 +158,67 @@ const TextFormatToolbar = ({ selectedItems, onUpdate }) => {
             ))}
           </div>
         </div>
+
+        {/* Show active text type indicator */}
+        {activeTextType && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold capitalize text-blue-600">
+              {activeTextType}:
+            </span>
+          </div>
+        )}
         
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Title Size:</span>
-          <button 
-            className="btn btn-xs btn-outline" 
-            onClick={() => handleUpdate({ title_font_size: Math.max(12, firstItem.title_font_size - 2) })}
-          >
-            -
-          </button>
-          <span className="text-xs w-8 text-center">{firstItem.title_font_size}px</span>
-          <button 
-            className="btn btn-xs btn-outline" 
-            onClick={() => handleUpdate({ title_font_size: firstItem.title_font_size + 2 })}
-          >
-            +
-          </button>
-        </div>
+        {/* Show font size controls only for active text type */}
+        {activeTextType && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">Size:</span>
+            <button 
+              className="btn btn-xs btn-outline" 
+              onClick={() => updateFontSize(Math.max(8, currentFontSize - 2))}
+            >
+              -
+            </button>
+            <span className="text-xs w-8 text-center">{currentFontSize}px</span>
+            <button 
+              className="btn btn-xs btn-outline" 
+              onClick={() => updateFontSize(currentFontSize + 2)}
+            >
+              +
+            </button>
+          </div>
+        )}
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Subtitle Size:</span>
-          <button 
-            className="btn btn-xs btn-outline" 
-            onClick={() => handleUpdate({ subtitle_font_size: Math.max(10, firstItem.subtitle_font_size - 2) })}
-          >
-            -
-          </button>
-          <span className="text-xs w-8 text-center">{firstItem.subtitle_font_size}px</span>
-          <button 
-            className="btn btn-xs btn-outline" 
-            onClick={() => handleUpdate({ subtitle_font_size: firstItem.subtitle_font_size + 2 })}
-          >
-            +
-          </button>
-        </div>
+        {/* Show font family controls only for active text type */}
+        {activeTextType && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">Font:</span>
+            <select 
+              className="select select-xs select-bordered"
+              value={currentFontFamily || 'gothic a1'}
+              onChange={(e) => updateFontFamily(e.target.value)}
+            >
+              {fonts.map(font => (
+                <option key={font.value} value={font.value}>
+                  {font.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Body Size:</span>
-          <button 
-            className="btn btn-xs btn-outline" 
-            onClick={() => handleUpdate({ body_font_size: Math.max(8, firstItem.body_font_size - 2) })}
-          >
-            -
-          </button>
-          <span className="text-xs w-8 text-center">{firstItem.body_font_size}px</span>
-          <button 
-            className="btn btn-xs btn-outline" 
-            onClick={() => handleUpdate({ body_font_size: firstItem.body_font_size + 2 })}
-          >
-            +
-          </button>
-        </div>
+        {/* Show "Click on text to edit" message when no active text type */}
+        {!activeTextType && (
+          <div className="text-sm text-gray-500 italic">
+            Click on any text section to edit its properties
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 // Template-specific content components
-const TextContent = ({ item, onUpdate }) => {
+const TextContent = ({ item, onUpdate, onTextFocus }) => {
   const handleUpdate = useCallback((field, value) => {
     onUpdate({ [field]: value });
   }, [onUpdate]);
@@ -183,6 +250,9 @@ const TextContent = ({ item, onUpdate }) => {
           className="text-2xl font-bold"
           isVisible={item.is_title_visible}
           fontSize={item.title_font_size}
+          fontFamily={item.title_font_family}
+          textType="title"
+          onTextFocus={onTextFocus}
         />
         <EditableTextRow
           value={item.subtitle_text}
@@ -192,6 +262,9 @@ const TextContent = ({ item, onUpdate }) => {
           className="text-md text-gray-600"
           isVisible={item.is_subtitle_visible}
           fontSize={item.subtitle_font_size}
+          fontFamily={item.subtitle_font_family}
+          textType="subtitle"
+          onTextFocus={onTextFocus}
         />
         <EditableTextRow
           value={item.body_text}
@@ -201,6 +274,9 @@ const TextContent = ({ item, onUpdate }) => {
           className="text-base mt-4"
           isVisible={item.is_body_visible}
           fontSize={item.body_font_size}
+          fontFamily={item.body_font_family}
+          textType="body"
+          onTextFocus={onTextFocus}
         />
       </div>
     </div>
@@ -209,7 +285,6 @@ const TextContent = ({ item, onUpdate }) => {
 
 const ImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => {
   const handleImageClick = (e) => {
-    // Stop propagation to prevent grid selection when clicking on image upload area
     e.stopPropagation();
     if (!item.image_url && !isUploading) {
       onImageSelect();
@@ -222,7 +297,12 @@ const ImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => {
       onClick={handleImageClick}
     >
       {item.image_url ? (
-        <img src={item.image_url} alt="Project asset" className="w-full h-full object-cover" />
+        <img 
+          src={item.image_url} 
+          alt="Project asset" 
+          className="w-full h-full object-cover"
+          style={{ display: 'block' }}
+        />
       ) : (
         <div className="text-center text-gray-500">
           {isUploading ? (
@@ -243,7 +323,7 @@ const ImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => {
 };
 
 // A single grid item component
-const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId }) => {
+const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId, onTextFocus, isParentUploading, imagePositionX, imagePositionY, imageScale }) => {
   const [isUploading, setIsUploading] = useState(false);
 
   const handleImageUpload = async (e) => {
@@ -294,9 +374,9 @@ const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId })
 
     switch (item.template_type) {
       case 'text':
-        return <TextContent item={item} onUpdate={onUpdateItem} />;
+        return <TextContent item={item} onUpdate={onUpdateItem} onTextFocus={onTextFocus} />;
       case 'image':
-        return <ImageContent item={item} onUpdate={onUpdateItem} onImageSelect={onImageSelect} isUploading={isUploading} />;
+        return <ImageContent item={item} onUpdate={onUpdateItem} onImageSelect={onImageSelect} isUploading={isUploading || isParentUploading} />;
       default:
         return (
           <div className="w-full h-full flex justify-center items-center">
@@ -353,6 +433,12 @@ const createDefaultGridItem = (row, col) => {
     text_align: 'left',
     text_vertical_align: 'top',
     text_horizontal_align: 'left',
+    title_font_family: 'gothic a1',
+    subtitle_font_family: 'gothic a1',
+    body_font_family: 'gothic a1',
+    image_position_x: 0,
+    image_position_y: 0,
+    image_scale: 1,
   };
 };
 
@@ -380,6 +466,12 @@ const mapStateToDb = (item, projectId, sectionId) => ({
   text_align: item.text_align,
   text_vertical_align: item.text_vertical_align,
   text_horizontal_align: item.text_horizontal_align,
+  title_font_family: item.title_font_family,
+  subtitle_font_family: item.subtitle_font_family,
+  body_font_family: item.body_font_family,
+  image_position_x: item.image_position_x,
+  image_position_y: item.image_position_y,
+  image_scale: item.image_scale,
 });
 
 // The main template selection component
@@ -393,6 +485,8 @@ const StepTemplate = () => {
   const [projectName, setProjectName] = useState('');
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [activeTextType, setActiveTextType] = useState(null);
+  const [uploadingGridId, setUploadingGridId] = useState(null);
 
   // Handle grid selection
   const handleSelect = (id, event) => {
@@ -424,6 +518,8 @@ const StepTemplate = () => {
       return newSelection;
     });
     setMenu({ visible: false });
+    // Clear active text type when selecting a new grid
+    setActiveTextType(null);
   };
 
   const handleShowMenu = (e, id) => {
@@ -548,6 +644,9 @@ const StepTemplate = () => {
           text_align: 'left',
           text_vertical_align: 'top',
           text_horizontal_align: 'left',
+          title_font_family: 'gothic a1',
+          subtitle_font_family: 'gothic a1',
+          body_font_family: 'gothic a1',
         }
       });
     });
@@ -568,6 +667,9 @@ const StepTemplate = () => {
           text_align: 'left',
           text_vertical_align: 'top',
           text_horizontal_align: 'left',
+          title_font_family: 'gothic a1',
+          subtitle_font_family: 'gothic a1',
+          body_font_family: 'gothic a1',
         }
       });
     });
@@ -693,6 +795,12 @@ const StepTemplate = () => {
               text_align: dbItem.text_align || 'left',
               text_vertical_align: dbItem.text_vertical_align || 'top',
               text_horizontal_align: dbItem.text_horizontal_align || 'left',
+              title_font_family: dbItem.title_font_family || 'gothic a1',
+              subtitle_font_family: dbItem.subtitle_font_family || 'gothic a1',
+              body_font_family: dbItem.body_font_family || 'gothic a1',
+              image_position_x: dbItem.image_position_x || 0,
+              image_position_y: dbItem.image_position_y || 0,
+              image_scale: dbItem.image_scale || 1,
             });
           } else {
             const defaultItem = createDefaultGridItem(r, c);
@@ -740,7 +848,7 @@ const StepTemplate = () => {
     };
   }, []);
 
-  const updateAndSaveItem = async (itemId, updates) => {
+  const updateAndSaveItem = useCallback(async (itemId, updates) => {
     const dbUpdates = {};
     // This is a bit of a manual mapping for updates, but it's clear.
     if ('template_type' in updates) dbUpdates.template_type = updates.template_type;
@@ -757,6 +865,12 @@ const StepTemplate = () => {
     if ('text_align' in updates) dbUpdates.text_align = updates.text_align;
     if ('text_vertical_align' in updates) dbUpdates.text_vertical_align = updates.text_vertical_align;
     if ('text_horizontal_align' in updates) dbUpdates.text_horizontal_align = updates.text_horizontal_align;
+    if ('title_font_family' in updates) dbUpdates.title_font_family = updates.title_font_family;
+    if ('subtitle_font_family' in updates) dbUpdates.subtitle_font_family = updates.subtitle_font_family;
+    if ('body_font_family' in updates) dbUpdates.body_font_family = updates.body_font_family;
+    if ('image_position_x' in updates) dbUpdates.image_position_x = updates.image_position_x;
+    if ('image_position_y' in updates) dbUpdates.image_position_y = updates.image_position_y;
+    if ('image_scale' in updates) dbUpdates.image_scale = updates.image_scale;
 
     const { error } = await supabase
       .from('grid_items')
@@ -773,9 +887,9 @@ const StepTemplate = () => {
     setGridItems(prev => prev.map(item => 
       item.grid_item_id === itemId ? { ...item, ...updates } : item
     ));
-  };
+  }, [projectId, sectionId]);
   
-  const batchUpdateAndSave = async (updates) => {
+  const batchUpdateAndSave = useCallback(async (updates) => {
     for (const { id, updates: itemUpdates } of updates) {
       const dbUpdates = {};
       if ('template_type' in itemUpdates) dbUpdates.template_type = itemUpdates.template_type;
@@ -792,6 +906,12 @@ const StepTemplate = () => {
       if ('text_align' in itemUpdates) dbUpdates.text_align = itemUpdates.text_align;
       if ('text_vertical_align' in itemUpdates) dbUpdates.text_vertical_align = itemUpdates.text_vertical_align;
       if ('text_horizontal_align' in itemUpdates) dbUpdates.text_horizontal_align = itemUpdates.text_horizontal_align;
+      if ('title_font_family' in itemUpdates) dbUpdates.title_font_family = itemUpdates.title_font_family;
+      if ('subtitle_font_family' in itemUpdates) dbUpdates.subtitle_font_family = itemUpdates.subtitle_font_family;
+      if ('body_font_family' in itemUpdates) dbUpdates.body_font_family = itemUpdates.body_font_family;
+      if ('image_position_x' in itemUpdates) dbUpdates.image_position_x = itemUpdates.image_position_x;
+      if ('image_position_y' in itemUpdates) dbUpdates.image_position_y = itemUpdates.image_position_y;
+      if ('image_scale' in itemUpdates) dbUpdates.image_scale = itemUpdates.image_scale;
 
       const { error } = await supabase
         .from('grid_items')
@@ -809,7 +929,105 @@ const StepTemplate = () => {
         item.grid_item_id === id ? { ...item, ...itemUpdates } : item
       ));
     }
-  };
+  }, [projectId, sectionId]);
+
+  // Add paste handler for image URLs
+  useEffect(() => {
+    const handlePaste = async (event) => {
+      if (selectedGrids.size !== 1) return;
+
+      const activeElement = document.activeElement;
+      // Do not interfere if user is editing text
+      if (activeElement && (activeElement.isContentEditable || activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        return;
+      }
+
+      const selectedId = Array.from(selectedGrids)[0];
+
+      // --- Handle Image File from Clipboard ---
+      const items = event.clipboardData.items;
+      let imageFile = null;
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            const file = items[i].getAsFile();
+            // Ensure it's a valid file with content
+            if (file && file.size > 0) {
+              imageFile = file;
+              break;
+            }
+          }
+        }
+      }
+
+      if (imageFile) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        setUploadingGridId(selectedId);
+        try {
+          console.log(`Pasted image file into grid item ${selectedId}`);
+          
+          const fileExt = imageFile.name ? imageFile.name.split('.').pop() : 'png';
+          const filePath = `${projectId}/${selectedId}-${Date.now()}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('project_images')
+            .upload(filePath, imageFile, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage
+            .from('project_images')
+            .getPublicUrl(filePath);
+
+          if (!urlData?.publicUrl) {
+            throw new Error("Failed to get public URL for pasted image.");
+          }
+
+          const updates = {
+            template_type: 'image',
+            image_url: urlData.publicUrl,
+          };
+          
+          await updateAndSaveItem(selectedId, updates);
+        } catch (error) {
+          console.error("Error uploading pasted image:", error);
+        } finally {
+          setUploadingGridId(null);
+        }
+        return; // Stop processing if image file was handled
+      }
+      
+      // --- Handle Image URL from Clipboard ---
+      const pastedText = event.clipboardData.getData('text');
+      
+      const urlRegex = /^(https?:\/\/[^\s$.?#].[^\s]*)$/i;
+      const imageRegex = /\.(jpeg|jpg|gif|png|webp|svg)(?:\?.*)?$/i;
+
+      if (urlRegex.test(pastedText) && imageRegex.test(pastedText)) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        console.log(`Pasted image URL: ${pastedText} into grid item ${selectedId}`);
+        
+        const updates = {
+          template_type: 'image',
+          image_url: pastedText,
+        };
+        
+        await updateAndSaveItem(selectedId, updates);
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, [selectedGrids, updateAndSaveItem, projectId]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
@@ -826,128 +1044,146 @@ const StepTemplate = () => {
         <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
         {/* Main content */}
         <div className={`${isSidebarVisible ? 'w-2/3' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300 p-4`}>
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-2xl font-bold">
-                {projectName && (
-                  <>
-                    <Link to={`/project/${projectId}`} className="text-gray-500 hover:underline">
-                      {projectName}
-                    </Link>
-                    <span className="text-gray-500"> / </span>
-                  </>
-                )}
-                Step: {sectionId} - Select Template
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Click to select single grid • Hold Ctrl/Cmd + Click to select multiple grids • Right-click for menu
-                {isMultiSelectMode && (
-                  <span className="ml-2 text-blue-600 font-semibold">[Multi-Select Mode Active]</span>
-                )}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <button 
-                  className="btn btn-sm btn-outline" 
-                  onClick={handleRemoveRow}
-                  disabled={rows <= MIN_ROWS}
-                >
-                  - Row
-                </button>
-                <span className="px-2">{rows} rows</span>
-                <button 
-                  className="btn btn-sm btn-outline" 
-                  onClick={handleAddRow}
-                >
-                  + Row
-                </button>
-              </div>
-              {selectedGrids.size > 1 && (
-                <button className="btn btn-primary" onClick={handleMerge}>
-                  Merge {selectedGrids.size} Items
-                </button>
-              )}
-              <button 
-                className={`btn btn-sm ${isMultiSelectMode ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
-              >
-                {isMultiSelectMode ? 'Multi-Select ON' : 'Multi-Select OFF'}
-              </button>
-            </div>
-          </div>
-
-          {/* Selection Info and Text Formatting Toolbar */}
-          {selectedGrids.size > 0 && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-blue-800">
-                    {selectedGrids.size} grid{selectedGrids.size > 1 ? 's' : ''} selected
-                  </span>
-                  {selectedGrids.size > 1 && (
-                    <span className="text-xs text-blue-600">
-                      (Hold Ctrl/Cmd + Click to select more)
-                    </span>
-                  )}
+          {/* Render TldrawCanvas for Moodboard section only */}
+          {sectionId && sectionId.toLowerCase() === 'moodboard' ? (
+            <TldrawCanvas projectId={projectId} role={role} canEdit={role === 'admin' || role === 'member'} />
+          ) : (
+            <>
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h1 className="text-2xl font-bold">
+                    {projectName && (
+                      <>
+                        <Link to={`/project/${projectId}`} className="text-gray-500 hover:underline">
+                          {projectName}
+                        </Link>
+                        <span className="text-gray-500"> / </span>
+                      </>
+                    )}
+                    Step: {sectionId}
+                  </h1>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Hold Ctrl/Cmd + Click to select multiple grids
+                  </p>
                 </div>
-                <button 
-                  className="btn btn-xs btn-outline"
-                  onClick={() => setSelectedGrids(new Set())}
-                >
-                  Clear Selection
-                </button>
+                <div className="flex flex-col items-center w-1/4">
+                  <button 
+                    className="w-full border border-black text-black font-bold text-[15px] py-2 bg-white text-center"
+                    style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, borderRadius: 0, marginBottom: 0 }}
+                    onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
+                  >
+                    Multi-Select{isMultiSelectMode ? ' ON' : ''}
+                  </button>
+                  <div className="w-full flex border border-black border-t-0 rounded-none bg-white" style={{height: '40px'}}>
+                    <div className="flex-1 flex items-center justify-center border-r border-black text-xl font-bold cursor-pointer select-none" style={{height: '100%'}} onClick={handleRemoveRow} role="button" tabIndex={0} aria-label="Remove Row" >-</div>
+                    <div className="flex-1 flex items-center justify-center text-base font-serif border-r border-black" style={{height: '100%'}}>
+                      <span>{rows} rows</span>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center text-xl font-bold cursor-pointer select-none" style={{height: '100%'}} onClick={handleAddRow} role="button" tabIndex={0} aria-label="Add Row" >+</div>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-          
-          {/* Text Formatting Toolbar - only shows when text items are selected */}
-          {(() => {
-            const selectedItems = gridItems.filter(item => selectedGrids.has(item.grid_item_id));
-            return (
-              <TextFormatToolbar 
-                selectedItems={selectedItems} 
-                onUpdate={updateAndSaveItem} 
-              />
-            );
-          })()}
 
-          <div
-            className="grid grid-cols-4"
-            style={{ gap: '10px 5px', gridAutoRows: 'auto', maxHeight: '700px', overflow: 'auto' }}
-          >
-            {gridItems.map(item =>
-              !item.hidden ? (
-                <GridItem
-                  key={item.grid_item_id}
-                  item={item}
-                  selected={selectedGrids.has(item.grid_item_id)}
-                  onSelect={handleSelect}
-                  onShowMenu={handleShowMenu}
-                  onUpdate={updateAndSaveItem}
-                  projectId={projectId}
-                />
-              ) : null
-            )}
-          </div>
-
-          {menu.visible && (() => {
-            const item = gridItems.find(i => i.grid_item_id === menu.gridId);
-            const isMerged = item && (item.rowSpan > 1 || item.colSpan > 1);
-
-            return (
-              <ul className="menu bg-base-100 w-56 rounded-box absolute shadow-lg z-50" style={{ top: menu.y, left: menu.x }}>
-                <li className="menu-title"><span>Template for Grid {menu.gridId}</span></li>
-                <li><a onClick={() => handleTemplateSelect('text')}>1. Text</a></li>
-                <li><a onClick={() => handleTemplateSelect('image')}>2. Image only</a></li>
-                <div className="divider my-0"></div>
-                {isMerged && (
-                  <li><a onClick={handleUnmerge}>Unmerge</a></li>
+              {/* Selection Info and Text Formatting Toolbar */}
+              {selectedGrids.size > 0 && (
+                <div className="mb-4" style={{ borderRadius: 0, background: 'none' }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="border border-black text-black font-bold text-[15px] bg-white text-center px-3 py-1"
+                        style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, borderRadius: 0 }}
+                        onClick={() => setSelectedGrids(new Set())}
+                      >
+                        Clear Selection
+                      </button>
+                      {selectedGrids.size > 1 && (
+                        <button
+                          className="border border-black text-black font-bold text-[15px] bg-white text-center px-3 py-1 ml-2"
+                          style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, borderRadius: 0 }}
+                          onClick={handleMerge}
+                        >
+                          Merge
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[15px] font-bold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, color: '#000' }}>
+                      {selectedGrids.size} grid{selectedGrids.size > 1 ? 's' : ''} selected
+                    </span>
+                    {selectedGrids.size > 1 && (
+                      <span className="text-xs" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, color: '#000' }}>
+                        (Hold Ctrl/Cmd + Click to select more)
+                      </span>
+                    )}
+                  </div>
+                  {/* Text Formatting Toolbar - only shows when text items are selected */}
+                  {(() => {
+                    const selectedItems = gridItems.filter(item => selectedGrids.has(item.grid_item_id));
+                    return (
+                      <TextFormatToolbar 
+                        selectedItems={selectedItems} 
+                        onUpdate={updateAndSaveItem}
+                        activeTextType={activeTextType}
+                      />
+                    );
+                  })()}
+                </div>
+              )}
+              <div
+                className="grid grid-cols-4 a3-landscape-grid-container"
+                style={{
+                  aspectRatio: '420/297', // A3 landscape ratio
+                  width: '100%',
+                  maxWidth: 'calc(100vw - 100px)',
+                  maxHeight: '700px',
+                  margin: '0 auto',
+                  gap: '10px 5px',
+                  gridAutoRows: 'auto',
+                  overflow: 'auto',
+                  background: '#fff',
+                  border: '1px solid #222',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {gridItems.map(item =>
+                  !item.hidden ? (
+                    <GridItem
+                      key={item.grid_item_id}
+                      item={item}
+                      selected={selectedGrids.has(item.grid_item_id)}
+                      onSelect={handleSelect}
+                      onShowMenu={handleShowMenu}
+                      onUpdate={updateAndSaveItem}
+                      projectId={projectId}
+                      onTextFocus={setActiveTextType}
+                      isParentUploading={uploadingGridId === item.grid_item_id}
+                      // Pass image position/scale props for future drag/scale support
+                      // imagePositionX={item.image_position_x}
+                      // imagePositionY={item.image_position_y}
+                      // imageScale={item.image_scale}
+                    />
+                  ) : null
                 )}
-                <li><a onClick={handleResetGrids} className="text-error">Reset Item(s)</a></li>
-              </ul>
-            );
-          })()}
+              </div>
+              {menu.visible && (() => {
+                const item = gridItems.find(i => i.grid_item_id === menu.gridId);
+                const isMerged = item && (item.rowSpan > 1 || item.colSpan > 1);
+                return (
+                  <ul className="menu bg-base-100 w-56 rounded-box absolute shadow-lg z-50" style={{ top: menu.y, left: menu.x }}>
+                    <li className="menu-title"><span>Template for Grid {menu.gridId}</span></li>
+                    <li><a onClick={() => handleTemplateSelect('text')}>1. Text</a></li>
+                    <li><a onClick={() => handleTemplateSelect('image')}>2. Image only</a></li>
+                    <div className="divider my-0"></div>
+                    {isMerged && (
+                      <li><a onClick={handleUnmerge}>Unmerge</a></li>
+                    )}
+                    <li><a onClick={handleResetGrids} className="text-error">Reset Item(s)</a></li>
+                  </ul>
+                );
+              })()}
+            </>
+          )}
         </div>
         {/* Middle vertical divider */}
         <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>

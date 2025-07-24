@@ -195,7 +195,7 @@ const CommentSection = ({ projectId }) => {
             );
           })
         ) : (
-          <p className="text-sm text-gray-500">No comments yet.</p>
+          <div className="text-gray-400 italic pl-4">No comments yet.</div>
         )}
       </div>
       {/* Input and send button fixed at the bottom */}
