@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Rnd } from 'react-rnd';
 import { supabase } from '../lib/supabaseClient';
@@ -8,7 +8,7 @@ import useProjectStore from '../store/useProjectStore';
 import TldrawCanvas from '../components/board/TldrawCanvas';
 
 // A single editable text row with a delete button
-const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, className, isVisible, fontSize, fontFamily, onFontSizeChange, textType, onTextFocus }) => {
+const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, className, isVisible, fontSize, fontFamily, onFontSizeChange, textType, onTextFocus, bold, italic, underline }) => {
   if (!isVisible) return null;
 
   const [isEditing, setIsEditing] = useState(false);
@@ -30,13 +30,22 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
 
   const handleBlur = (e) => {
     setIsEditing(false);
-    onChange(e.currentTarget.textContent);
+    if (typeof onChange === 'function') {
+      const val = e.currentTarget.textContent;
+      if (typeof val === 'string') {
+        onChange(val);
+      } else {
+        console.error('[EditableTextRow] onChange called with non-string:', val);
+      }
+    }
   };
 
   const handleDeleteClick = (e) => {
     // Stop propagation to prevent grid selection when clicking delete button
     e.stopPropagation();
-    onVisibilityChange();
+    if (typeof onVisibilityChange === 'function') {
+      onVisibilityChange();
+    }
   };
 
   return (
@@ -52,7 +61,10 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
         style={{ 
           fontSize: `${fontSize}px`,
           filter: isEmpty && !isEditing ? 'blur(0.5px)' : 'none',
-          opacity: isEmpty && !isEditing ? 0.7 : 1
+          opacity: isEmpty && !isEditing ? 0.7 : 1,
+          fontWeight: bold ? 'bold' : 'normal',
+          fontStyle: italic ? 'italic' : 'normal',
+          textDecoration: underline ? 'underline' : 'none',
         }}
         dangerouslySetInnerHTML={{ __html: displayValue || '' }}
         data-placeholder={placeholder}
@@ -71,33 +83,24 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
 
 // New toolbar for text formatting - moved outside of grid items
 const TextFormatToolbar = ({ selectedItems, onUpdate, activeTextType }) => {
-  // Only show if we have selected text items
   const textItems = selectedItems.filter(item => item.template_type === 'text');
   if (textItems.length === 0) return null;
-
-  // Use the first selected item's values as reference
   const firstItem = textItems[0];
-  
   const handleUpdate = (updates) => {
-    // Update all selected text items
     textItems.forEach(item => {
       onUpdate(item.grid_item_id, updates);
     });
   };
-
   const positions = [
     { v: 'top', h: 'left', label: 'TL' },
     { v: 'top', h: 'right', label: 'TR' },
     { v: 'bottom', h: 'left', label: 'BL' },
     { v: 'bottom', h: 'right', label: 'BR' },
   ];
-
   const fonts = [
     { value: 'gothic a1', label: 'Gothic A1' },
     { value: 'crimson pro', label: 'Crimson Pro' },
   ];
-
-  // Get the current values for the active text type
   const getCurrentFontSize = () => {
     switch (activeTextType) {
       case 'title': return firstItem.title_font_size;
@@ -106,7 +109,6 @@ const TextFormatToolbar = ({ selectedItems, onUpdate, activeTextType }) => {
       default: return firstItem.title_font_size;
     }
   };
-
   const getCurrentFontFamily = () => {
     switch (activeTextType) {
       case 'title': return firstItem.title_font_family;
@@ -115,7 +117,6 @@ const TextFormatToolbar = ({ selectedItems, onUpdate, activeTextType }) => {
       default: return firstItem.title_font_family;
     }
   };
-
   const updateFontSize = (newSize) => {
     const update = {};
     switch (activeTextType) {
@@ -125,7 +126,6 @@ const TextFormatToolbar = ({ selectedItems, onUpdate, activeTextType }) => {
     }
     handleUpdate(update);
   };
-
   const updateFontFamily = (newFamily) => {
     const update = {};
     switch (activeTextType) {
@@ -135,84 +135,165 @@ const TextFormatToolbar = ({ selectedItems, onUpdate, activeTextType }) => {
     }
     handleUpdate(update);
   };
-
+  
+  // Text style getter functions
+  const getCurrentBold = () => {
+    switch (activeTextType) {
+      case 'title': return firstItem.title_bold;
+      case 'subtitle': return firstItem.subtitle_bold;
+      case 'body': return firstItem.body_bold;
+      default: return false;
+    }
+  };
+  
+  const getCurrentItalic = () => {
+    switch (activeTextType) {
+      case 'title': return firstItem.title_italic;
+      case 'subtitle': return firstItem.subtitle_italic;
+      case 'body': return firstItem.body_italic;
+      default: return false;
+    }
+  };
+  
+  const getCurrentUnderline = () => {
+    switch (activeTextType) {
+      case 'title': return firstItem.title_underline;
+      case 'subtitle': return firstItem.subtitle_underline;
+      case 'body': return firstItem.body_underline;
+      default: return false;
+    }
+  };
+  
+  // Text style setter functions
+  const updateBold = (isBold) => {
+    const update = {};
+    switch (activeTextType) {
+      case 'title': update.title_bold = isBold; break;
+      case 'subtitle': update.subtitle_bold = isBold; break;
+      case 'body': update.body_bold = isBold; break;
+    }
+    handleUpdate(update);
+  };
+  
+  const updateItalic = (isItalic) => {
+    const update = {};
+    switch (activeTextType) {
+      case 'title': update.title_italic = isItalic; break;
+      case 'subtitle': update.subtitle_italic = isItalic; break;
+      case 'body': update.body_italic = isItalic; break;
+    }
+    handleUpdate(update);
+  };
+  
+  const updateUnderline = (isUnderline) => {
+    const update = {};
+    switch (activeTextType) {
+      case 'title': update.title_underline = isUnderline; break;
+      case 'subtitle': update.subtitle_underline = isUnderline; break;
+      case 'body': update.body_underline = isUnderline; break;
+    }
+    handleUpdate(update);
+  };
+  
   const currentFontSize = getCurrentFontSize();
   const currentFontFamily = getCurrentFontFamily();
-
+  const currentBold = getCurrentBold();
+  const currentItalic = getCurrentItalic();
+  const currentUnderline = getCurrentUnderline();
+  // Unified style for all toolbar controls
+  const controlStyle = {
+    border: '1px solid #000',
+    fontFamily: 'Crimson Pro, serif',
+    fontWeight: 700,
+    borderRadius: 0,
+    height: '32px',
+    minWidth: '32px',
+    background: '#fff',
+    fontSize: '15px',
+    padding: '0 8px',
+    margin: '0 2px',
+    boxSizing: 'border-box',
+    lineHeight: 1.2
+  };
   return (
-    <div className="bg-base-200 p-3 rounded-lg shadow-lg border border-gray-300">
-      <div className="flex items-center gap-4">
-        {/* Always show position controls */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Position:</span>
-          <div className="btn-group">
-            {positions.map(({ v, h, label }) => (
-              <button
-                key={`${v}-${h}`}
-                title={`Position ${v} ${h}`}
-                className={`btn btn-xs ${firstItem.text_vertical_align === v && firstItem.text_horizontal_align === h ? 'btn-active' : ''}`}
-                onClick={() => handleUpdate({ text_vertical_align: v, text_horizontal_align: h })}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Show active text type indicator */}
-        {activeTextType && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold capitalize text-blue-600">
-              {activeTextType}:
-            </span>
-          </div>
-        )}
-        
-        {/* Show font size controls only for active text type */}
-        {activeTextType && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">Size:</span>
-            <button 
-              className="btn btn-xs btn-outline" 
-              onClick={() => updateFontSize(Math.max(8, currentFontSize - 2))}
-            >
-              -
-            </button>
-            <span className="text-xs w-8 text-center">{currentFontSize}px</span>
-            <button 
-              className="btn btn-xs btn-outline" 
-              onClick={() => updateFontSize(currentFontSize + 2)}
-            >
-              +
-            </button>
-          </div>
-        )}
-
-        {/* Show font family controls only for active text type */}
-        {activeTextType && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">Font:</span>
-            <select 
-              className="select select-xs select-bordered"
-              value={currentFontFamily || 'gothic a1'}
-              onChange={(e) => updateFontFamily(e.target.value)}
-            >
-              {fonts.map(font => (
-                <option key={font.value} value={font.value}>
-                  {font.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Show "Click on text to edit" message when no active text type */}
-        {!activeTextType && (
-          <div className="text-sm text-gray-500 italic">
-            Click on any text section to edit its properties
-          </div>
-        )}
+    <div className="flex items-center gap-2" style={{ minHeight: 0 }}>
+      {/* Position controls */}
+      <span className="font-semibold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, fontSize: '15px' }}>Pos:</span>
+      <div className="flex items-center gap-1">
+        {positions.map(({ v, h, label }) => (
+          <button
+            key={`${v}-${h}`}
+            title={`Position ${v} ${h}`}
+            className={firstItem.text_vertical_align === v && firstItem.text_horizontal_align === h ? 'bg-gray-300' : ''}
+            onClick={() => handleUpdate({ text_vertical_align: v, text_horizontal_align: h })}
+            style={{ ...controlStyle, background: firstItem.text_vertical_align === v && firstItem.text_horizontal_align === h ? '#e5e7eb' : '#fff' }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
+      {/* Text type */}
+      {activeTextType && (
+        <span className="capitalize font-semibold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, fontSize: '15px', marginLeft: 8, color: '#000' }}>{activeTextType}:</span>
+      )}
+      {/* Font size controls */}
+      {activeTextType && (
+        <div className="flex items-center gap-1">
+          <span className="font-semibold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, fontSize: '15px' }}>Size:</span>
+          <button onClick={() => updateFontSize(Math.max(8, currentFontSize - 2))} style={controlStyle}>-</button>
+          <span style={{ ...controlStyle, background: 'transparent', border: 'none', minWidth: '40px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '32px' }}>{currentFontSize}px</span>
+          <button onClick={() => updateFontSize(currentFontSize + 2)} style={controlStyle}>+</button>
+        </div>
+      )}
+      {/* Font family controls */}
+      {activeTextType && (
+        <div className="flex items-center gap-1">
+          <span className="font-semibold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, fontSize: '15px' }}>Font:</span>
+          <select 
+            className="select select-xs select-bordered"
+            value={currentFontFamily || 'gothic a1'}
+            onChange={(e) => updateFontFamily(e.target.value)}
+            style={{ ...controlStyle, minWidth: '110px', fontSize: '15px', height: '32px' }}
+          >
+            {fonts.map(font => (
+              <option key={font.value} value={font.value}>
+                {font.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {/* Text style controls */}
+      {activeTextType && (
+        <div className="flex items-center gap-1">
+          <span className="font-semibold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, fontSize: '15px' }}>Style:</span>
+          <button 
+            onClick={() => updateBold(!currentBold)}
+            className={`${currentBold ? 'bg-gray-300' : ''}`}
+            style={{ ...controlStyle, minWidth: '32px' }}
+          >
+            B
+          </button>
+          <button 
+            onClick={() => updateItalic(!currentItalic)}
+            className={`${currentItalic ? 'bg-gray-300' : ''}`}
+            style={{ ...controlStyle, minWidth: '32px' }}
+          >
+            I
+          </button>
+          <button 
+            onClick={() => updateUnderline(!currentUnderline)}
+            className={`${currentUnderline ? 'bg-gray-300' : ''}`}
+            style={{ ...controlStyle, minWidth: '32px' }}
+          >
+            U
+          </button>
+        </div>
+      )}
+      {/* Click to edit message */}
+      {!activeTextType && (
+        <span className="text-gray-500 italic" style={{ fontFamily: 'Crimson Pro, serif', fontSize: '15px' }}>Click text to edit</span>
+      )}
     </div>
   );
 };
@@ -241,7 +322,7 @@ const TextContent = ({ item, onUpdate, onTextFocus }) => {
 
   return (
     <div className={`p-2 h-full w-full flex flex-col relative bg-transparent ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}>
-      <div style={{ textAlign: effectiveTextAlign, width: '100%' }}>
+      <div style={{ textAlign: effectiveTextAlign, width: '100%', flex: 1 }}>
         <EditableTextRow
           value={item.title_text}
           onChange={text => handleUpdate('title_text', text)}
@@ -253,6 +334,9 @@ const TextContent = ({ item, onUpdate, onTextFocus }) => {
           fontFamily={item.title_font_family}
           textType="title"
           onTextFocus={onTextFocus}
+          bold={item.title_bold}
+          italic={item.title_italic}
+          underline={item.title_underline}
         />
         <EditableTextRow
           value={item.subtitle_text}
@@ -265,6 +349,9 @@ const TextContent = ({ item, onUpdate, onTextFocus }) => {
           fontFamily={item.subtitle_font_family}
           textType="subtitle"
           onTextFocus={onTextFocus}
+          bold={item.subtitle_bold}
+          italic={item.subtitle_italic}
+          underline={item.subtitle_underline}
         />
         <EditableTextRow
           value={item.body_text}
@@ -277,6 +364,9 @@ const TextContent = ({ item, onUpdate, onTextFocus }) => {
           fontFamily={item.body_font_family}
           textType="body"
           onTextFocus={onTextFocus}
+          bold={item.body_bold}
+          italic={item.body_italic}
+          underline={item.body_underline}
         />
       </div>
     </div>
@@ -284,6 +374,104 @@ const TextContent = ({ item, onUpdate, onTextFocus }) => {
 };
 
 const ImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => {
+  const [dragging, setDragging] = useState(false);
+  const [start, setStart] = useState({ x: 0, y: 0 });
+  const [offset, setOffset] = useState({ x: item.image_position_x || 0, y: item.image_position_y || 0 });
+  const [scale, setScale] = useState(item.image_scale || 1);
+  const containerRef = useRef(null);
+  const imgRef = useRef(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [imgSize, setImgSize] = useState({ width: 0, height: 0 });
+
+  // Debug: Log when item changes
+  useEffect(() => {
+    console.log('[ImageContent] Item changed:', {
+      grid_item_id: item.grid_item_id,
+      image_position_x: item.image_position_x,
+      image_position_y: item.image_position_y,
+      image_scale: item.image_scale,
+      image_url: item.image_url
+    });
+  }, [item.grid_item_id, item.image_position_x, item.image_position_y, item.image_scale, item.image_url]);
+
+  // Only update local state from props if the item id changes (new image loaded or grid cell changes)
+  useEffect(() => {
+    console.log('[ImageContent useEffect] Setting offset/scale from props', item.grid_item_id, item.image_position_x, item.image_position_y, item.image_scale);
+    setOffset({ x: item.image_position_x || 0, y: item.image_position_y || 0 });
+    setScale(item.image_scale || 1);
+    // eslint-disable-next-line
+  }, [item.grid_item_id, item.image_url]);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setContainerSize({ width: rect.width, height: rect.height });
+    }
+  }, [containerRef.current, item.image_url]);
+
+  const handleImgLoad = () => {
+    if (imgRef.current) {
+      setImgSize({ width: imgRef.current.naturalWidth, height: imgRef.current.naturalHeight });
+    }
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setContainerSize({ width: rect.width, height: rect.height });
+    }
+  };
+
+  // Clamp offset so image always covers the container (with scale)
+  const clampOffset = (x, y, scaleVal = scale) => {
+    const scaledWidth = imgSize.width * scaleVal;
+    const scaledHeight = imgSize.height * scaleVal;
+    let minX = Math.min(0, containerSize.width - scaledWidth);
+    let minY = Math.min(0, containerSize.height - scaledHeight);
+    let maxX = 0;
+    let maxY = 0;
+    // If image is smaller than container, center it
+    if (scaledWidth < containerSize.width) {
+      minX = maxX = (containerSize.width - scaledWidth) / 2;
+    }
+    if (scaledHeight < containerSize.height) {
+      minY = maxY = (containerSize.height - scaledHeight) / 2;
+    }
+    return {
+      x: Math.max(minX, Math.min(x, maxX)),
+      y: Math.max(minY, Math.min(y, maxY)),
+    };
+  };
+
+  const handleMouseDown = (e) => {
+    if (isUploading) return;
+    setDragging(true);
+    setStart({ x: e.clientX, y: e.clientY });
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleMouseMove = (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    setOffset(prev => {
+      const next = { x: prev.x + dx, y: prev.y + dy };
+      return clampOffset(next.x, next.y);
+    });
+    setStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseUp = () => {
+    if (!dragging) return;
+    setDragging(false);
+    const clamped = clampOffset(offset.x, offset.y);
+    setOffset(clamped); // Optimistically update local state
+    console.log('[ImageContent handleMouseUp] Saving position/scale', item.grid_item_id, clamped, scale);
+    onUpdate({
+      image_position_x: clamped.x,
+      image_position_y: clamped.y,
+      image_scale: scale
+    }); // Update parent immediately
+  };
+
   const handleImageClick = (e) => {
     e.stopPropagation();
     if (!item.image_url && !isUploading) {
@@ -291,18 +479,64 @@ const ImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => {
     }
   };
 
+  // Handle scale change
+  const handleScaleChange = (e) => {
+    const newScale = parseFloat(e.target.value);
+    setScale(newScale); // Optimistically update local state
+    // Clamp offset to keep image covering the cell
+    const clamped = clampOffset(offset.x, offset.y, newScale);
+    setOffset(clamped);
+    console.log('[ImageContent handleScaleChange] Saving scale', item.grid_item_id, clamped, newScale);
+    onUpdate({
+      image_scale: newScale,
+      image_position_x: clamped.x,
+      image_position_y: clamped.y,
+    }); // Update parent immediately
+  };
+
   return (
-    <div 
+    <div
+      ref={containerRef}
       className="w-full h-full flex justify-center items-center bg-gray-100 cursor-pointer"
       onClick={handleImageClick}
+      onMouseDown={item.image_url ? handleMouseDown : undefined}
+      onMouseMove={dragging ? handleMouseMove : undefined}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      style={{ cursor: item.image_url ? (dragging ? 'grabbing' : 'grab') : 'pointer', overflow: 'hidden', width: '100%', height: '100%', position: 'relative' }}
     >
       {item.image_url ? (
-        <img 
-          src={item.image_url} 
-          alt="Project asset" 
-          className="w-full h-full object-cover"
-          style={{ display: 'block' }}
-        />
+        <>
+          <img
+            ref={imgRef}
+            src={item.image_url}
+            alt="Project asset"
+            onLoad={handleImgLoad}
+            style={{
+              position: 'absolute',
+              left: offset.x,
+              top: offset.y,
+              userSelect: 'none',
+              pointerEvents: 'none',
+              transition: dragging ? 'none' : 'left 0.2s, top 0.2s, transform 0.2s',
+              maxWidth: 'none',
+              maxHeight: 'none',
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
+            draggable={false}
+          />
+          <input
+            type="range"
+            min="0.2"
+            max="2"
+            step="0.01"
+            value={scale}
+            onChange={handleScaleChange}
+            onMouseDown={e => e.stopPropagation()}
+            style={{ position: 'absolute', bottom: 8, left: 8, width: '60%', zIndex: 10 }}
+          />
+        </>
       ) : (
         <div className="text-center text-gray-500">
           {isUploading ? (
@@ -360,7 +594,7 @@ const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId, o
       }
 
       // Update the grid item with the new image URL
-      onUpdate(item.grid_item_id, { image_url: urlData.publicUrl });
+      onUpdate(item.grid_item_id, { image_url: urlData.publicUrl }); // This is correct, as handleImageUpload is in GridItem
     } catch (error) {
       console.error('Error in image upload process:', error);
     } finally {
@@ -369,7 +603,13 @@ const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId, o
   };
   
   const renderContent = () => {
-    const onUpdateItem = (update) => onUpdate(item.grid_item_id, update);
+    const onUpdateItem = (update) => {
+      if (typeof update !== 'object' || update === null) {
+        console.error('[GridItem onUpdateItem] Invalid update argument, expected object but got:', update);
+        return;
+      }
+      onUpdate(item.grid_item_id, update);
+    };
     const onImageSelect = () => document.getElementById(`file-input-${item.grid_item_id}`).click();
 
     switch (item.template_type) {
@@ -395,7 +635,10 @@ const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId, o
       style={{
         gridColumn: `span ${item.colSpan}`,
         gridRow: `span ${item.rowSpan}`,
-        minHeight: '200px',
+        height: '100%',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
       }}
       onClick={(e) => onSelect(item.grid_item_id, e)}
       onContextMenu={(e) => { e.preventDefault(); onShowMenu(e, item.grid_item_id); }}
@@ -436,6 +679,16 @@ const createDefaultGridItem = (row, col) => {
     title_font_family: 'gothic a1',
     subtitle_font_family: 'gothic a1',
     body_font_family: 'gothic a1',
+    // Text style fields
+    title_bold: false,
+    title_italic: false,
+    title_underline: false,
+    subtitle_bold: false,
+    subtitle_italic: false,
+    subtitle_underline: false,
+    body_bold: false,
+    body_italic: false,
+    body_underline: false,
     image_position_x: 0,
     image_position_y: 0,
     image_scale: 1,
@@ -469,6 +722,16 @@ const mapStateToDb = (item, projectId, sectionId) => ({
   title_font_family: item.title_font_family,
   subtitle_font_family: item.subtitle_font_family,
   body_font_family: item.body_font_family,
+  // Text style fields
+  title_bold: item.title_bold,
+  title_italic: item.title_italic,
+  title_underline: item.title_underline,
+  subtitle_bold: item.subtitle_bold,
+  subtitle_italic: item.subtitle_italic,
+  subtitle_underline: item.subtitle_underline,
+  body_bold: item.body_bold,
+  body_italic: item.body_italic,
+  body_underline: item.body_underline,
   image_position_x: item.image_position_x,
   image_position_y: item.image_position_y,
   image_scale: item.image_scale,
@@ -759,6 +1022,17 @@ const StepTemplate = () => {
         return;
       }
 
+      // Debug: Log image positioning values from database
+      const imageItems = dbItems?.filter(item => item.template_type === 'image') || [];
+      if (imageItems.length > 0) {
+        console.log('[fetchAndStructureGridItems] Image items from DB:', imageItems.map(item => ({
+          grid_item_id: item.grid_item_id,
+          image_position_x: item.image_position_x,
+          image_position_y: item.image_position_y,
+          image_scale: item.image_scale
+        })));
+      }
+
       const maxRowInDb = dbItems && dbItems.length > 0
         ? Math.max(...dbItems.map(i => i.row_num))
         : 0;
@@ -798,6 +1072,16 @@ const StepTemplate = () => {
               title_font_family: dbItem.title_font_family || 'gothic a1',
               subtitle_font_family: dbItem.subtitle_font_family || 'gothic a1',
               body_font_family: dbItem.body_font_family || 'gothic a1',
+              // Text style fields
+              title_bold: dbItem.title_bold || false,
+              title_italic: dbItem.title_italic || false,
+              title_underline: dbItem.title_underline || false,
+              subtitle_bold: dbItem.subtitle_bold || false,
+              subtitle_italic: dbItem.subtitle_italic || false,
+              subtitle_underline: dbItem.subtitle_underline || false,
+              body_bold: dbItem.body_bold || false,
+              body_italic: dbItem.body_italic || false,
+              body_underline: dbItem.body_underline || false,
               image_position_x: dbItem.image_position_x || 0,
               image_position_y: dbItem.image_position_y || 0,
               image_scale: dbItem.image_scale || 1,
@@ -848,7 +1132,29 @@ const StepTemplate = () => {
     };
   }, []);
 
+  // Optimistically update parent state before DB call
   const updateAndSaveItem = useCallback(async (itemId, updates) => {
+    if (typeof updates !== 'object' || updates === null) {
+      console.error('[updateAndSaveItem] Invalid updates argument, expected object but got:', updates);
+      return;
+    }
+    console.log('[updateAndSaveItem] called for', itemId, updates);
+    
+    // Debug: Log image positioning updates specifically
+    if ('image_position_x' in updates || 'image_position_y' in updates || 'image_scale' in updates) {
+      console.log('[updateAndSaveItem] Image positioning update:', {
+        itemId,
+        image_position_x: updates.image_position_x,
+        image_position_y: updates.image_position_y,
+        image_scale: updates.image_scale
+      });
+    }
+    
+    // Optimistically update local state immediately
+    setGridItems(prev => prev.map(item => 
+      item.grid_item_id === itemId ? { ...item, ...updates } : item
+    ));
+    
     const dbUpdates = {};
     // This is a bit of a manual mapping for updates, but it's clear.
     if ('template_type' in updates) dbUpdates.template_type = updates.template_type;
@@ -868,10 +1174,21 @@ const StepTemplate = () => {
     if ('title_font_family' in updates) dbUpdates.title_font_family = updates.title_font_family;
     if ('subtitle_font_family' in updates) dbUpdates.subtitle_font_family = updates.subtitle_font_family;
     if ('body_font_family' in updates) dbUpdates.body_font_family = updates.body_font_family;
+    // Text style fields
+    if ('title_bold' in updates) dbUpdates.title_bold = updates.title_bold;
+    if ('title_italic' in updates) dbUpdates.title_italic = updates.title_italic;
+    if ('title_underline' in updates) dbUpdates.title_underline = updates.title_underline;
+    if ('subtitle_bold' in updates) dbUpdates.subtitle_bold = updates.subtitle_bold;
+    if ('subtitle_italic' in updates) dbUpdates.subtitle_italic = updates.subtitle_italic;
+    if ('subtitle_underline' in updates) dbUpdates.subtitle_underline = updates.subtitle_underline;
+    if ('body_bold' in updates) dbUpdates.body_bold = updates.body_bold;
+    if ('body_italic' in updates) dbUpdates.body_italic = updates.body_italic;
+    if ('body_underline' in updates) dbUpdates.body_underline = updates.body_underline;
     if ('image_position_x' in updates) dbUpdates.image_position_x = updates.image_position_x;
     if ('image_position_y' in updates) dbUpdates.image_position_y = updates.image_position_y;
     if ('image_scale' in updates) dbUpdates.image_scale = updates.image_scale;
 
+    // Always update Supabase for position and scale changes
     const { error } = await supabase
       .from('grid_items')
       .update(dbUpdates)
@@ -880,13 +1197,12 @@ const StepTemplate = () => {
       .eq('grid_item_id', itemId);
 
     if (error) {
-      console.error("Error updating item:", JSON.stringify(error, null, 2));
+      console.error('[updateAndSaveItem] Error updating item:', itemId, JSON.stringify(error, null, 2));
+      // Optionally, revert optimistic update here if needed
       return;
     }
-
-    setGridItems(prev => prev.map(item => 
-      item.grid_item_id === itemId ? { ...item, ...updates } : item
-    ));
+    console.log('[updateAndSaveItem] DB update success for', itemId, updates);
+    // No need to setGridItems again, already done optimistically
   }, [projectId, sectionId]);
   
   const batchUpdateAndSave = useCallback(async (updates) => {
@@ -909,6 +1225,16 @@ const StepTemplate = () => {
       if ('title_font_family' in itemUpdates) dbUpdates.title_font_family = itemUpdates.title_font_family;
       if ('subtitle_font_family' in itemUpdates) dbUpdates.subtitle_font_family = itemUpdates.subtitle_font_family;
       if ('body_font_family' in itemUpdates) dbUpdates.body_font_family = itemUpdates.body_font_family;
+      // Text style fields
+      if ('title_bold' in itemUpdates) dbUpdates.title_bold = itemUpdates.title_bold;
+      if ('title_italic' in itemUpdates) dbUpdates.title_italic = itemUpdates.title_italic;
+      if ('title_underline' in itemUpdates) dbUpdates.title_underline = itemUpdates.title_underline;
+      if ('subtitle_bold' in itemUpdates) dbUpdates.subtitle_bold = itemUpdates.subtitle_bold;
+      if ('subtitle_italic' in itemUpdates) dbUpdates.subtitle_italic = itemUpdates.subtitle_italic;
+      if ('subtitle_underline' in itemUpdates) dbUpdates.subtitle_underline = itemUpdates.subtitle_underline;
+      if ('body_bold' in itemUpdates) dbUpdates.body_bold = itemUpdates.body_bold;
+      if ('body_italic' in itemUpdates) dbUpdates.body_italic = itemUpdates.body_italic;
+      if ('body_underline' in itemUpdates) dbUpdates.body_underline = itemUpdates.body_underline;
       if ('image_position_x' in itemUpdates) dbUpdates.image_position_x = itemUpdates.image_position_x;
       if ('image_position_y' in itemUpdates) dbUpdates.image_position_y = itemUpdates.image_position_y;
       if ('image_scale' in itemUpdates) dbUpdates.image_scale = itemUpdates.image_scale;
@@ -1043,7 +1369,7 @@ const StepTemplate = () => {
         {/* Left vertical divider */}
         <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
         {/* Main content */}
-        <div className={`${isSidebarVisible ? 'w-2/3' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300 p-4`}>
+        <div className={`${isSidebarVisible ? 'w-2/3' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300 p-4 overflow-auto`}>
           {/* Render TldrawCanvas for Moodboard section only */}
           {sectionId && sectionId.toLowerCase() === 'moodboard' ? (
             <TldrawCanvas projectId={projectId} role={role} canEdit={role === 'admin' || role === 'member'} />
@@ -1086,37 +1412,31 @@ const StepTemplate = () => {
 
               {/* Selection Info and Text Formatting Toolbar */}
               {selectedGrids.size > 0 && (
-                <div className="mb-4" style={{ borderRadius: 0, background: 'none' }}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="border border-black text-black font-bold text-[15px] bg-white text-center px-3 py-1"
-                        style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, borderRadius: 0 }}
-                        onClick={() => setSelectedGrids(new Set())}
-                      >
-                        Clear Selection
-                      </button>
-                      {selectedGrids.size > 1 && (
-                        <button
-                          className="border border-black text-black font-bold text-[15px] bg-white text-center px-3 py-1 ml-2"
-                          style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, borderRadius: 0 }}
-                          onClick={handleMerge}
-                        >
-                          Merge
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[15px] font-bold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, color: '#000' }}>
-                      {selectedGrids.size} grid{selectedGrids.size > 1 ? 's' : ''} selected
+                <div className="mb-2 flex flex-wrap items-center gap-2" style={{ borderRadius: 0, background: 'none', minHeight: '48px', marginBottom: '12px' }}>
+                  <button
+                    className="border border-black text-black font-bold text-[15px] bg-white text-center px-3 py-1"
+                    style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, borderRadius: 0 }}
+                    onClick={() => setSelectedGrids(new Set())}
+                  >
+                    Clear Selection
+                  </button>
+                  {selectedGrids.size > 1 && (
+                    <button
+                      className="border border-black text-black font-bold text-[15px] bg-white text-center px-3 py-1 ml-2"
+                      style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, borderRadius: 0 }}
+                      onClick={handleMerge}
+                    >
+                      Merge
+                    </button>
+                  )}
+                  <span className="text-[15px] font-bold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, color: '#000' }}>
+                    {selectedGrids.size} grid{selectedGrids.size > 1 ? 's' : ''} selected
+                  </span>
+                  {selectedGrids.size > 1 && (
+                    <span className="text-xs" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, color: '#000' }}>
+                      (Hold Ctrl/Cmd + Click to select more)
                     </span>
-                    {selectedGrids.size > 1 && (
-                      <span className="text-xs" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700, color: '#000' }}>
-                        (Hold Ctrl/Cmd + Click to select more)
-                      </span>
-                    )}
-                  </div>
+                  )}
                   {/* Text Formatting Toolbar - only shows when text items are selected */}
                   {(() => {
                     const selectedItems = gridItems.filter(item => selectedGrids.has(item.grid_item_id));
@@ -1135,14 +1455,12 @@ const StepTemplate = () => {
                 style={{
                   aspectRatio: '420/297', // A3 landscape ratio
                   width: '100%',
-                  maxWidth: 'calc(100vw - 100px)',
-                  maxHeight: '700px',
+                  height: '100%', // Match PDF - use full height
                   margin: '0 auto',
                   gap: '10px 5px',
-                  gridAutoRows: 'auto',
+                  gridTemplateRows: `repeat(${rows}, 1fr)`, // Match PDF - stretch rows equally
                   overflow: 'auto',
                   background: '#fff',
-                  border: '1px solid #222',
                   boxSizing: 'border-box',
                 }}
               >

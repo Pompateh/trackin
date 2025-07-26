@@ -5,10 +5,10 @@ const Modal = ({ isOpen, onClose, children }) => {
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box relative">
+      <div className="modal-box relative w-full h-full max-w-none max-h-none m-0 p-0">
         <button
           onClick={onClose}
-          className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+          className="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 z-50"
         >
           ✕
         </button>

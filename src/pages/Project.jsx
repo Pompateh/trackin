@@ -154,9 +154,8 @@ const Project = () => {
       {/* PrintableProject Modal */}
       {showPrintable && (
         <Modal isOpen={showPrintable} onClose={() => setShowPrintable(false)}>
-          <div className="max-h-[90vh] overflow-auto bg-white p-4 rounded shadow-lg">
+          <div className="w-full h-full bg-white overflow-auto">
             <PrintableProject project={project} sections={DEFAULT_SECTIONS} gridItems={gridItems} />
-            <button className="btn btn-secondary mt-4" onClick={() => setShowPrintable(false)}>Close</button>
           </div>
         </Modal>
       )}

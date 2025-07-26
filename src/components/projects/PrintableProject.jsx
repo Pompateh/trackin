@@ -39,35 +39,50 @@ const TextContent = ({ item }) => {
         borderRadius: '0',
         background: 'transparent',
         boxSizing: 'border-box',
-        padding: '16px',
+        padding: '8px',
+        height: '100%',
+        width: '100%',
+        flex: 1,
       }}
     >
       <div style={{ textAlign: effectiveTextAlign, width: '100%' }}>
         {item.is_title_visible && item.title_text && (
           <div style={{ 
-            fontWeight: 'bold', 
+            fontWeight: item.title_bold ? 'bold' : 'normal', 
+            fontStyle: item.title_italic ? 'italic' : 'normal',
+            textDecoration: item.title_underline ? 'underline' : 'none',
             fontSize: `${item.title_font_size || 24}px`, 
             marginBottom: '8px',
-            fontFamily: getFontFamily(item.title_font_family)
+            fontFamily: getFontFamily(item.title_font_family),
+            lineHeight: '1.2',
+            color: '#222'
           }}>
             {item.title_text}
           </div>
         )}
         {item.is_subtitle_visible && item.subtitle_text && (
           <div style={{ 
+            fontWeight: item.subtitle_bold ? 'bold' : 'normal', 
+            fontStyle: item.subtitle_italic ? 'italic' : 'normal',
+            textDecoration: item.subtitle_underline ? 'underline' : 'none',
             fontSize: `${item.subtitle_font_size || 16}px`, 
             color: '#666', 
             marginBottom: '6px',
-            fontFamily: getFontFamily(item.subtitle_font_family)
+            fontFamily: getFontFamily(item.subtitle_font_family),
+            lineHeight: '1.3'
           }}>
             {item.subtitle_text}
           </div>
         )}
         {item.is_body_visible && item.body_text && (
           <div style={{ 
+            fontWeight: item.body_bold ? 'bold' : 'normal', 
+            fontStyle: item.body_italic ? 'italic' : 'normal',
+            textDecoration: item.body_underline ? 'underline' : 'none',
             fontSize: `${item.body_font_size || 14}px`, 
             lineHeight: '1.5',
-            fontFamily: getFontFamily(item.body_font_family)
+            fontFamily: getFontFamily(item.body_font_family),
+            color: '#333'
           }}>
             {item.body_text}
           </div>
@@ -77,39 +92,72 @@ const TextContent = ({ item }) => {
   );
 };
 
-const ImageContent = ({ item }) => (
-  <div style={{ width: '100%', height: '100%', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0', padding: 0, margin: 0, overflow: 'hidden', position: 'relative' }}>
+const ImageContent = ({ item }) => {
+  // Debug image positioning values
+  console.log('ImageContent debug:', {
+    grid_item_id: item.grid_item_id,
+    image_position_x: item.image_position_x,
+    image_position_y: item.image_position_y,
+    image_scale: item.image_scale,
+    image_url: item.image_url
+  });
+  
+  return (
+  <div style={{ 
+    width: '100%', 
+    height: '100%', 
+    background: '#f8f9fa', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    borderRadius: '0', 
+    padding: 0, 
+    margin: 0, 
+    overflow: 'hidden', 
+    position: 'relative' 
+  }}>
     {item.image_url ? (
       <img 
         src={item.image_url} 
         alt="Project asset" 
         style={{ 
-          width: '100%', 
-          height: '100%', 
-          objectFit: 'cover', // changed from contain to cover
-          borderRadius: '0', 
-          margin: 0, 
-          padding: 0,
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          transform: `translate(${item.image_position_x || 0}px, ${item.image_position_y || 0}px) scale(${item.image_scale || 1})`,
+          transformOrigin: 'top left',
+          maxWidth: 'none',
+          maxHeight: 'none',
           imageRendering: 'high-quality',
           imageSmoothingEnabled: true,
           imageSmoothingQuality: 'high',
           filter: 'contrast(1.08) brightness(1.03) saturate(1.02)',
-          // Remove transform and position absolute for PDF grid fit
-          // transform: `translate(${item.image_position_x || 0}px, ${item.image_position_y || 0}px) scale(${item.image_scale || 1})`,
           backfaceVisibility: 'hidden',
-          // position: 'absolute',
-          // left: 0,
-          // top: 0,
+          width: 'auto',
+          height: 'auto',
+          // Ensure transforms are applied in PDF with vendor prefixes
+          WebkitTransform: `translate(${item.image_position_x || 0}px, ${item.image_position_y || 0}px) scale(${item.image_scale || 1})`,
+          msTransform: `translate(${item.image_position_x || 0}px, ${item.image_position_y || 0}px) scale(${item.image_scale || 1})`,
+          // Force transform to be applied
+          transformStyle: 'preserve-3d',
         }} 
         crossOrigin="anonymous"
         loading="eager"
         decoding="sync"
       />
     ) : (
-      <div style={{ color: '#999', fontSize: '14px' }}>No Image</div>
+      <div style={{ 
+        color: '#999', 
+        fontSize: '14px',
+        textAlign: 'center',
+        padding: '20px'
+      }}>
+        No Image
+      </div>
     )}
   </div>
-);
+  );
+};
 
 const TextAndImageContent = ({ item }) => {
   // Helper function to get font family CSS
@@ -130,31 +178,44 @@ const TextAndImageContent = ({ item }) => {
         <div style={{ padding: '20px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', color: 'white' }}>
           {item.is_title_visible && item.title_text && (
             <div style={{ 
-              fontWeight: 'bold', 
+              fontWeight: item.title_bold ? 'bold' : 'normal', 
+              fontStyle: item.title_italic ? 'italic' : 'normal',
+              textDecoration: item.title_underline ? 'underline' : 'none',
               fontSize: `${item.title_font_size || 24}px`, 
               color: 'white', 
               marginBottom: '8px',
-              fontFamily: getFontFamily(item.title_font_family)
+              fontFamily: getFontFamily(item.title_font_family),
+              lineHeight: '1.2',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
             }}>
               {item.title_text}
             </div>
           )}
           {item.is_subtitle_visible && item.subtitle_text && (
             <div style={{ 
+              fontWeight: item.subtitle_bold ? 'bold' : 'normal', 
+              fontStyle: item.subtitle_italic ? 'italic' : 'normal',
+              textDecoration: item.subtitle_underline ? 'underline' : 'none',
               fontSize: `${item.subtitle_font_size || 16}px`, 
               color: 'white', 
               marginBottom: '6px',
-              fontFamily: getFontFamily(item.subtitle_font_family)
+              fontFamily: getFontFamily(item.subtitle_font_family),
+              lineHeight: '1.3',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
             }}>
               {item.subtitle_text}
             </div>
           )}
           {item.is_body_visible && item.body_text && (
             <div style={{ 
+              fontWeight: item.body_bold ? 'bold' : 'normal', 
+              fontStyle: item.body_italic ? 'italic' : 'normal',
+              textDecoration: item.body_underline ? 'underline' : 'none',
               fontSize: `${item.body_font_size || 14}px`, 
               color: 'white', 
               lineHeight: '1.5',
-              fontFamily: getFontFamily(item.body_font_family)
+              fontFamily: getFontFamily(item.body_font_family),
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
             }}>
               {item.body_text}
             </div>
@@ -252,24 +313,30 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
   // Get all unique section titles from grid items (these are URL-encoded)
   const sectionTitles = [...new Set(projectGridItems.map(item => item.section_id_text).filter(Boolean))];
 
-  // For PDF, include all sections; for screen, filter as before
+  // For PDF, include all sections that have content; for screen, filter as before
   const sectionsToRender = pdfMode
-    ? sections
+    ? (sections?.filter(section => {
+        const sectionUrl = sectionTitleToUrl(section.title);
+        const hasContent = projectGridItems.some(item => 
+          item.section_id_text === sectionUrl && !item.is_hidden
+        );
+        return hasContent;
+      }) || [])
     : (sections?.filter(section => sectionTitles.includes(sectionTitleToUrl(section.title))) || []);
 
-  // Remove debug logging in PDF mode
-  if (!pdfMode) {
-    console.log('PrintableProject Debug:', {
-      project,
-      projectId: project?.id,
-      sectionsCount: sections?.length,
-      gridItemsCount: gridItems?.length,
-      projectGridItemsCount: projectGridItems.length,
-      sectionTitles,
-      sectionsWithContentCount: sectionsToRender.length,
-      gridItemsSample: projectGridItems.slice(0, 3)
-    });
-  }
+  // Add debugging information
+  console.log('PrintableProject Debug:', {
+    project,
+    projectId: project?.id,
+    sectionsCount: sections?.length,
+    gridItemsCount: gridItems?.length,
+    projectGridItemsCount: projectGridItems.length,
+    sectionTitles,
+    sectionsWithContentCount: sectionsToRender.length,
+    gridItemsSample: projectGridItems.slice(0, 3),
+    pdfMode,
+    sectionsToRender: sectionsToRender.map(s => s.title)
+  });
 
   return (
     <div style={{
@@ -278,8 +345,12 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
       background: '#fff',
       color: '#222',
       fontFamily: 'Arial, sans-serif',
-      overflow: 'hidden',
-      position: pdfMode ? 'relative' : 'static'
+      overflow: 'visible',
+      position: pdfMode ? 'relative' : 'static',
+      margin: pdfMode ? '0' : '0',
+      boxShadow: pdfMode ? 'none' : 'none',
+      border: pdfMode ? 'none' : 'none',
+      minHeight: pdfMode ? 'auto' : '100vh'
     }}>
       {pdfMode && (
         <style>{`
@@ -330,7 +401,6 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
             image-rendering: crisp-edges !important;
             image-smoothing-enabled: true !important;
             image-smoothing-quality: high !important;
-            transform: translateZ(0) !important;
             backface-visibility: hidden !important;
             will-change: transform !important;
           }
@@ -377,11 +447,16 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
           const sectionGridItems = projectGridItems.filter(item => 
             item.section_id_text === sectionTitleToUrl(section.title) && !item.is_hidden
           ) || [];
+          
+          console.log(`Section "${section.title}" has ${sectionGridItems.length} grid items`);
+          
           if (sectionGridItems.length === 0) return null;
 
           if (pdfMode) {
             // --- PDF MODE: Split into pages of 2 rows each ---
             const pages = splitGridIntoPages(sectionGridItems, 2); // 2 rows per page
+            console.log(`PDF mode: Section "${section.title}" split into ${pages.length} pages`);
+            
             return pages.map((pageItems, pageIndex) => {
               // Normalize row numbers so first row on each page is 1
               const uniqueRows = Array.from(new Set(pageItems.map(item => item.row_num || item.row || 1))).sort((a, b) => a - b);
@@ -393,6 +468,9 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                 row: rowMap[item.row_num || item.row || 1],
               }));
               const { rows, grid, items } = calculateGridStructure(normalizedPageItems);
+              
+              console.log(`PDF page ${pageIndex}: ${items.length} items, ${rows} rows`);
+              
               return (
                 <div
                   key={`${section.title}-pdfpage-${pageIndex}`}
@@ -403,7 +481,7 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                     pageBreakBefore: (sectionIndex > 0 || pageIndex > 0) ? 'always' : 'auto',
                     background: '#fff',
                     boxSizing: 'border-box',
-                    padding: '0',
+                    padding: '10px',
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'relative',
@@ -411,16 +489,25 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                     minHeight: '210mm',
                     maxHeight: '210mm',
                     height: '210mm', // Ensure full page height
+                    width: '100%',
                   }}
                 >
-                  {/* Section Grid - Now using calculated structure */}
+                  {/* Section Grid - Now using A3 landscape styling like template editor */}
                   <div style={{ 
                     display: 'grid', 
                     gridTemplateColumns: `repeat(${NUM_COLS}, 1fr)`,
-                    gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`, // Each row fills available space
-                    gap: '20px 15px', 
-                    alignItems: 'start',
-                    height: '150mm', // Grid fills most of the page
+                    gridTemplateRows: `repeat(${rows}, 1fr)`, // Use 1fr to fill available space
+                    gap: '10px 5px', // Match template editor gap
+                    alignItems: 'stretch', // Stretch items to fill space
+                    justifyContent: 'stretch', // Stretch grid to fill container
+                    aspectRatio: '420/297', // A3 landscape ratio
+                    width: '100%',
+                    height: '100%', // Fill full height
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    margin: '0',
+                    background: '#fff',
+                    boxSizing: 'border-box',
                     flex: 1,
                   }}>
                     {items.map(item => {
@@ -428,13 +515,25 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                       const col = (item.col_num || item.col || 1) - 1; // Convert to 0-based index
                       const rowSpan = item.row_span || item.rowSpan || 1;
                       const colSpan = item.col_span || item.colSpan || 1;
+                      
+                      // Debug grid item properties
+                      if (item.template_type === 'image') {
+                        console.log('Grid item debug:', {
+                          grid_item_id: item.grid_item_id,
+                          template_type: item.template_type,
+                          image_position_x: item.image_position_x,
+                          image_position_y: item.image_position_y,
+                          image_scale: item.image_scale,
+                          row, col, rowSpan, colSpan
+                        });
+                      }
                       return (
                         <div
                           key={item.grid_item_id}
                           style={{
                             gridColumn: `${col + 1} / span ${colSpan}`,
                             gridRow: `${row + 1} / span ${rowSpan}`,
-                            minHeight: '40mm',
+                            minHeight: '120px',
                             background: item.template_type === 'text' ? 'transparent' : '#f8f9fa',
                             borderRadius: '0',
                             overflow: 'hidden',
@@ -442,6 +541,9 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                             padding: item.template_type === 'text' ? '0' : '0px',
                             boxShadow: 'none',
                             height: '100%',
+                            width: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
                           }}
                         >
                           {item.template_type === 'text' && <TextContent item={item} />}
@@ -468,40 +570,45 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
             return pageNums.map((pageNum, pageIndex) => {
               const pageItems = itemsByPage[pageNum];
               const { rows, grid, items } = calculateGridStructure(pageItems);
+              // Calculate proper height for screen mode
+              const gridHeight = Math.max(rows * 180, 800); // Make grid taller: 180px per row, minimum 400px
               return (
                 <div
                   key={`${section.title}-page-${pageNum}`}
                   className={pdfMode ? 'printable-step' : ''}
-                  style={pdfMode ? {
-                    marginBottom: '0',
+                  style={{
+                    marginBottom: '20px',
                     pageBreakInside: 'avoid',
                     pageBreakBefore: (sectionIndex > 0 || pageIndex > 0) ? 'always' : 'auto',
                     background: '#fff',
                     boxSizing: 'border-box',
-                    padding: '0',
+                    padding: '10px',
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'relative',
-                    overflow: 'hidden',
-                    minHeight: '210mm',
-                    maxHeight: '210mm',
-                  } : {
-                    marginBottom: '40px',
-                    pageBreakInside: 'avoid',
-                    pageBreakBefore: (sectionIndex > 0 || pageIndex > 0) ? 'always' : 'auto'
+                    overflow: 'visible',
+                    minHeight: 'auto',
+                    maxHeight: 'none',
+                    height: 'auto',
+                    width: '100%',
                   }}
                 >
                   {/* Section Grid - Now using calculated structure */}
                   <div style={{ 
                     display: 'grid', 
                     gridTemplateColumns: `repeat(${NUM_COLS}, 1fr)`,
-                    gridTemplateRows: pdfMode ? `repeat(${Math.min(rows, 3)}, 1fr)` : `repeat(${rows}, minmax(120px, auto))`,
-                    gap: '20px 15px', 
-                    minHeight: pdfMode ? '150mm' : '120px',
-                    height: pdfMode ? '150mm' : undefined, // Fixed height for PDF pages
-                    flex: pdfMode ? 1 : undefined,
-                    marginTop: pageIndex === 0 ? undefined : 0,
-                    paddingTop: pageIndex === 0 ? undefined : 0,
+                    gridTemplateRows: `repeat(${rows}, 1fr)`, // Use same styling for both modes
+                    gap: '10px 5px', // Match PDF mode gap
+                    alignItems: 'stretch', // Stretch items to fill space
+                    justifyContent: 'stretch', // Stretch grid to fill container
+                    width: '100%',
+                    height: pdfMode ? '100%' : `${gridHeight}px`, // Make grid taller in screen mode
+                    maxWidth: '100%',
+                    maxHeight: pdfMode ? '100%' : 'none',
+                    margin: '0',
+                    background: '#fff',
+                    boxSizing: 'border-box',
+                    flex: pdfMode ? 1 : 'none',
                   }}>
                     {items.map(item => {
                       const row = (item.row_num || item.row || 1) - 1; // Convert to 0-based index
@@ -514,7 +621,7 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                           style={{
                             gridColumn: `${col + 1} / span ${colSpan}`,
                             gridRow: `${row + 1} / span ${rowSpan}`,
-                            minHeight: pdfMode ? '40mm' : '120px',
+                            minHeight: '120px',
                             background: item.template_type === 'text' ? 'transparent' : '#f8f9fa',
                             borderRadius: '0',
                             overflow: 'hidden',
@@ -522,6 +629,9 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
                             padding: item.template_type === 'text' ? '0' : '0px',
                             boxShadow: 'none',
                             height: '100%',
+                            width: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
                           }}
                         >
                           {item.template_type === 'text' && <TextContent item={item} />}
