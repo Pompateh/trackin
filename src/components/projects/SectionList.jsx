@@ -85,12 +85,15 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
   const renderSection = (section, isSubsection = false, idx = 0) => {
     const hasSubsections = getSubsections(section.id).length > 0 && !isSubsection;
     const isExpanded = expanded[section.id];
+    
+    const sectionSlug = section.title.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-');
+    
     // For dropdown items, remove border, remove todo, and make clickable
     if (isSubsection) {
       return (
         <Link
           key={section.id}
-          to={`/project/${projectId}/step/${section.title.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}
+          to={`/project/${projectId}/step/${sectionSlug}`}
           className="flex-1 min-w-[120px] max-w-[180px] px-3 py-2 cursor-pointer font-gothic font-medium text-[20px] text-black text-center"
           onClick={() => onSelectSection(section)}
         >
@@ -98,11 +101,45 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
         </Link>
       );
     }
+    
+    // Special handling for Brief section - don't navigate, just call onSelectSection
+    if (section.title === 'Brief') {
+      return (
+        <div
+          key={section.id}
+          className={`block border-b border-black ${idx === 0 ? 'border-t border-black' : ''} cursor-pointer h-full flex-1`}
+          onClick={() => onSelectSection(section)}
+        >
+          <div className={`flex justify-between items-stretch px-3 cursor-pointer h-full`}>
+            <span className={`${isSubsection ? '' : 'font-crimson font-semibold text-[25px]'} flex-1`} style={{flexBasis: '80%', flexGrow: 0, flexShrink: 0}}>
+              {section.title}
+              {sectionPercentages[section.title] && (
+                <span className="font-normal"> ({sectionPercentages[section.title]})</span>
+              )}
+            </span>
+            <div className="flex items-center border-l border-black pl-3 justify-between" style={{flexBasis: '20%', flexGrow: 0, flexShrink: 0}}>
+              <span className="text-xs font-gothic font-medium text-[20px] text-black">{section.status}</span>
+              {isAdmin && DEFAULT_STEPS.includes(section.title) && !isSubsection && (
+                <button
+                  className="ml-4 text-black text-lg font-bold hover:bg-gray-200 rounded font-gothic font-medium text-[20px]"
+                  onClick={e => { e.preventDefault(); e.stopPropagation(); handleRemoveStep(section.title); }}
+                  aria-label="Remove"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Regular sections with navigation
     return (
       <Link
-        to={hasSubsections ? '#' : `/project/${projectId}/step/${section.title.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}
+        to={hasSubsections ? '#' : `/project/${projectId}/step/${sectionSlug}`}
         key={section.id}
-        className={`block border-b border-black ${idx === 0 ? 'border-t border-black' : ''}`}
+        className={`block border-b border-black ${idx === 0 ? 'border-t border-black' : ''} h-full flex-1`}
         onClick={e => {
           if (hasSubsections) {
             e.preventDefault();
@@ -112,7 +149,7 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
           }
         }}
       >
-        <div className={`flex justify-between items-stretch px-3 cursor-pointer`}>
+        <div className={`flex justify-between items-stretch px-3 cursor-pointer h-full`}>
           <span className={`${isSubsection ? '' : 'font-crimson font-semibold text-[25px]'} flex-1`} style={{flexBasis: '80%', flexGrow: 0, flexShrink: 0}}>
             {section.title}
             {sectionPercentages[section.title] && (
@@ -137,11 +174,11 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
   };
 
   return (
-    <div>
+    <div className="h-full flex flex-col">
       {/* <button className="btn btn-primary btn-sm mb-4">+ Add Section</button> */}
-      <div className="divide-y">
+      <div className="divide-y flex-1 flex flex-col">
         {rootSections.map((section, idx) => (
-          <div key={section.id}>
+          <div key={section.id} className="flex-1 flex flex-col">
             {renderSection(section, false, idx)}
             {expanded[section.id] && getSubsections(section.id).length > 0 && (
               <div className="ml-6">

@@ -322,7 +322,15 @@ const TextContent = ({ item, onUpdate, onTextFocus }) => {
 
   return (
     <div className={`p-2 h-full w-full flex flex-col relative bg-transparent ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}>
-      <div style={{ textAlign: effectiveTextAlign, width: '100%', flex: 1 }}>
+      <div style={{ 
+        textAlign: effectiveTextAlign, 
+        width: '100%', 
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: item.text_vertical_align === 'top' ? 'flex-start' : 
+                       item.text_vertical_align === 'center' ? 'center' : 'flex-end'
+      }}>
         <EditableTextRow
           value={item.title_text}
           onChange={text => handleUpdate('title_text', text)}
@@ -740,7 +748,9 @@ const mapStateToDb = (item, projectId, sectionId) => ({
 // The main template selection component
 const StepTemplate = () => {
   const { projectId, sectionId } = useParams();
-  const { role } = useProjectStore();
+  const { role, project, fetchProjectData } = useProjectStore();
+  
+
   const [rows, setRows] = useState(MIN_ROWS);
   const [gridItems, setGridItems] = useState([]);
   const [selectedGrids, setSelectedGrids] = useState(new Set());
@@ -750,6 +760,17 @@ const StepTemplate = () => {
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [activeTextType, setActiveTextType] = useState(null);
   const [uploadingGridId, setUploadingGridId] = useState(null);
+
+  // Fetch project data to set role
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && projectId) {
+        await fetchProjectData(projectId, user.id);
+      }
+    };
+    fetchData();
+  }, [projectId, fetchProjectData]);
 
   // Handle grid selection
   const handleSelect = (id, event) => {
@@ -1375,6 +1396,8 @@ const StepTemplate = () => {
             <TldrawCanvas projectId={projectId} role={role} canEdit={role === 'admin' || role === 'member'} />
           ) : (
             <>
+
+              
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h1 className="text-2xl font-bold">

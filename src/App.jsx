@@ -9,6 +9,10 @@ import Dashboard from './pages/Dashboard';
 import Project from './pages/Project';
 import Invite from './pages/Invite';
 import StepTemplate from './pages/StepTemplate';
+import PodStepTemplate from './pages/PodStepTemplate';
+
+
+
 
 function App() {
   const { onAuthStateChange } = useAuthStore();
@@ -41,6 +45,16 @@ function App() {
             }
           />
         </Route>
+        {/* Route for P.O.D projects - direct to P.O.D template */}
+        <Route
+          path="/project/:projectId/pod"
+          element={
+            <ProtectedRoute>
+              <PodStepTemplate />
+            </ProtectedRoute>
+          }
+        />
+        {/* Route for branding projects - with section routing */}
         <Route
           path="/project/:projectId/step/:sectionId"
           element={

@@ -306,7 +306,7 @@ const splitGridIntoPages = (gridItems, maxRowsPerPage = 3) => {
   return pages;
 };
 
-const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
+const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) => {
   // Filter grid items to only include items from the current project
   const projectGridItems = gridItems?.filter(item => item.project_id === project?.id) || [];
   
@@ -441,6 +441,144 @@ const PrintableProject = ({ project, sections, gridItems, pdfMode }) => {
       
       {/* Content Area */}
       <div style={{ padding: '30px' }}>
+                {/* Brief Section */}
+        {briefData && (
+          <div
+            className={pdfMode ? 'printable-step' : ''}
+            style={{
+              marginBottom: pdfMode ? '0' : '20px',
+              pageBreakInside: 'avoid',
+              pageBreakBefore: pdfMode ? 'auto' : 'auto',
+              background: '#fff',
+              boxSizing: 'border-box',
+              padding: pdfMode ? '10px' : '20px',
+              display: pdfMode ? 'flex' : 'block',
+              flexDirection: pdfMode ? 'column' : 'block',
+              position: pdfMode ? 'relative' : 'static',
+              overflow: pdfMode ? 'hidden' : 'visible',
+              minHeight: pdfMode ? '210mm' : 'auto',
+              maxHeight: pdfMode ? '210mm' : 'none',
+              height: pdfMode ? '210mm' : 'auto',
+              width: '100%'
+            }}
+          >
+            <h2 style={{ 
+              fontSize: '18px', 
+              fontWeight: 'bold',
+              marginBottom: '15px',
+              color: '#333',
+              fontFamily: '"Crimson Pro", serif'
+            }}>
+              Brief
+            </h2>
+            {/* Grid Layout - 8 columns total */}
+            <div style={{ 
+              display: 'grid',
+              gridTemplateColumns: 'repeat(8, 1fr)',
+              gap: '10px 5px',
+              alignItems: 'stretch',
+              justifyContent: 'stretch',
+              aspectRatio: pdfMode ? '420/297' : 'auto',
+              width: '100%',
+              height: pdfMode ? '100%' : '400px',
+              maxWidth: '100%',
+              maxHeight: pdfMode ? '100%' : 'none',
+              margin: '0',
+              background: '#fff',
+              boxSizing: 'border-box',
+              flex: pdfMode ? 1 : 'none',
+            }}>
+              {/* Text Content - 4 columns */}
+              <div style={{ 
+                gridColumn: `${briefData.text_grid_col || 1} / span ${briefData.text_grid_col_span || 4}`,
+                gridRow: `${briefData.text_grid_row || 1} / span ${briefData.text_grid_row_span || 1}`,
+                padding: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: briefData.text_vertical_align === 'top' ? 'flex-start' : 
+                               briefData.text_vertical_align === 'center' ? 'center' : 'flex-end',
+                alignItems: briefData.text_horizontal_align === 'left' ? 'flex-start' : 
+                           briefData.text_horizontal_align === 'center' ? 'center' : 'flex-end',
+                textAlign: briefData.text_horizontal_align === 'left' ? 'left' : 
+                          briefData.text_horizontal_align === 'center' ? 'center' : 'right',
+                background: 'transparent'
+              }}>
+                {briefData.is_title_visible && briefData.title_text && (
+                  <div style={{ 
+                    fontWeight: briefData.title_bold ? 'bold' : 'normal', 
+                    fontStyle: briefData.title_italic ? 'italic' : 'normal',
+                    textDecoration: briefData.title_underline ? 'underline' : 'none',
+                    fontSize: `${briefData.title_font_size || 20}px`, 
+                    marginBottom: '8px',
+                    fontFamily: briefData.title_font_family === 'crimson pro' ? '"Crimson Pro", serif' : '"Gothic A1", sans-serif',
+                    lineHeight: '1.2',
+                    color: '#222'
+                  }}>
+                    {briefData.title_text}
+                  </div>
+                )}
+                {briefData.is_subtitle_visible && briefData.subtitle_text && (
+                  <div style={{ 
+                    fontWeight: briefData.subtitle_bold ? 'bold' : 'normal', 
+                    fontStyle: briefData.subtitle_italic ? 'italic' : 'normal',
+                    textDecoration: briefData.subtitle_underline ? 'underline' : 'none',
+                    fontSize: `${briefData.subtitle_font_size || 14}px`, 
+                    color: '#666', 
+                    marginBottom: '6px',
+                    fontFamily: briefData.subtitle_font_family === 'crimson pro' ? '"Crimson Pro", serif' : '"Gothic A1", sans-serif',
+                    lineHeight: '1.3'
+                  }}>
+                    {briefData.subtitle_text}
+                  </div>
+                )}
+                {briefData.is_body_visible && briefData.body_text && (
+                  <div style={{ 
+                    fontWeight: briefData.body_bold ? 'bold' : 'normal', 
+                    fontStyle: briefData.body_italic ? 'italic' : 'normal',
+                    textDecoration: briefData.body_underline ? 'underline' : 'none',
+                    fontSize: `${briefData.body_font_size || 12}px`, 
+                    lineHeight: '1.4',
+                    fontFamily: briefData.body_font_family === 'crimson pro' ? '"Crimson Pro", serif' : '"Gothic A1", sans-serif',
+                    color: '#333'
+                  }}>
+                    {briefData.body_text}
+                  </div>
+                )}
+              </div>
+
+              {/* Image Content - 4 columns */}
+              {briefData.image_url && (
+                <div style={{ 
+                  gridColumn: `${briefData.image_grid_col || 5} / span ${briefData.image_grid_col_span || 4}`,
+                  gridRow: `${briefData.image_grid_row || 1} / span ${briefData.image_grid_row_span || 1}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '10px',
+                  background: 'transparent',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  <img 
+                    src={briefData.image_url} 
+                    alt="Brief image"
+                    style={{
+                      position: 'absolute',
+                      left: briefData.image_position_x || 0,
+                      top: briefData.image_position_y || 0,
+                      maxWidth: 'none',
+                      maxHeight: 'none',
+                      transform: `scale(${briefData.image_scale || 1})`,
+                      transformOrigin: 'top left',
+                      objectFit: 'contain'
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
         {/* Render each section with its grid content */}
         {sectionsToRender.map((section, sectionIndex) => {
           // Group grid items by page_num for this section

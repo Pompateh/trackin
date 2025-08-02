@@ -10,9 +10,10 @@ import RecapList from '../components/projects/RecapList';
 import ProjectSidebar from '../components/projects/ProjectSidebar';
 import PrintableProject from '../components/projects/PrintableProject';
 import DownloadPDFButton from '../components/projects/DownloadPDFButton';
+import BriefEditor from '../components/projects/BriefEditor';
 import { supabase } from '../lib/supabaseClient';
 import Modal from '../components/ui/Modal';
-import { HiOutlineChevronRight } from 'react-icons/hi';
+import { HiOutlineChevronRight, HiOutlineMenu, HiOutlineX } from 'react-icons/hi';
 // Placeholder for new components
 // import RecapList from '../components/projects/RecapList';
 
@@ -52,16 +53,36 @@ const Project = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [gridItems, setGridItems] = useState([]);
+  const [showBriefEditor, setShowBriefEditor] = useState(false);
+  const [briefData, setBriefData] = useState(null);
   const printableRef = useRef();
   const hiddenPdfRef = useRef();
   const [showPrintable, setShowPrintable] = useState(false);
   const navigate = useNavigate();
+
+  // Handle section selection - special handling for Brief
+  const handleSectionSelect = (section) => {
+    if (section.title === 'Brief') {
+      setShowBriefEditor(true);
+      setSelectedSection(section);
+    } else {
+      setSelectedSection(section);
+      setShowBriefEditor(false);
+    }
+  };
 
   useEffect(() => {
     if (projectId && user) {
       fetchProjectData(projectId, user.id);
     }
   }, [projectId, user, fetchProjectData]);
+
+  // Auto-redirect P.O.D projects to the P.O.D template
+  useEffect(() => {
+    if (project && project.template_type === 'pod') {
+      navigate(`/project/${projectId}/pod`);
+    }
+  }, [project, projectId, navigate]);
 
   useEffect(() => {
     const fetchGridItems = async () => {
@@ -75,7 +96,28 @@ const Project = () => {
       
       if (!error) setGridItems(data || []);
     };
+    
+    const fetchBriefData = async () => {
+      if (!projectId) return;
+      const { data, error } = await supabase
+        .from('brief_data')
+        .select('*')
+        .eq('project_id', projectId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+        console.error('Error fetching brief data:', error);
+        return;
+      }
+      
+      if (data) {
+        console.log('Project.jsx - Fetched brief data:', data);
+        setBriefData(data);
+      }
+    };
+    
     fetchGridItems();
+    fetchBriefData();
   }, [projectId]);
 
   if (loading) {
@@ -96,51 +138,95 @@ const Project = () => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
-      {/* Back button at the top, header position */}
-      <div className="p-4">
+    <div className="flex flex-col h-[calc(100vh-120px)] min-h-screen">
+      {/* Back button and mobile menu toggle */}
+      <div className="flex justify-between items-center p-4 border-b border-black bg-white">
         <button
           className="btn btn-outline btn-sm"
           onClick={() => navigate('/')}
         >
           ← Back
         </button>
+        
+        {/* Mobile menu toggle - only show on mobile */}
+        <button
+          className="md:hidden btn btn-ghost btn-sm"
+          onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+        >
+          {isSidebarVisible ? <HiOutlineX size={24} /> : <HiOutlineMenu size={24} />}
+        </button>
       </div>
-      <div className="flex flex-col md:flex-row w-full h-full">
-        {/* Left vertical divider */}
-        <div className="hidden md:flex h-full w-5 border-r border-t border-l border-b bir border-black flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
-        {/* SectionList */}
-        <div className={`${isSidebarVisible ? 'md:w-2/3 w-full' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300`}>
-          <div className="flex flex-col md:flex-row justify-between items-center mb-4 px-2 py-4 gap-4 md:gap-0">
-            <h1 className="font-serif font-extralight text-4xl md:text-7xl lg:text-8xl" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, lineHeight: '1.1' }}>INDEX</h1>
 
+      <div className="flex flex-col lg:flex-row w-full h-full flex-1">
+        {/* Left vertical divider - hidden on mobile, visible on desktop */}
+        <div className="hidden lg:flex h-full w-5 border-r border-t border-l border-b border-black flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
+        
+        {/* Conditional content based on project type */}
+        {project?.template_type === 'pod' ? (
+          /* P.O.D Project Layout - Auto-redirect, so this won't be shown */
+          <div className={`${isSidebarVisible ? 'lg:w-2/3 w-full' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300 flex items-center justify-center`}>
+            <div className="text-center">
+              <span className="loading loading-spinner loading-lg"></span>
+              <p className="mt-4 text-gray-600">Redirecting to P.O.D template...</p>
+            </div>
           </div>
-          <SectionList 
-            projectId={projectId} 
-            onSelectSection={setSelectedSection} 
-            selectedSection={selectedSection} 
-            isAdmin={role === 'admin'} 
-          />
-          <div className="flex w-full mb-2">
-            <DownloadPDFButton 
-              printableRef={hiddenPdfRef} 
-              className="custom-action-btn font-serif font-extralight text-base md:text-2xl border-b border-r border-black rounded-none px-0 py-6 bg-white hover:bg-gray-100 transition"
-              style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, minWidth: 0, width: '50%', borderLeft: 'none', borderTop: 'none', borderRadius: 0, borderRight: '1px solid #000', borderBottom: '1px solid #000', padding: 0 }} 
-            />
-            <button 
-              className="custom-action-btn font-serif font-extralight text-base md:text-2xl border-b border-black rounded-none px-0 py-6 bg-white hover:bg-gray-100 transition"
-              style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, minWidth: 0, width: '50%', borderLeft: 'none', borderTop: 'none', borderRadius: 0, borderRight: 'none', borderBottom: '1px solid #000', padding: 0 }}
-              onClick={() => setShowPrintable(true)}
-            >
-              Show Printable Project
-            </button>
+        ) : (
+          /* Branding Project Layout */
+          <div className={`${isSidebarVisible ? 'lg:w-2/3 w-full' : 'flex-1'} h-full border-t border-b border-black transition-all duration-300 flex flex-col`}>
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 px-2 py-4 gap-4 sm:gap-0">
+              <h1 className="font-serif font-extralight text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl text-center sm:text-left" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, lineHeight: '1.1' }}>INDEX</h1>
+            </div>
+            
+            {/* Show sections or brief editor */}
+            <div className="flex-1 overflow-auto">
+              {showBriefEditor ? (
+                <BriefEditor 
+                  projectId={projectId}
+                  isVisible={showBriefEditor}
+                  onToggle={() => setShowBriefEditor(false)}
+                  onBriefUpdate={setBriefData}
+                  initialBriefData={briefData}
+                />
+              ) : (
+                <div className="h-full flex flex-col">
+                  <div className="flex-1">
+                    <SectionList 
+                      projectId={projectId} 
+                      onSelectSection={handleSectionSelect} 
+                      selectedSection={selectedSection} 
+                      isAdmin={role === 'admin'} 
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* PDF buttons - hidden when brief editor is open */}
+            {!showBriefEditor && (
+              <div className="flex flex-col sm:flex-row w-full">
+                <DownloadPDFButton 
+                  printableRef={hiddenPdfRef} 
+                  className="custom-action-btn font-serif font-extralight text-sm sm:text-base md:text-xl lg:text-2xl border-b border-r border-black rounded-none px-2 sm:px-0 py-4 sm:py-6 bg-white hover:bg-gray-100 transition w-full sm:w-1/2"
+                  style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, minWidth: 0, borderLeft: 'none', borderTop: 'none', borderRadius: 0, borderRight: '1px solid #000', borderBottom: '1px solid #000' }} 
+                />
+                <button 
+                  className="custom-action-btn font-serif font-extralight text-sm sm:text-base md:text-xl lg:text-2xl border-b border-black rounded-none px-2 sm:px-0 py-4 sm:py-6 bg-white hover:bg-gray-100 transition w-full sm:w-1/2"
+                  style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, minWidth: 0, borderLeft: 'none', borderTop: 'none', borderRadius: 0, borderRight: 'none', borderBottom: '1px solid #000' }}
+                  onClick={() => setShowPrintable(true)}
+                >
+                  Show Printable Project
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-        {/* Middle vertical divider */}
-        <div className="hidden md:flex h-full w-5 border-r border-t border-l border-b bir border-black flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
-        {/* ProjectSidebar */}
+        )}
+        
+        {/* Middle vertical divider - hidden on mobile, visible on desktop */}
+        <div className="hidden lg:flex h-full w-5 border-r border-t border-l border-b border-black flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
+        
+        {/* ProjectSidebar - responsive behavior */}
         {isSidebarVisible ? (
-          <div className="md:w-1/3 w-full h-full border-l-0 border-base-300">
+          <div className="lg:w-1/3 w-full h-full border-l-0 border-base-300 bg-white">
             <ProjectSidebar projectId={projectId} onToggleSidebar={() => setIsSidebarVisible(false)} role={role} projectName={project?.name} />
           </div>
         ) : (
@@ -151,33 +237,36 @@ const Project = () => {
           </div>
         )}
       </div>
+      
       {/* PrintableProject Modal */}
       {showPrintable && (
         <Modal isOpen={showPrintable} onClose={() => setShowPrintable(false)}>
           <div className="w-full h-full bg-white overflow-auto">
-            <PrintableProject project={project} sections={DEFAULT_SECTIONS} gridItems={gridItems} />
+            <PrintableProject project={project} sections={DEFAULT_SECTIONS} gridItems={gridItems} briefData={briefData} />
           </div>
         </Modal>
       )}
-        {/* HIDDEN PDF EXPORT CONTAINER - clean, no debug, no border */}
-        <div style={{
-          position: 'absolute',
-          left: '-9999px',
-          top: 0,
-          width: '210mm',
-          background: '#fff',
-          zIndex: -1,
-          pointerEvents: 'none'
-        }}>
-          <div ref={hiddenPdfRef}>
-            <PrintableProject
-              project={project}
-              sections={DEFAULT_SECTIONS}
-              gridItems={gridItems}
-              pdfMode={true}
-            />
-          </div>
+      
+      {/* HIDDEN PDF EXPORT CONTAINER - clean, no debug, no border */}
+      <div style={{
+        position: 'absolute',
+        left: '-9999px',
+        top: 0,
+        width: '210mm',
+        background: '#fff',
+        zIndex: -1,
+        pointerEvents: 'none'
+      }}>
+        <div ref={hiddenPdfRef}>
+          <PrintableProject
+            project={project}
+            sections={DEFAULT_SECTIONS}
+            gridItems={gridItems}
+            briefData={briefData}
+            pdfMode={true}
+          />
         </div>
+      </div>
     </div>
   );
 };

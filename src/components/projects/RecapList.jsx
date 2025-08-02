@@ -155,7 +155,7 @@ const RecapList = ({ projectId }) => {
   return (
     <div>
       {/* Plus button */}
-      <div className="flex items-center mb-4">
+      <div className="flex items-center">
         <button
           className="text-6xl font-light text-black hover:text-gray-700 focus:outline-none"
           style={{ lineHeight: 1, width: '56px', height: '56px', fontSize: '56px', marginLeft: 0, marginRight: 0, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
