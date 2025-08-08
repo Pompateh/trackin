@@ -7,9 +7,8 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
 
   const handleTextClick = (e) => {
     e.stopPropagation();
-    if (isEmpty) {
-      setIsEditing(true);
-    }
+    // Allow editing regardless of whether text is empty or not
+    setIsEditing(true);
   };
 
   const handleFocus = () => {

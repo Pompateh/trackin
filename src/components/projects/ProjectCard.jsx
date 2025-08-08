@@ -27,7 +27,7 @@ const ProjectCard = ({ project }) => {
   };
 
   // Show all team members (before @)
-  const teamMembers = Array.isArray(project.team_emails)
+  const teamMembers = Array.isArray(project.team_emails) && project.team_emails.length > 0
     ? project.team_emails.map(email => email.split('@')[0]).join(', ')
     : 'You';
 
@@ -58,14 +58,16 @@ const ProjectCard = ({ project }) => {
 
       {/* Project Status (big, centered) */}
       <div className="flex justify-center items-center my-4 px-2 font-gothic font-normal" style={{minHeight: '90px'}}>
-        <span className="font-serif text-[4rem] leading-none">{statusLabels[project.status] || project.status}</span>
+        <span className="font-serif text-[4rem] leading-none">{statusLabels[project.status] || 'On Going'}</span>
       </div>
       <div className="border-b border-black w-full h-px"></div>
 
       {/* Deadline */}
       <div className="flex items-center justify-between px-2 font-crimson font-semibold text-[25px]">
         <div>Deadline</div>
-        <div className="italic text-sm text-red-500 font-gothic font-normal">{formatDate(project.deadline)}</div>
+        <div className="italic text-sm text-red-500 font-gothic font-normal">
+          {project.deadline ? formatDate(project.deadline) : 'Not set'}
+        </div>
       </div>
       <div className="border-b border-black w-full h-px"></div>
 

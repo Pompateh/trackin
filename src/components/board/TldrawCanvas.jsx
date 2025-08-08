@@ -107,6 +107,57 @@ const TldrawCanvas = ({ projectId, canEdit, role, onClose }) => {
           .tldraw__editor .tlui-style-panel__item {
             border-radius: 0 !important;
           }
+
+          /* Make all Tldraw toolbar buttons match the Close button style */
+          .tldraw__editor .tlui-toolbar__button,
+          .tldraw__editor .tlui-button,
+          .tldraw__editor [data-testid*="toolbar"] {
+            background-color: white !important;
+            border: 1px solid black !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            padding: 8px !important;
+            font-family: 'Gothic A1', sans-serif !important;
+            font-weight: 500 !important;
+            font-size: 12px !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: none !important;
+            filter: none !important;
+          }
+
+          /* Remove all shadows from Tldraw elements */
+          .tldraw__editor * {
+            box-shadow: none !important;
+            filter: none !important;
+          }
+
+
+
+                    /* Make slider thumb more prominent */
+          .tldraw__editor .tlui-slider__thumb {
+            background-color: black !important;
+            border: 2px solid black !important;
+            width: 16px !important;
+
+            box-shadow: none !important;
+          }
+
+
+          /* Specific shadow removal for toolbar */
+          .tldraw__editor .tlui-toolbar,
+          .tldraw__editor .tlui-toolbar * {
+            box-shadow: none !important;
+            filter: none !important;
+          }
+
+          .tldraw__editor .tlui-toolbar__button:hover,
+          .tldraw__editor .tlui-button:hover {
+            background-color: #f3f4f6 !important;
+          }
+
+
+
         `}
       </style>
       {/* Fullscreen overlay when open */}
@@ -124,7 +175,7 @@ const TldrawCanvas = ({ projectId, canEdit, role, onClose }) => {
             flexDirection: 'column',
           }}
         >
-          <div style={{ width: '100%', display: 'flex', justifyContent: 'center', position: 'absolute', top: 0, left: 0, zIndex: 2100, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute' , left: 344, zIndex: 2100, pointerEvents: 'none' }}>
             <button
               onClick={() => {
                 setIsOpen(false);
@@ -134,12 +185,18 @@ const TldrawCanvas = ({ projectId, canEdit, role, onClose }) => {
                   navigate(-1);
                 }
               }}
-              className="font-gothic font-medium text-[20px] text-black bg-white border border-black px-6 py-3 hover:bg-gray-100 transition-colors pointer-events-auto"
+              className="font-gothic font-medium text-[12px] text-black bg-white border border-black px-2 py-1 hover:bg-gray-100 transition-colors pointer-events-auto"
               style={{
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                boxShadow: 'none',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '40px',
+                borderLeft: 'none'
               }}
             >
-              Close Board
+              Close
             </button>
           </div>
           <div

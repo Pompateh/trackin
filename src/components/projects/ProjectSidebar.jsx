@@ -208,36 +208,48 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role, projectName }) => {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 min-w-[320px] max-w-[90vw] flex flex-col gap-4">
-            <h2 className="text-lg font-bold mb-2 text-red-600">Confirm Project Deletion</h2>
-            <p>To confirm deletion, type the project name below:</p>
-            <div className="mb-2">
-              <span className="font-semibold">Project Name:</span> <span className="italic">{projectName}</span>
-            </div>
-            <input
-              type="text"
-              className="input input-bordered w-full"
-              placeholder="Type project name to confirm"
-              value={deleteInput}
-              onChange={e => setDeleteInput(e.target.value)}
-              disabled={isDeleting}
-              autoFocus
-            />
-            <div className="flex gap-2 justify-end mt-2">
-              <button
-                className="btn btn-sm"
-                onClick={() => { setShowDeleteModal(false); setDeleteInput(''); }}
+          <div className="bg-white p-6 min-w-[320px] max-w-[90vw] max-h-[90vh] overflow-auto border border-black" style={{ borderRadius: '0' }}>
+            <button
+              onClick={() => { setShowDeleteModal(false); setDeleteInput(''); }}
+              className="absolute right-4 top-4 text-black hover:text-gray-600 font-bold text-lg"
+              style={{ fontFamily: 'Crimson Pro, serif' }}
+            >
+              ✕
+            </button>
+            <div className="mt-2">
+              <h2 className="text-lg font-bold mb-4 text-red-600" style={{ fontFamily: 'Crimson Pro, serif' }}>Confirm Project Deletion</h2>
+              <p style={{ fontFamily: 'Crimson Pro, serif' }}>To confirm deletion, type the project name below:</p>
+              <div className="mb-4">
+                <span className="font-semibold" style={{ fontFamily: 'Crimson Pro, serif' }}>Project Name:</span> <span className="italic">{projectName}</span>
+              </div>
+              <input
+                type="text"
+                className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold mb-4"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                placeholder="Type project name to confirm"
+                value={deleteInput}
+                onChange={e => setDeleteInput(e.target.value)}
                 disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-error btn-sm"
-                onClick={confirmDeleteProject}
-                disabled={deleteInput !== projectName || isDeleting}
-              >
-                {isDeleting ? <span className="loading loading-spinner"></span> : 'Delete'}
-              </button>
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                  style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                  onClick={() => { setShowDeleteModal(false); setDeleteInput(''); }}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 text-red-500 bg-white border border-red-500 font-crimson font-semibold"
+                  style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                  onClick={confirmDeleteProject}
+                  disabled={deleteInput !== projectName || isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

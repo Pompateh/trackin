@@ -83,27 +83,29 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h3 className="font-bold text-lg">Create a New Project</h3>
-      <form onSubmit={handleSubmit} className="py-4 space-y-4">
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Project Title</span>
+      <h3 className="font-bold text-lg mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>Create a New Project</h3>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>
+            Project Title
           </label>
           <input
             type="text"
             placeholder="e.g., Q1 Marketing Campaign"
-            className="input input-bordered w-full"
+            className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
         </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Description</span>
+        <div>
+          <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>
+            Description
           </label>
           <textarea
-            className="textarea textarea-bordered h-24"
+            className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold h-24"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             placeholder="A brief summary of the project."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -111,19 +113,20 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
         </div>
         
         {/* Template Type Selection */}
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Template Type</span>
+        <div>
+          <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>
+            Template Type
           </label>
-          <div className="grid grid-cols-1 gap-3">
+          <div className="space-y-3">
             {templateOptions.map((option) => (
               <div
                 key={option.value}
-                className={`border-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                className={`border-2 p-3 cursor-pointer transition-colors ${
                   templateType === option.value
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400'
+                    ? 'border-black bg-gray-50'
+                    : 'border-black hover:bg-gray-50'
                 }`}
+                style={{ borderRadius: '0' }}
                 onClick={() => setTemplateType(option.value)}
               >
                 <div className="flex items-start gap-3">
@@ -136,8 +139,8 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
                     className="mt-1"
                   />
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm">{option.label}</h4>
-                    <p className="text-xs text-gray-600 mt-1">{option.description}</p>
+                    <h4 className="font-semibold text-sm" style={{ fontFamily: 'Crimson Pro, serif' }}>{option.label}</h4>
+                    <p className="text-xs text-gray-600 mt-1" style={{ fontFamily: 'Crimson Pro, serif' }}>{option.description}</p>
                   </div>
                 </div>
               </div>
@@ -145,12 +148,13 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
           </div>
         </div>
 
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Project Status</span>
+        <div>
+          <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>
+            Project Status
           </label>
           <select
-            className="select select-bordered w-full"
+            className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             required
@@ -160,26 +164,28 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
             ))}
           </select>
         </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Deadline</span>
+        <div>
+          <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>
+            Deadline
           </label>
           <input
             type="date"
-            className="input input-bordered w-full"
+            className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
           />
         </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Team Members (emails)</span>
+        <div>
+          <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>
+            Team Members (emails)
           </label>
           {teamMembers.map((email, idx) => (
             <div key={idx} className="flex items-center gap-2 mb-2">
               <input
                 type="email"
-                className="input input-bordered w-full"
+                className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
                 placeholder="user@example.com"
                 value={email}
                 onChange={(e) => handleTeamMemberChange(idx, e.target.value)}
@@ -187,7 +193,8 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
               {teamMembers.length > 1 && (
                 <button
                   type="button"
-                  className="btn btn-square btn-sm btn-error"
+                  className="px-2 py-1 text-red-500 bg-white border border-red-500 font-crimson font-semibold"
+                  style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
                   onClick={() => removeTeamMemberField(idx)}
                 >
                   ×
@@ -197,16 +204,18 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
           ))}
           <button
             type="button"
-            className="btn btn-outline btn-sm"
+            className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             onClick={addTeamMemberField}
           >
             + Add Team Member
           </button>
         </div>
-        <div className="modal-action">
+        <div className="flex gap-2 justify-end">
           <button
             type="button"
-            className="btn"
+            className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             onClick={onClose}
             disabled={isSubmitting}
           >
@@ -214,17 +223,11 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
           </button>
           <button
             type="submit"
-            className="btn btn-primary"
+            className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             disabled={isSubmitting}
           >
-            {isSubmitting ? (
-              <>
-                <span className="loading loading-spinner loading-sm"></span>
-                Creating...
-              </>
-            ) : (
-              'Create Project'
-            )}
+            {isSubmitting ? 'Creating...' : 'Create Project'}
           </button>
         </div>
       </form>

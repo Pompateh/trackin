@@ -65,9 +65,9 @@ DECLARE
     new_project_id UUID;
     team_member_email TEXT;
 BEGIN
-    -- Create the project
-    INSERT INTO projects (name, notes, template_type)
-    VALUES (name, description, template_type)
+    -- Create the project with deadline and status
+    INSERT INTO projects (name, notes, template_type, deadline, status)
+    VALUES (name, description, template_type, deadline, status)
     RETURNING id INTO new_project_id;
 
     -- Add the creator as a project member

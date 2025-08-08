@@ -29,27 +29,29 @@ const CreateTaskModal = ({ isOpen, onClose, onAddTask }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h3 className="font-bold text-lg">Create New Task</h3>
-      <form onSubmit={handleSubmit} className="py-4 space-y-4">
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Task Title</span>
+      <h3 className="font-bold text-lg mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>Create New Task</h3>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>
+            Task Title
           </label>
           <input
             type="text"
             placeholder="e.g., Design the new logo"
-            className="input input-bordered w-full"
+            className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
           />
         </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Assign To</span>
+        <div>
+          <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>
+            Assign To
           </label>
           <select
-            className="select select-bordered w-full"
+            className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             value={assignedTo}
             onChange={(e) => setAssignedTo(e.target.value)}
           >
@@ -61,12 +63,22 @@ const CreateTaskModal = ({ isOpen, onClose, onAddTask }) => {
             ))}
           </select>
         </div>
-        <div className="modal-action">
-          <button type="button" className="btn" onClick={onClose}>
+        <div className="flex gap-2 justify-end">
+          <button 
+            type="button" 
+            className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+            onClick={onClose}
+          >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? <span className="loading loading-spinner"></span> : 'Create Task'}
+          <button 
+            type="submit" 
+            className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Creating...' : 'Create Task'}
           </button>
         </div>
       </form>

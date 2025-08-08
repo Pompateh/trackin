@@ -10,6 +10,7 @@ import Project from './pages/Project';
 import Invite from './pages/Invite';
 import StepTemplate from './pages/StepTemplate';
 import PodStepTemplate from './pages/PodStepTemplate';
+import PodStepExpanded from './pages/PodStepExpanded';
 
 
 
@@ -51,6 +52,15 @@ function App() {
           element={
             <ProtectedRoute>
               <PodStepTemplate />
+            </ProtectedRoute>
+          }
+        />
+        {/* Route for P.O.D expanded view */}
+        <Route
+          path="/project/:projectId/pod/expanded"
+          element={
+            <ProtectedRoute>
+              <PodStepExpanded />
             </ProtectedRoute>
           }
         />

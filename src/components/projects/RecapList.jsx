@@ -11,19 +11,36 @@ const TYPE_OPTIONS = [
 const RecapModal = React.memo(function RecapModal({ recap, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white rounded-lg shadow-lg p-6 min-w-[300px] max-w-[90vw]">
-        <h2 className="text-lg font-bold mb-2">Recap Detail</h2>
-        <div className="mb-2">
-          <span className="font-semibold">Date:</span> {recap.date}
+      <div className="bg-white p-6 min-w-[320px] max-w-[90vw] max-h-[90vh] overflow-auto border border-black" style={{ borderRadius: '0' }}>
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-black hover:text-gray-600 font-bold text-lg"
+          style={{ fontFamily: 'Crimson Pro, serif' }}
+        >
+          ✕
+        </button>
+        <div className="mt-2">
+          <h2 className="text-lg font-bold mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>Recap Detail</h2>
+          <div className="mb-3">
+            <span className="font-semibold" style={{ fontFamily: 'Crimson Pro, serif' }}>Date:</span> {recap.date}
+          </div>
+          <div className="mb-3">
+            <span className="font-semibold" style={{ fontFamily: 'Crimson Pro, serif' }}>Type:</span> {recap.type}
+          </div>
+          <div className="mb-4">
+            <span className="font-semibold" style={{ fontFamily: 'Crimson Pro, serif' }}>Description:</span>
+            <div className="mt-2 whitespace-pre-line">{recap.content}</div>
+          </div>
+          <div className="flex justify-end">
+            <button 
+              className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              onClick={onClose}
+            >
+              Close
+            </button>
+          </div>
         </div>
-        <div className="mb-2">
-          <span className="font-semibold">Type:</span> {recap.type}
-        </div>
-        <div className="mb-4">
-          <span className="font-semibold">Description:</span>
-          <div className="mt-1 whitespace-pre-line">{recap.content}</div>
-        </div>
-        <button className="btn btn-sm btn-primary" onClick={onClose}>Close</button>
       </div>
     </div>
   );
@@ -42,40 +59,64 @@ const AddRecapModal = React.memo(function AddRecapModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <form onSubmit={onSubmit} className="bg-white rounded-lg shadow-lg p-6 min-w-[320px] max-w-[90vw] flex flex-col gap-4">
-        <h2 className="text-lg font-bold mb-2">Add Recap</h2>
-        <div>
-          <label className="block text-sm font-semibold mb-1">Type</label>
-          <select
-            className="input input-bordered input-sm w-full"
-            value={addType}
-            onChange={e => setAddType(e.target.value)}
-            disabled={isSubmitting}
-          >
-            {TYPE_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold mb-1">Description</label>
-          <textarea
-            className="input input-bordered input-sm w-full"
-            rows={3}
-            value={addDescription}
-            onChange={e => setAddDescription(e.target.value)}
-            disabled={isSubmitting}
-            placeholder="Enter recap description..."
-          />
-        </div>
-        <div className="flex gap-2 justify-end">
-          <button type="button" className="btn btn-sm" onClick={onClose} disabled={isSubmitting}>Cancel</button>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmitting || !addDescription.trim()}>
-            {isSubmitting ? <span className="loading loading-spinner"></span> : 'Add'}
-          </button>
-        </div>
-        {error && <div className="text-red-500 text-xs mt-2">{error}</div>}
-      </form>
+      <div className="bg-white p-6 min-w-[320px] max-w-[90vw] max-h-[90vh] overflow-auto border border-black" style={{ borderRadius: '0' }}>
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-black hover:text-gray-600 font-bold text-lg"
+          style={{ fontFamily: 'Crimson Pro, serif' }}
+        >
+          ✕
+        </button>
+        <form onSubmit={onSubmit} className="mt-2 space-y-4">
+          <h2 className="text-lg font-bold mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>Add Recap</h2>
+          <div>
+            <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>Type</label>
+            <select
+              className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              value={addType}
+              onChange={e => setAddType(e.target.value)}
+              disabled={isSubmitting}
+            >
+              {TYPE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>Description</label>
+            <textarea
+              className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              rows={3}
+              value={addDescription}
+              onChange={e => setAddDescription(e.target.value)}
+              disabled={isSubmitting}
+              placeholder="Enter recap description..."
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button 
+              type="button" 
+              className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              onClick={onClose} 
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              disabled={isSubmitting || !addDescription.trim()}
+            >
+              {isSubmitting ? 'Adding...' : 'Add'}
+            </button>
+          </div>
+          {error && <div className="text-red-500 text-xs mt-2">{error}</div>}
+        </form>
+      </div>
     </div>
   );
 });
