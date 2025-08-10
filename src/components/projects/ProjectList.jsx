@@ -2,6 +2,9 @@ import React from 'react';
 import ProjectCard from './ProjectCard';
 
 const ProjectList = ({ projects }) => {
+  console.log('ProjectList - received projects:', projects);
+  console.log('ProjectList - first project team_emails:', projects[0]?.team_emails);
+  
   if (projects.length === 0) {
     return (
       <div className="text-center text-gray-500">
@@ -20,22 +23,13 @@ const ProjectList = ({ projects }) => {
   return (
     <div className="w-full">
       {rows.map((row, rowIndex) => (
-        <div key={rowIndex} className="flex w-full px-2 mb-2">
+        <div key={rowIndex} className="flex w-full px-2 mb-2 gap-2">
           {row.map((project, idx) => {
-            const isFirstInRow = idx === 0;
-            const isLastInRow = idx === row.length - 1;
-            const isSecondRowOrBeyond = rowIndex >= 1;
             const isLastInLastRow = rowIndex === rows.length - 1;
             return (
               <div
                 key={project.id}
-                className={`w-1/3
-                  ${isFirstInRow ? 'border-l border-black' : ''}
-                  border-r border-black
-                  border-b border-black
-                  ${isSecondRowOrBeyond ? 'border-t' : 'border-t border-black'}
-                  ${isLastInLastRow ? '' : 'mb-8'}
-                `.replace(/\s+/g, ' ').trim()}
+                className={`w-1/3 border border-black ${isLastInLastRow ? '' : 'mb-8'}`}
               >
                 <ProjectCard project={project} />
               </div>

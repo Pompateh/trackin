@@ -134,7 +134,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
 
       <div
         ref={containerRef}
-        className={`flex-1 bg-white cursor-pointer border ${isFocused ? 'border-blue-400' : 'border-gray-300'}`}
+        className={`flex-1 bg-white cursor-pointer ${isFocused ? 'border border-gray-300' : ''}`}
         tabIndex={0}
         onClick={handleImageClick}
         onFocus={() => setIsFocused(true)}
@@ -251,13 +251,15 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
 };
 
 const PodStepExpanded = () => {
-  const { projectId } = useParams();
+  const { projectId, rowIndex } = useParams();
   const { role, project } = useProjectStore();
   const navigate = useNavigate();
 
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [finalImages, setFinalImages] = useState([]);
   const [finalComments, setFinalComments] = useState([]);
+  const [additionalDesignRows, setAdditionalDesignRows] = useState([]);
+  const [currentRowIndex, setCurrentRowIndex] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadingSection, setUploadingSection] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -282,6 +284,7 @@ const PodStepExpanded = () => {
       if (data) {
         setFinalImages(data.final_images || []);
         setFinalComments(data.final_comments || []);
+        setAdditionalDesignRows(data.additional_design_rows || []);
       }
     } catch (error) {
       console.error('Error loading POD data:', error);
@@ -296,7 +299,8 @@ const PodStepExpanded = () => {
       console.log('Saving expanded POD data:', {
         project_id: projectId,
         final_images: finalImages,
-        final_comments: finalComments
+        final_comments: finalComments,
+        additional_design_rows: additionalDesignRows
       });
 
       // First try to get existing data
@@ -312,7 +316,8 @@ const PodStepExpanded = () => {
         const podData = {
           project_id: projectId,
           final_images: finalImages,
-          final_comments: finalComments
+          final_comments: finalComments,
+          additional_design_rows: additionalDesignRows
         };
         result = await supabase
           .from('pod_data')
@@ -326,6 +331,7 @@ const PodStepExpanded = () => {
           project_id: projectId,
           final_images: finalImages,
           final_comments: finalComments,
+          additional_design_rows: additionalDesignRows,
           scale_list: existingData.scale_list,
           reference_image_url: existingData.reference_image_url,
           reference_comment: existingData.reference_comment,
@@ -399,6 +405,25 @@ const PodStepExpanded = () => {
         const newImages = [...finalImages];
         newImages[index] = imageUrl;
         setFinalImages(newImages);
+      } else if (section.startsWith('row-')) {
+        const parts = section.split('-');
+        const rowIndex = parseInt(parts[1]);
+        const imageType = parts[2];
+        const imageIndex = parseInt(parts[3]);
+        
+        const newRows = [...additionalDesignRows];
+        if (newRows[rowIndex]) {
+          switch (imageType) {
+            case 'final':
+              if (!newRows[rowIndex].finalImages) {
+                newRows[rowIndex].finalImages = [];
+                newRows[rowIndex].finalComments = [];
+              }
+              newRows[rowIndex].finalImages[imageIndex] = imageUrl;
+              break;
+          }
+          setAdditionalDesignRows(newRows);
+        }
       }
     } catch (error) {
       console.error('Error in image upload process:', error);
@@ -448,12 +473,22 @@ const PodStepExpanded = () => {
     loadPodData();
   }, [projectId]);
 
+  // Determine which row we're viewing
+  useEffect(() => {
+    if (rowIndex) {
+      const index = parseInt(rowIndex) - 1; // Convert to 0-based index
+      setCurrentRowIndex(index);
+    } else {
+      setCurrentRowIndex(null); // Main row
+    }
+  }, [rowIndex]);
+
   // Auto-save when data changes
   useEffect(() => {
     if (!isLoading) {
       savePodData();
     }
-  }, [finalImages, finalComments]);
+  }, [finalImages, finalComments, additionalDesignRows]);
 
   if (isLoading) {
     return (
@@ -485,23 +520,13 @@ const PodStepExpanded = () => {
           <div className="mb-6 flex justify-between items-start">
             <div>
               <h1 className="text-4xl font-bold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
-                Final Design Uploads
+                {currentRowIndex !== null ? `Design Row ${currentRowIndex + 1} - Final Design Uploads` : 'Final Design Uploads'}
               </h1>
               <p className="text-lg text-gray-600 mt-1">
                 {new Date().toLocaleDateString('en-GB')}
               </p>
             </div>
             <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  console.log('Manual save triggered');
-                  savePodData();
-                }}
-                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
-                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-              >
-                Save Now
-              </button>
               <button
                 onClick={handleDeleteProject}
                 className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
@@ -514,36 +539,67 @@ const PodStepExpanded = () => {
 
                      {/* Final Design Grid */}
            <div className="grid grid-cols-4 gap-4 h-full" style={{ minHeight: '600px' }}>
-             {finalImages.map((imageUrl, index) => (
+             {(currentRowIndex !== null ? 
+               (additionalDesignRows[currentRowIndex]?.finalImages || []) : 
+               finalImages
+             ).map((imageUrl, index) => (
                <div key={index} className="border border-black p-4 h-full">
                  <PodImageSection
                    title="Final Design Upload"
-                   onImageUpload={(input) => handleImageUpload(`final-${index}`, input)}
-                   isUploading={isUploading && uploadingSection === `final-${index}`}
+                   onImageUpload={(input) => handleImageUpload(
+                     currentRowIndex !== null ? `row-${currentRowIndex}-final-${index}` : `final-${index}`, 
+                     input
+                   )}
+                   isUploading={isUploading && uploadingSection === (
+                     currentRowIndex !== null ? `row-${currentRowIndex}-final-${index}` : `final-${index}`
+                   )}
                    imageUrl={imageUrl}
                    onCommentChange={(comment) => {
-                     const newComments = [...finalComments];
-                     newComments[index] = comment;
-                     setFinalComments(newComments);
+                     if (currentRowIndex !== null) {
+                       const newRows = [...additionalDesignRows];
+                       if (!newRows[currentRowIndex].finalComments) {
+                         newRows[currentRowIndex].finalComments = [];
+                       }
+                       newRows[currentRowIndex].finalComments[index] = comment;
+                       setAdditionalDesignRows(newRows);
+                     } else {
+                       const newComments = [...finalComments];
+                       newComments[index] = comment;
+                       setFinalComments(newComments);
+                     }
                    }}
-                   comment={finalComments[index] || ''}
+                   comment={
+                     currentRowIndex !== null ? 
+                       (additionalDesignRows[currentRowIndex]?.finalComments?.[index] || '') : 
+                       (finalComments[index] || '')
+                   }
                    showSeeMore={false}
-                   fileInputId={`file-input-final-design-${index}`}
+                   fileInputId={`file-input-${currentRowIndex !== null ? `row-${currentRowIndex}-final-${index}` : `final-${index}`}`}
                    onRemove={() => {
-                     const newImages = finalImages.filter((_, i) => i !== index);
-                     const newComments = finalComments.filter((_, i) => i !== index);
-                     setFinalImages(newImages);
-                     setFinalComments(newComments);
+                     if (currentRowIndex !== null) {
+                       const newRows = [...additionalDesignRows];
+                       newRows[currentRowIndex].finalImages = newRows[currentRowIndex].finalImages.filter((_, i) => i !== index);
+                       newRows[currentRowIndex].finalComments = newRows[currentRowIndex].finalComments.filter((_, i) => i !== index);
+                       setAdditionalDesignRows(newRows);
+                     } else {
+                       const newImages = finalImages.filter((_, i) => i !== index);
+                       const newComments = finalComments.filter((_, i) => i !== index);
+                       setFinalImages(newImages);
+                       setFinalComments(newComments);
+                     }
                    }}
                  />
                  <input 
                    type="file" 
-                   id={`file-input-final-design-${index}`} 
+                   id={`file-input-${currentRowIndex !== null ? `row-${currentRowIndex}-final-${index}` : `final-${index}`}`} 
                    className="hidden" 
                    onChange={(e) => {
                      const file = e.target.files[0];
                      if (file) {
-                       handleImageUpload(`final-${index}`, file);
+                       handleImageUpload(
+                         currentRowIndex !== null ? `row-${currentRowIndex}-final-${index}` : `final-${index}`, 
+                         file
+                       );
                      }
                    }} 
                    accept="image/*" 
@@ -554,8 +610,19 @@ const PodStepExpanded = () => {
             <div className="border border-black p-4 flex items-center justify-center">
               <button
                 onClick={() => {
-                  setFinalImages([...finalImages, null]);
-                  setFinalComments([...finalComments, '']);
+                  if (currentRowIndex !== null) {
+                    const newRows = [...additionalDesignRows];
+                    if (!newRows[currentRowIndex].finalImages) {
+                      newRows[currentRowIndex].finalImages = [];
+                      newRows[currentRowIndex].finalComments = [];
+                    }
+                    newRows[currentRowIndex].finalImages.push(null);
+                    newRows[currentRowIndex].finalComments.push('');
+                    setAdditionalDesignRows(newRows);
+                  } else {
+                    setFinalImages([...finalImages, null]);
+                    setFinalComments([...finalComments, '']);
+                  }
                 }}
                 className="px-6 py-3 text-black bg-white border border-black font-crimson font-semibold text-lg"
                 style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}

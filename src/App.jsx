@@ -65,6 +65,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* Route for P.O.D expanded view with row index */}
+        <Route
+          path="/project/:projectId/pod/expanded/:rowIndex"
+          element={
+            <ProtectedRoute>
+              <PodStepExpanded />
+            </ProtectedRoute>
+          }
+        />
         {/* Route for Q&A - special handling */}
         <Route
           path="/project/:projectId/step/q-a"

@@ -134,7 +134,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
 
       <div
         ref={containerRef}
-        className={`flex-1 bg-white cursor-pointer border ${isFocused ? 'border-blue-400' : 'border-gray-300'}`}
+        className={`flex-1 bg-white cursor-pointer ${isFocused ? 'border border-gray-300' : ''}`}
         tabIndex={0}
         onClick={handleImageClick}
         onFocus={() => setIsFocused(true)}
@@ -259,6 +259,7 @@ const PodStepTemplate = () => {
   const [designImage, setDesignImage] = useState(null);
   const [finalImages, setFinalImages] = useState([]);
   const [finalComments, setFinalComments] = useState([]);
+  const [additionalDesignRows, setAdditionalDesignRows] = useState([]);
   const [referenceComment, setReferenceComment] = useState('');
   const [designComment, setDesignComment] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -326,6 +327,29 @@ const PodStepTemplate = () => {
             setFinalImages(newImages);
           }
           break;
+        default:
+          if (section.startsWith('row-')) {
+            const parts = section.split('-');
+            const rowIndex = parseInt(parts[1]);
+            const imageType = parts[2];
+            const newRows = [...additionalDesignRows];
+            
+            if (newRows[rowIndex]) {
+              switch (imageType) {
+                case 'reference':
+                  newRows[rowIndex].referenceImage = imageUrl;
+                  break;
+                case 'design':
+                  newRows[rowIndex].designImage = imageUrl;
+                  break;
+                case 'final':
+                  newRows[rowIndex].finalImage = imageUrl;
+                  break;
+              }
+              setAdditionalDesignRows(newRows);
+            }
+          }
+          break;
       }
     } catch (error) {
       console.error('Error in image upload process:', error);
@@ -345,6 +369,20 @@ const PodStepTemplate = () => {
   // Load POD data from database
   const loadPodData = async () => {
     try {
+      // First check if the project exists
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) {
+        console.error('Project not found:', projectError);
+        // Navigate back to dashboard if project doesn't exist
+        navigate('/');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('pod_data')
         .select('*')
@@ -367,6 +405,7 @@ const PodStepTemplate = () => {
         setDesignImage(data.design_image_url || null);
         setFinalImages(data.final_images || []);
         setFinalComments(data.final_comments || []);
+        setAdditionalDesignRows(data.additional_design_rows || []);
         setReferenceComment(data.reference_comment || '');
         setDesignComment(data.design_comment || '');
       }
@@ -381,6 +420,18 @@ const PodStepTemplate = () => {
   // Save POD data to database
   const savePodData = async () => {
     try {
+      // First check if the project exists
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) {
+        console.error('Project not found, cannot save POD data:', projectError);
+        return;
+      }
+
       console.log('Saving POD data:', {
         project_id: projectId,
         scale_list: scaleList,
@@ -389,7 +440,8 @@ const PodStepTemplate = () => {
         design_image_url: designImage,
         design_comment: designComment,
         final_images: finalImages,
-        final_comments: finalComments
+        final_comments: finalComments,
+        additional_design_rows: additionalDesignRows
       });
 
       const podData = {
@@ -400,7 +452,8 @@ const PodStepTemplate = () => {
         design_image_url: designImage,
         design_comment: designComment,
         final_images: finalImages,
-        final_comments: finalComments
+        final_comments: finalComments,
+        additional_design_rows: additionalDesignRows
       };
 
       // First try to get existing data
@@ -444,15 +497,34 @@ const PodStepTemplate = () => {
   };
 
   // Scale list editing functions
-  const handleScaleEdit = (index) => {
+  const handleScaleEdit = (index, value) => {
     setEditingScaleIndex(index);
-    setEditingScaleValue(scaleList[index]);
+    setEditingScaleValue(value);
   };
 
   const handleScaleSave = (index) => {
-    const newScaleList = [...scaleList];
-    newScaleList[index] = editingScaleValue;
-    setScaleList(newScaleList);
+    if (typeof index === 'string' && index.includes('-')) {
+      // Additional design row scale list
+      const [rowIndex, scaleIndex] = index.split('-').map(Number);
+      
+      if (!additionalDesignRows[rowIndex]) {
+        console.error('Row not found for save:', rowIndex, 'Available rows:', additionalDesignRows.length);
+        return;
+      }
+      
+      const newRows = [...additionalDesignRows];
+      newRows[rowIndex] = { ...newRows[rowIndex] }; // Create a new object reference
+      newRows[rowIndex].scaleList = [...(newRows[rowIndex].scaleList || [])]; // Create a new array reference
+      newRows[rowIndex].scaleList[scaleIndex] = editingScaleValue;
+      setAdditionalDesignRows(newRows);
+      console.log('Additional row scale saved:', { rowIndex, scaleIndex, value: editingScaleValue, newRows });
+    } else {
+      // Main scale list
+      const newScaleList = [...scaleList];
+      newScaleList[index] = editingScaleValue;
+      setScaleList(newScaleList);
+      console.log('Main scale saved:', { index, value: editingScaleValue, newScaleList });
+    }
     setEditingScaleIndex(null);
     setEditingScaleValue('');
     console.log('Scale saved, triggering auto-save...');
@@ -463,26 +535,72 @@ const PodStepTemplate = () => {
     setEditingScaleValue('');
   };
 
-  const handleScaleAdd = () => {
-    // Find the highest number in existing scales
-    const existingNumbers = scaleList
-      .map(item => {
-        const match = item.match(/^(\d+)\//);
-        return match ? parseInt(match[1]) : 0;
-      })
-      .filter(num => num > 0);
-    
-    const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-    const newScaleItem = `${nextNumber.toString().padStart(2, '0')}/`;
-    
-    setScaleList([...scaleList, newScaleItem]);
-    setEditingScaleIndex(scaleList.length);
-    setEditingScaleValue(newScaleItem);
+  const handleScaleAdd = (rowIndex = null) => {
+    if (rowIndex !== null) {
+      // Additional design row scale list
+      if (!additionalDesignRows[rowIndex]) {
+        console.error('Row not found:', rowIndex, 'Available rows:', additionalDesignRows.length);
+        return;
+      }
+      
+      const targetScaleList = additionalDesignRows[rowIndex].scaleList || [];
+      const existingNumbers = targetScaleList
+        .map(item => {
+          const match = item.match(/^(\d+)\//);
+          return match ? parseInt(match[1]) : 0;
+        })
+        .filter(num => num > 0);
+      
+      const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+      const newScaleItem = `${nextNumber.toString().padStart(2, '0')}/`;
+      
+      const newRows = [...additionalDesignRows];
+      newRows[rowIndex] = { ...newRows[rowIndex] }; // Create a new object reference
+      newRows[rowIndex].scaleList = [...(newRows[rowIndex].scaleList || []), newScaleItem]; // Create a new array with the new item
+      setAdditionalDesignRows(newRows);
+      setEditingScaleIndex(`${rowIndex}-${newRows[rowIndex].scaleList.length - 1}`);
+      setEditingScaleValue(newScaleItem);
+      console.log('Additional row scale added:', { rowIndex, newScaleItem, newRows });
+    } else {
+      // Main scale list
+      const existingNumbers = scaleList
+        .map(item => {
+          const match = item.match(/^(\d+)\//);
+          return match ? parseInt(match[1]) : 0;
+        })
+        .filter(num => num > 0);
+      
+      const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+      const newScaleItem = `${nextNumber.toString().padStart(2, '0')}/`;
+      
+      setScaleList([...scaleList, newScaleItem]);
+      setEditingScaleIndex(scaleList.length);
+      setEditingScaleValue(newScaleItem);
+      console.log('Main scale added:', { newScaleItem });
+    }
   };
 
   const handleScaleDelete = (index) => {
-    const newScaleList = scaleList.filter((_, i) => i !== index);
-    setScaleList(newScaleList);
+    if (typeof index === 'string' && index.includes('-')) {
+      // Additional design row scale list
+      const [rowIndex, scaleIndex] = index.split('-').map(Number);
+      
+      if (!additionalDesignRows[rowIndex]) {
+        console.error('Row not found for delete:', rowIndex, 'Available rows:', additionalDesignRows.length);
+        return;
+      }
+      
+      const newRows = [...additionalDesignRows];
+      newRows[rowIndex] = { ...newRows[rowIndex] }; // Create a new object reference
+      newRows[rowIndex].scaleList = (newRows[rowIndex].scaleList || []).filter((_, i) => i !== scaleIndex);
+      setAdditionalDesignRows(newRows);
+      console.log('Additional row scale deleted:', { rowIndex, scaleIndex, newRows });
+    } else {
+      // Main scale list
+      const newScaleList = scaleList.filter((_, i) => i !== index);
+      setScaleList(newScaleList);
+      console.log('Main scale deleted:', { index, newScaleList });
+    }
     console.log('Scale deleted, triggering auto-save...');
   };
 
@@ -529,7 +647,7 @@ const PodStepTemplate = () => {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [scaleList, referenceImage, designImage, finalImages, finalComments, referenceComment, designComment, isLoading, projectId]);
+  }, [scaleList, referenceImage, designImage, finalImages, finalComments, additionalDesignRows, referenceComment, designComment, isLoading, projectId]);
 
   if (isLoading) {
     return (
@@ -560,7 +678,7 @@ const PodStepTemplate = () => {
           {/* P.O.D Header */}
           <div className="mb-4 md:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
             <div>
-              <h1 className="text-2xl md:text-4xl font-bold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
+              <h1 className="text-3xl md:text-5xl lg:text-6xl" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 200, fontSize: '100px' }}>
                 P.O.D
               </h1>
               <p className="text-sm md:text-lg text-gray-600 mt-1">
@@ -568,16 +686,6 @@ const PodStepTemplate = () => {
               </p>
             </div>
             <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  console.log('Manual save triggered');
-                  savePodData();
-                }}
-                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
-                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-              >
-                Save Now
-              </button>
               <button
                 onClick={handleDeleteProject}
                 className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
@@ -592,9 +700,14 @@ const PodStepTemplate = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 h-full overflow-x-auto" style={{ minHeight: '600px' }}>
             {/* Scale List Column */}
             <div className="col-span-1 border border-black p-2 md:p-4">
-              <h3 className="text-lg font-bold mb-4" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
-                Scale List:
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
+                  Scale List:
+                </h3>
+                <div className="text-lg font-semibold" style={{ fontFamily: 'Crimson Pro, serif', color: '#646464' }}>
+                  Mẫu 01
+                </div>
+              </div>
               <div className="space-y-2">
                 {scaleList.map((item, index) => (
                   <div key={index} className="flex items-center space-x-1 md:space-x-2">
@@ -645,7 +758,7 @@ const PodStepTemplate = () => {
                   </div>
                 ))}
                 <button
-                  onClick={handleScaleAdd}
+                  onClick={() => handleScaleAdd(null)}
                   className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold w-full mt-2 text-xs md:text-sm"
                   style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
                 >
@@ -741,6 +854,221 @@ const PodStepTemplate = () => {
                 accept="image/*" 
               />
             </div>
+          </div>
+
+          {/* Additional Design Rows */}
+          {additionalDesignRows.map((row, rowIndex) => (
+            <div key={rowIndex} className="mt-8">
+              <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
+                Design Row {rowIndex + 1}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4" style={{ minHeight: '600px' }}>
+                {/* Scale List Column */}
+                <div className="col-span-1 border border-black p-2 md:p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
+                      Scale List:
+                    </h3>
+                    <div className="text-lg font-semibold" style={{ fontFamily: 'Crimson Pro, serif', color: '#646464' }}>
+                      Mẫu {(rowIndex + 2).toString().padStart(2, '0')}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {row.scaleList.map((item, index) => (
+                      <div key={index} className="flex items-center space-x-1 md:space-x-2">
+                        {editingScaleIndex === `${rowIndex}-${index}` ? (
+                          <>
+                            <input
+                              type="text"
+                              value={editingScaleValue}
+                              onChange={(e) => setEditingScaleValue(e.target.value)}
+                              className="flex-1 px-2 py-1 border border-black text-black bg-white font-mono text-sm md:text-lg"
+                              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                              onKeyPress={(e) => e.key === 'Enter' && handleScaleSave(`${rowIndex}-${index}`)}
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleScaleSave(`${rowIndex}-${index}`)}
+                              className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
+                              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={handleScaleCancel}
+                              className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
+                              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div 
+                              className="text-sm md:text-lg font-mono flex-1 cursor-pointer truncate" 
+                              onDoubleClick={() => handleScaleEdit(`${rowIndex}-${index}`, item)}
+                              title="Double-click to edit"
+                            >
+                              {item}
+                            </div>
+                            <button
+                              onClick={() => handleScaleDelete(`${rowIndex}-${index}`)}
+                              className="text-black text-2xl font-light"
+                              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                            >
+                              ×
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => handleScaleAdd(rowIndex)}
+                      className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold w-full mt-2 text-xs md:text-sm"
+                      style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                    >
+                      + Add Scale
+                    </button>
+                  </div>
+                </div>
+
+                {/* Reference Image Column */}
+                <div className="col-span-1 border border-black p-2 md:p-4">
+                  <PodImageSection
+                    title="Paste Image/ Link Ref"
+                    onImageUpload={(url) => handleImageUpload(`row-${rowIndex}-reference`, url)}
+                    isUploading={isUploading && uploadingSection === `row-${rowIndex}-reference`}
+                    imageUrl={row.referenceImage}
+                    onCommentChange={(comment) => {
+                      const newRows = [...additionalDesignRows];
+                      newRows[rowIndex].referenceComment = comment;
+                      setAdditionalDesignRows(newRows);
+                    }}
+                    comment={row.referenceComment || ''}
+                    fileInputId={`file-input-row-${rowIndex}-reference`}
+                    onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
+                    onRemove={() => {
+                      const newRows = [...additionalDesignRows];
+                      newRows[rowIndex].referenceImage = null;
+                      newRows[rowIndex].referenceComment = '';
+                      setAdditionalDesignRows(newRows);
+                    }}
+                  />
+                  <input 
+                    type="file" 
+                    id={`file-input-row-${rowIndex}-reference`} 
+                    className="hidden" 
+                    onChange={(e) => handleFileUpload(`row-${rowIndex}-reference`, e)} 
+                    accept="image/*" 
+                  />
+                </div>
+
+                {/* Design Upload Column */}
+                <div className="col-span-1 border border-black p-2 md:p-4">
+                  <PodImageSection
+                    title="Design Upload"
+                    onImageUpload={(url) => handleImageUpload(`row-${rowIndex}-design`, url)}
+                    isUploading={isUploading && uploadingSection === `row-${rowIndex}-design`}
+                    imageUrl={row.designImage}
+                    onCommentChange={(comment) => {
+                      const newRows = [...additionalDesignRows];
+                      newRows[rowIndex].designComment = comment;
+                      setAdditionalDesignRows(newRows);
+                    }}
+                    comment={row.designComment || ''}
+                    fileInputId={`file-input-row-${rowIndex}-design`}
+                    onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
+                    onRemove={() => {
+                      const newRows = [...additionalDesignRows];
+                      newRows[rowIndex].designImage = null;
+                      newRows[rowIndex].designComment = '';
+                      setAdditionalDesignRows(newRows);
+                    }}
+                  />
+                  <input 
+                    type="file" 
+                    id={`file-input-row-${rowIndex}-design`} 
+                    className="hidden" 
+                    onChange={(e) => handleFileUpload(`row-${rowIndex}-design`, e)} 
+                    accept="image/*" 
+                  />
+                </div>
+
+                {/* Final Design Upload Column */}
+                <div className="col-span-1 border border-black p-2 md:p-4">
+                  <PodImageSection
+                    title="Final Design Upload"
+                    onImageUpload={(url) => handleImageUpload(`row-${rowIndex}-final`, url)}
+                    isUploading={isUploading && uploadingSection === `row-${rowIndex}-final`}
+                    imageUrl={row.finalImage}
+                    onCommentChange={(comment) => {
+                      const newRows = [...additionalDesignRows];
+                      newRows[rowIndex].finalComment = comment;
+                      setAdditionalDesignRows(newRows);
+                    }}
+                    comment={row.finalComment || ''}
+                    showSeeMore={true}
+                    fileInputId={`file-input-row-${rowIndex}-final`}
+                                          onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
+                      onRemove={() => {
+                        const newRows = [...additionalDesignRows];
+                        newRows[rowIndex].finalImage = null;
+                        newRows[rowIndex].finalComment = '';
+                        setAdditionalDesignRows(newRows);
+                      }}
+                    isFinalDesign={true}
+                  />
+                  <input 
+                    type="file" 
+                    id={`file-input-row-${rowIndex}-final`} 
+                    className="hidden" 
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        handleImageUpload(`row-${rowIndex}-final`, file);
+                      }
+                    }} 
+                    accept="image/*" 
+                  />
+                </div>
+              </div>
+              
+              {/* Remove Row Button */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    const newRows = additionalDesignRows.filter((_, i) => i !== rowIndex);
+                    setAdditionalDesignRows(newRows);
+                  }}
+                  className="px-4 py-2 text-red-500 bg-white border border-red-500 font-crimson font-semibold"
+                  style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                >
+                  Remove Design Row
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* Add Design Button */}
+          <div className="mt-8">
+            <button
+              onClick={() => {
+                const newRow = {
+                  scaleList: ['01/', '02/', '03/'],
+                  referenceImage: null,
+                  designImage: null,
+                  finalImage: null,
+                  referenceComment: '',
+                  designComment: '',
+                  finalComment: ''
+                };
+                setAdditionalDesignRows([...additionalDesignRows, newRow]);
+              }}
+              className="w-full px-8 py-4 bg-white border border-black font-crimson font-semibold text-lg"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0', color: '#646464' }}
+            >
+              + Add Design
+            </button>
           </div>
         </div>
 

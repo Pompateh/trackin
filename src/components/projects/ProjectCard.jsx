@@ -27,9 +27,21 @@ const ProjectCard = ({ project }) => {
   };
 
   // Show all team members (before @)
+  console.log('ProjectCard - project.team_emails:', project.team_emails);
+  console.log('ProjectCard - project.team_emails type:', typeof project.team_emails);
+  console.log('ProjectCard - isArray check:', Array.isArray(project.team_emails));
+  console.log('ProjectCard - length check:', project.team_emails?.length);
+  
   const teamMembers = Array.isArray(project.team_emails) && project.team_emails.length > 0
-    ? project.team_emails.map(email => email.split('@')[0]).join(', ')
+    ? project.team_emails.map(email => {
+        console.log('Processing email:', email);
+        const username = email.split('@')[0];
+        console.log('Extracted username:', username);
+        return username;
+      }).join(', ')
     : 'You';
+    
+  console.log('ProjectCard - final teamMembers:', teamMembers);
 
   return (
     <div className="bg-white w-full flex flex-col justify-between" style={{height: '100%'}}>
@@ -38,21 +50,19 @@ const ProjectCard = ({ project }) => {
       {/* Team Member Section */}
       <div className="flex items-center justify-between pb-1 mb-2 px-2 font-crimson font-semibold text-[25px]">
         <div>Team Member</div>
-        <button className="text-lg text-gray-600 hover:text-black">×</button>
       </div>
-      <div className="italic text-xs text-gray-500 mb-2 -mt-2 px-2 font-gothic font-normal">{teamMembers}</div>
+      <div className="italic text-xs text-gray-500 mb-2 px-2 font-gothic font-normal">{teamMembers}</div>
       <div className="border-b border-black w-full h-px"></div>
 
-      {/* Project Title */}
+      {/* Project Description */}
       <div className="flex items-center justify-between pb-1 mb-2 px-2 font-crimson font-semibold text-[25px]">
-        <div>{project.name}</div>
-        <button className="text-lg text-gray-600 hover:text-black">×</button>
+        <div>Description</div>
       </div>
       <div
-        className="text-xs text-gray-600 mb-2 px-2 font-gothic font-normal"
-        style={{ height: '48px', overflow: 'hidden', display: 'flex', alignItems: 'flex-start' }}
+        className="text-sm text-gray-600 mb-2 px-2 font-gothic font-normal"
+        style={{ height: '60px', overflow: 'hidden', display: 'flex', alignItems: 'flex-start' }}
       >
-        {project.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'}
+        {project.notes || 'No description available.'}
       </div>
       <div className="border-b border-black w-full h-px"></div>
 
