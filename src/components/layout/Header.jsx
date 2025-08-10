@@ -26,22 +26,16 @@ const Header = () => {
             <img src={logo} alt="Logo" className="h-14 w-auto" />
           </Link>
         </div>
-        <div className="flex-none">
-          <ul className="menu menu-horizontal px-1">
-            {user ? (
-              <li>
-                <button onClick={handleSignOut} className="btn btn-ghost">
-                  Sign Out
-                </button>
-              </li>
-            ) : (
-              <li>
-                <Link to="/login" className="btn btn-ghost">
-                  Login
-                </Link>
-              </li>
-            )}
-          </ul>
+        <div className="flex-none flex justify-end">
+          {user ? (
+            <button onClick={handleSignOut} className="text-black font-crimson font-semibold" style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}>
+              Sign Out
+            </button>
+          ) : (
+            <Link to="/login" className="text-black bg-white border border-black font-crimson font-semibold" style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}>
+              Login
+            </Link>
+          )}
         </div>
       </div>
     </header>

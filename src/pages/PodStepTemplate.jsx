@@ -6,7 +6,7 @@ import { HiOutlineChevronRight } from 'react-icons/hi';
 import useProjectStore from '../store/useProjectStore';
 
 // P.O.D specific content components
-const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommentChange, comment, showSeeMore = false, fileInputId, onSeeMoreClick, onRemove }) => {
+const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommentChange, comment, showSeeMore = false, fileInputId, onSeeMoreClick, onRemove, isFinalDesign = false }) => {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -134,7 +134,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
 
       <div
         ref={containerRef}
-        className={`flex-1 bg-gray-100 cursor-pointer border ${isFocused ? 'border-blue-400' : 'border-gray-300'}`}
+        className={`flex-1 bg-white cursor-pointer border ${isFocused ? 'border-blue-400' : 'border-gray-300'}`}
         tabIndex={0}
         onClick={handleImageClick}
         onFocus={() => setIsFocused(true)}
@@ -144,7 +144,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
           overflow: 'hidden', 
           position: 'relative',
           outline: 'none',
-          aspectRatio: '628/762'
+          minHeight: '150px'
         }}
       >
         {imageUrl ? (
@@ -155,7 +155,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
+              objectFit: 'contain',
               objectPosition: 'center',
               userSelect: 'none',
               pointerEvents: 'none'
@@ -163,7 +163,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
             draggable={false}
           />
         ) : (
-            <div className="text-center text-gray-500 h-full flex items-center justify-center">
+            <div className="text-center text-gray-500 h-[95%] flex items-center justify-center">
               {isUploading ? (
                 <>
                   <span className="loading loading-spinner loading-md"></span>
@@ -178,33 +178,70 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
             </div>
           )}
       </div>
-      {!showSeeMore ? (
-        <input
-          type="text"
-          placeholder="Add a comment..."
-          value={comment}
-          onChange={(e) => onCommentChange(e.target.value)}
-          className="w-full mt-2 px-2 py-1 border border-black text-black bg-white font-crimson font-semibold text-xs md:text-sm"
-          style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-        />
-      ) : (
-        <button 
-          onClick={onSeeMoreClick}
-          className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold w-full mt-2 text-xs"
-          style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-        >
-          See More
-        </button>
-      )}
-      {imageUrl && onRemove && (
-        <button
-          onClick={onRemove}
-          className="px-4 py-2 text-red-500 bg-white border border-red-500 font-crimson font-semibold w-full mt-2 text-xs"
-          style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-        >
-          Remove
-        </button>
-      )}
+              {!showSeeMore ? (
+          <div className="mt-2 border border-black bg-white">
+            <textarea
+              placeholder="Add a comment..."
+              value={comment}
+              onChange={(e) => onCommentChange(e.target.value)}
+              className="w-full px-2 py-1 border-0 text-black bg-white font-crimson font-semibold text-xs md:text-sm resize-none"
+              style={{ 
+                fontFamily: 'Crimson Pro, serif', 
+                borderRadius: '0',
+                minHeight: '165px',
+                lineHeight: '1.5',
+                wordWrap: 'break-word'
+              }}
+              rows={4}
+            />
+            <button
+              onClick={onRemove}
+              className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+            >
+              Remove
+            </button>
+          </div>
+        ) : isFinalDesign ? (
+          <div className="mt-2 border border-black bg-white">
+            <textarea
+              placeholder="Add a comment..."
+              value={comment}
+              onChange={(e) => onCommentChange(e.target.value)}
+              className="w-full px-2 py-1 border-0 text-black bg-white font-crimson font-semibold text-xs md:text-sm resize-none"
+              style={{ 
+                fontFamily: 'Crimson Pro, serif', 
+                borderRadius: '0',
+                minHeight: '120px',
+                lineHeight: '1.5',
+                wordWrap: 'break-word'
+              }}
+              rows={2}
+            />
+            <button
+              onClick={onRemove}
+              className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+            >
+              Remove
+            </button>
+            <button 
+              onClick={onSeeMoreClick}
+              className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+            >
+              See More
+            </button>
+          </div>
+        ) : (
+          <button 
+            onClick={onSeeMoreClick}
+            className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold w-full mt-2 text-xs"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+          >
+            See More
+          </button>
+        )}
     </div>
   );
 };
@@ -427,9 +464,20 @@ const PodStepTemplate = () => {
   };
 
   const handleScaleAdd = () => {
-    setScaleList([...scaleList, '']);
+    // Find the highest number in existing scales
+    const existingNumbers = scaleList
+      .map(item => {
+        const match = item.match(/^(\d+)\//);
+        return match ? parseInt(match[1]) : 0;
+      })
+      .filter(num => num > 0);
+    
+    const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+    const newScaleItem = `${nextNumber.toString().padStart(2, '0')}/`;
+    
+    setScaleList([...scaleList, newScaleItem]);
     setEditingScaleIndex(scaleList.length);
-    setEditingScaleValue('');
+    setEditingScaleValue(newScaleItem);
   };
 
   const handleScaleDelete = (index) => {
@@ -578,22 +626,19 @@ const PodStepTemplate = () => {
                       </>
                     ) : (
                       <>
-                        <div className="text-sm md:text-lg font-mono flex-1 cursor-pointer truncate" onClick={() => handleScaleEdit(index)}>
+                        <div 
+                          className="text-sm md:text-lg font-mono flex-1 cursor-pointer truncate" 
+                          onDoubleClick={() => handleScaleEdit(index)}
+                          title="Double-click to edit"
+                        >
                           {item}
                         </div>
                         <button
-                          onClick={() => handleScaleEdit(index)}
-                          className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
-                          style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                        >
-                          ✏️
-                        </button>
-                        <button
                           onClick={() => handleScaleDelete(index)}
-                          className="px-1 py-1 text-red-500 bg-white border border-red-500 font-crimson font-semibold text-xs min-w-0 md:px-2"
+                          className="text-black text-2xl font-light"
                           style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
                         >
-                          🗑️
+                          ×
                         </button>
                       </>
                     )}
@@ -620,7 +665,10 @@ const PodStepTemplate = () => {
                 comment={referenceComment}
                 fileInputId="file-input-paste-image-link-ref"
                 onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded`)}
-                onRemove={() => setReferenceImage(null)}
+                onRemove={() => {
+                  setReferenceImage(null);
+                  setReferenceComment('');
+                }}
               />
               <input 
                 type="file" 
@@ -642,7 +690,10 @@ const PodStepTemplate = () => {
                 comment={designComment}
                 fileInputId="file-input-design-upload"
                 onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded`)}
-                onRemove={() => setDesignImage(null)}
+                onRemove={() => {
+                  setDesignImage(null);
+                  setDesignComment('');
+                }}
               />
               <input 
                 type="file" 
@@ -660,12 +711,22 @@ const PodStepTemplate = () => {
                 onImageUpload={(url) => handleImageUpload('final-0', url)}
                 isUploading={isUploading && uploadingSection === 'final-0'}
                 imageUrl={finalImages[0] || null}
-                onCommentChange={() => {}} // No comment functionality for final design
-                comment=""
+                onCommentChange={(comment) => {
+                  const newComments = [...finalComments];
+                  newComments[0] = comment;
+                  setFinalComments(newComments);
+                }}
+                comment={finalComments[0] || ''}
                 showSeeMore={true}
                 fileInputId="file-input-final-design-0"
                 onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded`)}
-                onRemove={() => setFinalImages(finalImages.filter((_, i) => i !== 0))}
+                onRemove={() => {
+                  const newImages = finalImages.filter((_, i) => i !== 0);
+                  const newComments = finalComments.filter((_, i) => i !== 0);
+                  setFinalImages(newImages);
+                  setFinalComments(newComments);
+                }}
+                isFinalDesign={true}
               />
               <input 
                 type="file" 

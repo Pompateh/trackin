@@ -76,7 +76,7 @@ const Dashboard = () => {
           <h1 className="text-6xl font-serif font-normal tracking-tight pl-2">YOUR WORK</h1>
           {canCreateProjects && (
             <button 
-              className="pl-2 pr-2 focus:outline-none"
+              className="pl-2 focus:outline-none"
               style={{ background: 'none', border: 'none', boxShadow: 'none', lineHeight: 1, display: 'flex', alignItems: 'center' }}
               onClick={() => setIsModalOpen(true)}
               aria-label="Create Project"

@@ -36,7 +36,7 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
   if (!isVisible) return null;
 
   return (
-    <div className="relative group">
+    <div className="relative group flex items-center">
       <div
         contentEditable
         suppressContentEditableWarning
@@ -44,7 +44,7 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
         onBlur={handleBlur}
         onClick={handleTextClick}
         onMouseDown={handleTextClick}
-        className={`w-full outline-none focus:bg-gray-100 p-1 rounded ${className} ${isEmpty && !isEditing ? 'text-gray-400 italic' : ''} ${fontFamily === 'crimson pro' ? 'font-crimson-pro' : 'font-gothic-a1'}`}
+        className={`flex-1 outline-none focus:bg-gray-100 p-1 rounded ${className} ${isEmpty && !isEditing ? 'text-gray-400 italic' : ''} ${fontFamily === 'crimson pro' ? 'font-crimson-pro' : 'font-gothic-a1'}`}
         style={{ 
           fontSize: `${fontSize}px`,
           filter: isEmpty && !isEditing ? 'blur(0.5px)' : 'none',
@@ -56,10 +56,10 @@ const EditableTextRow = ({ value, onChange, onVisibilityChange, placeholder, cla
         dangerouslySetInnerHTML={{ __html: displayValue || '' }}
         data-placeholder={placeholder}
       />
-      <div className="absolute top-0 right-0 h-full flex items-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto bg-gradient-to-l from-base-200 via-base-200 to-transparent pl-4">
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-8">
         <button 
           onClick={handleDeleteClick}
-          className="text-red-500"
+          className="text-red-500 text-lg font-bold"
         >
           &times;
         </button>

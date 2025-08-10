@@ -133,6 +133,38 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
         </div>
       );
     }
+
+    // Special handling for Q&A section - navigate to Q&A route
+    if (section.title === 'Q & A') {
+      return (
+        <Link
+          to={`/project/${projectId}/step/q-a`}
+          key={section.id}
+          className={`block border-b border-black ${idx === 0 ? 'border-t border-black' : ''} h-full flex-1`}
+        >
+          <div className={`flex justify-between items-stretch px-3 cursor-pointer h-full`}>
+            <span className={`${isSubsection ? '' : 'font-crimson font-semibold text-[25px]'} flex-1`} style={{flexBasis: '80%', flexGrow: 0, flexShrink: 0}}>
+              {section.title}
+              {sectionPercentages[section.title] && (
+                <span className="font-normal"> ({sectionPercentages[section.title]})</span>
+              )}
+            </span>
+            <div className="flex items-center border-l border-black pl-3 justify-between" style={{flexBasis: '20%', flexGrow: 0, flexShrink: 0}}>
+              <span className="text-xs font-gothic font-medium text-[20px] text-black">{section.status}</span>
+              {isAdmin && DEFAULT_STEPS.includes(section.title) && !isSubsection && (
+                <button
+                  className="ml-4 text-black text-lg font-bold hover:bg-gray-200 rounded font-gothic font-medium text-[20px]"
+                  onClick={e => { e.preventDefault(); e.stopPropagation(); handleRemoveStep(section.title); }}
+                  aria-label="Remove"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+        </Link>
+      );
+    }
     
     // Regular sections with navigation
     return (

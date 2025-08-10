@@ -11,6 +11,7 @@ import Invite from './pages/Invite';
 import StepTemplate from './pages/StepTemplate';
 import PodStepTemplate from './pages/PodStepTemplate';
 import PodStepExpanded from './pages/PodStepExpanded';
+import QaEditor from './components/projects/QaEditor';
 
 
 
@@ -61,6 +62,15 @@ function App() {
           element={
             <ProtectedRoute>
               <PodStepExpanded />
+            </ProtectedRoute>
+          }
+        />
+        {/* Route for Q&A - special handling */}
+        <Route
+          path="/project/:projectId/step/q-a"
+          element={
+            <ProtectedRoute>
+              <QaEditor />
             </ProtectedRoute>
           }
         />

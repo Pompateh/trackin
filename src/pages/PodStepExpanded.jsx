@@ -6,7 +6,7 @@ import { HiOutlineChevronRight } from 'react-icons/hi';
 import useProjectStore from '../store/useProjectStore';
 
 // P.O.D specific content components
-const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommentChange, comment, showSeeMore = false, fileInputId, onRemove }) => {
+const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommentChange, comment, showSeeMore = false, fileInputId, onSeeMoreClick, onRemove, isFinalDesign = false }) => {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -85,16 +85,16 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
         <div className="mb-2 space-y-2">
           {showUrlInput ? (
             <div className="flex flex-col space-y-2">
-                             <input
-                 type="text"
-                 placeholder="Paste image URL here..."
-                 value={imageUrlInput}
-                 onChange={(e) => setImageUrlInput(e.target.value)}
-                 className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold text-sm"
-                 style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                 onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
-               />
-              <div className="flex space-x-2">
+              <input
+                type="text"
+                placeholder="Paste image URL here..."
+                value={imageUrlInput}
+                onChange={(e) => setImageUrlInput(e.target.value)}
+                className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold text-xs md:text-sm"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
+              />
+              <div className="flex space-x-1 md:space-x-2">
                 <button 
                   onClick={handleUrlSubmit}
                   className="px-2 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs flex-1"
@@ -112,7 +112,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
               </div>
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-1 md:space-x-2">
               <button 
                 onClick={handleFileUpload}
                 className="px-2 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs flex-1"
@@ -134,7 +134,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
 
       <div
         ref={containerRef}
-        className={`flex-1 bg-gray-100 cursor-pointer border ${isFocused ? 'border-blue-400' : 'border-gray-300'}`}
+        className={`flex-1 bg-white cursor-pointer border ${isFocused ? 'border-blue-400' : 'border-gray-300'}`}
         tabIndex={0}
         onClick={handleImageClick}
         onFocus={() => setIsFocused(true)}
@@ -144,7 +144,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
           overflow: 'hidden', 
           position: 'relative',
           outline: 'none',
-          aspectRatio: '628/762'
+          minHeight: '150px'
         }}
       >
         {imageUrl ? (
@@ -155,7 +155,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
+              objectFit: 'contain',
               objectPosition: 'center',
               userSelect: 'none',
               pointerEvents: 'none'
@@ -163,45 +163,87 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
             draggable={false}
           />
         ) : (
-          <div className="text-center text-gray-500 h-full flex items-center justify-center">
-            {isUploading ? (
-              <>
-                <span className="loading loading-spinner loading-md"></span>
-                <p>Uploading...</p>
-              </>
-            ) : (
-              <div>
-                <p>Click to upload image or paste URL</p>
-                <p className="text-xs mt-1">Ctrl+V to paste image from clipboard</p>
-              </div>
+            <div className="text-center text-gray-500 h-[95%] flex items-center justify-center">
+              {isUploading ? (
+                <>
+                  <span className="loading loading-spinner loading-md"></span>
+                  <p>Uploading...</p>
+                </>
+              ) : (
+                <div>
+                  <p>Click to upload image or paste URL</p>
+                  <p className="text-xs mt-1">Ctrl+V to paste image from clipboard</p>
+                </div>
+              )}
+            </div>
+          )}
+      </div>
+              {!showSeeMore ? (
+          <div className="mt-2 border border-black bg-white">
+            <textarea
+              placeholder="Add a comment..."
+              value={comment}
+              onChange={(e) => onCommentChange(e.target.value)}
+              className="w-full px-2 py-1 border-0 text-black bg-white font-crimson font-semibold text-xs md:text-sm resize-none"
+              style={{ 
+                fontFamily: 'Crimson Pro, serif', 
+                borderRadius: '0',
+                minHeight: '165px',
+                lineHeight: '1.5',
+                wordWrap: 'break-word'
+              }}
+              rows={4}
+            />
+            {onRemove && (
+              <button
+                onClick={onRemove}
+                className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              >
+                Remove
+              </button>
             )}
           </div>
-        )}
-      </div>
-               {!showSeeMore ? (
-          <input
-            type="text"
-            placeholder="Add a comment..."
-            value={comment}
-            onChange={(e) => onCommentChange(e.target.value)}
-            className="w-full mt-2 px-2 py-1 border border-black text-black bg-white font-crimson font-semibold text-sm"
-            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-          />
+        ) : isFinalDesign ? (
+          <div className="mt-2 border border-black bg-white">
+            <textarea
+              placeholder="Add a comment..."
+              value={comment}
+              onChange={(e) => onCommentChange(e.target.value)}
+              className="w-full px-2 py-1 border-0 text-black bg-white font-crimson font-semibold text-xs md:text-sm resize-none"
+              style={{ 
+                fontFamily: 'Crimson Pro, serif', 
+                borderRadius: '0',
+                minHeight: '120px',
+                lineHeight: '1.5',
+                wordWrap: 'break-word'
+              }}
+              rows={2}
+            />
+            {onRemove && (
+              <button
+                onClick={onRemove}
+                className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              >
+                Remove
+              </button>
+            )}
+            <button 
+              onClick={onSeeMoreClick}
+              className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+            >
+              See More
+            </button>
+          </div>
         ) : (
           <button 
-            className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold w-full mt-2"
+            onClick={onSeeMoreClick}
+            className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold w-full mt-2 text-xs"
             style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
           >
             See More
-          </button>
-        )}
-        {imageUrl && onRemove && (
-          <button
-            onClick={onRemove}
-            className="px-4 py-2 text-red-500 bg-white border border-red-500 font-crimson font-semibold w-full mt-2"
-            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-          >
-            Remove
           </button>
         )}
     </div>
@@ -424,9 +466,9 @@ const PodStepExpanded = () => {
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="p-4">
+      <div className="p-2 md:p-4">
         <button
-          className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold text-sm"
+          className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold text-xs md:text-sm"
           style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
           onClick={() => navigate(`/project/${projectId}/pod`)}
         >
@@ -438,7 +480,7 @@ const PodStepExpanded = () => {
         <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
         
         {/* Main content */}
-        <div className="flex-1 h-full border-t border-b border-black transition-all duration-300 p-4 overflow-auto">
+        <div className="flex-1 h-full border-t border-b border-black transition-all duration-300 p-2 md:p-4 overflow-auto">
           {/* P.O.D Header */}
           <div className="mb-6 flex justify-between items-start">
             <div>
@@ -471,7 +513,7 @@ const PodStepExpanded = () => {
           </div>
 
                      {/* Final Design Grid */}
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full" style={{ minHeight: '600px' }}>
+           <div className="grid grid-cols-4 gap-4 h-full" style={{ minHeight: '600px' }}>
              {finalImages.map((imageUrl, index) => (
                <div key={index} className="border border-black p-4 h-full">
                  <PodImageSection
@@ -485,6 +527,7 @@ const PodStepExpanded = () => {
                      setFinalComments(newComments);
                    }}
                    comment={finalComments[index] || ''}
+                   showSeeMore={false}
                    fileInputId={`file-input-final-design-${index}`}
                    onRemove={() => {
                      const newImages = finalImages.filter((_, i) => i !== index);
