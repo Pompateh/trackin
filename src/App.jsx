@@ -28,8 +28,11 @@ function App() {
     <>
       <Toaster position="top-center" reverseOrder={false} />
       <Routes>
+        {/* Login route - no header */}
+        <Route path="/login" element={<Login />} />
+        
+        {/* All other routes with header */}
         <Route element={<Layout />}>
-          <Route path="/login" element={<Login />} />
           <Route 
             path="/"
             element={

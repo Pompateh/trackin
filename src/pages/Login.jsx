@@ -81,104 +81,159 @@ const Login = () => {
     }
   };
 
-  return (
-    <div className="hero min-h-fit bg-base-200">
-      <div className="hero-content flex-col lg:flex-row-reverse">
-        <div className="text-center lg:text-left">
-          <h1 className="text-5xl font-bold">{isSignUp ? 'Sign Up' : 'Login'} now!</h1>
-          <p className="py-6">
-            Access your collaborative projects. Manage tasks, use the canvas, and stay in sync with your team.
-          </p>
-        </div>
-        <div className="card shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
-          <form className="card-body" onSubmit={handleSubmit} aria-label={isSignUp ? 'Sign Up Form' : 'Login Form'}>
-            {errorMsg && (
-              <div className="alert alert-error mb-2" role="alert">
-                <span>{errorMsg}</span>
-              </div>
-            )}
-            <div className="form-control">
-              <label className="label" htmlFor="email-input">
-                <span className="label-text">Email</span>
+    return (
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="w-full max-w-sm border border-black bg-white">
+                <form onSubmit={handleSubmit} aria-label={isSignUp ? 'Sign Up Form' : 'Login Form'}>
+          <div className="p-2">
+                      {/* Logo and Title */}
+            <div className="text-left relative mb-16">
+              <img src="/src/assets/Vector.png" alt="Logo" className="h-26 w-auto" />
+                            <p className="text-black uppercase tracking-wide absolute left-0" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 200, fontSize: '35px', top: '72px' }}>TRACKING APP</p>
+            </div>
+           
+           {errorMsg && (
+             <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 text-sm" role="alert">
+               {errorMsg}
+             </div>
+           )}
+           
+                      <div className="mb-4">
+              <label className="block text-black" htmlFor="email-input" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 600, fontSize: '18px' }}>
+                Gmail
               </label>
-              <input
+                           <input
                 id="email-input"
                 type="email"
-                placeholder="email"
-                className="input input-bordered"
+                placeholder=""
+                className="w-full px-3 py-2 border border-black text-black text-lg"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 aria-required="true"
                 aria-invalid={!!errorMsg && !validateEmail(email)}
               />
-            </div>
-            <div className="form-control">
-              <label className="label" htmlFor="password-input">
-                <span className="label-text">Password</span>
+           </div>
+           
+                      <div className="mb-4">
+              <label className="block text-black" htmlFor="password-input" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 600, fontSize: '18px' }}>
+                Password
               </label>
-              <input
-                id="password-input"
-                type="password"
-                placeholder="password"
-                className="input input-bordered"
-                required
-                value={password}
-                onChange={handlePasswordChange}
-                aria-required="true"
-                aria-describedby="password-strength"
-              />
-              {isSignUp && (
-                <div id="password-strength" className={`text-xs mt-1 ${passwordStrength === 'Good' ? 'text-green-600' : 'text-red-600'}`}>{password && `Password: ${passwordStrength}`}</div>
-              )}
-            </div>
+                         <input
+               id="password-input"
+               type="password"
+               placeholder=""
+               className="w-full px-3 py-2 border border-black text-black text-lg"
+               required
+               value={password}
+               onChange={handlePasswordChange}
+               aria-required="true"
+               aria-describedby="password-strength"
+             />
             {isSignUp && (
-              <div className="form-control">
-                <label className="label" htmlFor="confirm-password-input">
-                  <span className="label-text">Confirm Password</span>
-                </label>
-                <input
-                  id="confirm-password-input"
-                  type="password"
-                  placeholder="confirm password"
-                  className="input input-bordered"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  aria-required="true"
-                />
+              <div id="password-strength" className={`text-xs mt-1 ${passwordStrength === 'Good' ? 'text-green-600' : 'text-red-600'}`}>
+                {password && `Password: ${passwordStrength}`}
               </div>
             )}
-            <div className="form-control mt-6">
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting} aria-busy={isSubmitting}>
-                {isSubmitting ? <span className="loading loading-spinner"></span> : isSignUp ? 'Sign Up' : 'Login'}
-              </button>
+          </div>
+          
+                     {isSignUp && (
+             <div className="mb-4">
+               <label className="block text-black mb-2" htmlFor="confirm-password-input" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 600, fontSize: '18px' }}>
+                 Confirm Password
+               </label>
+                             <input
+                 id="confirm-password-input"
+                 type="password"
+                 placeholder=""
+                 className="w-full px-3 py-2 border border-black text-black text-lg"
+                 required
+                 value={confirmPassword}
+                 onChange={(e) => setConfirmPassword(e.target.value)}
+                 aria-required="true"
+               />
             </div>
-            {showResend && (
-              <div className="text-center mt-2">
-                <button type="button" className="btn btn-link" onClick={handleResend} disabled={isSubmitting}>
-                  Resend confirmation email
+          )}
+          </div>
+          
+                          {/* Buttons outside padding but still inside form */}
+          <div className={`border-t border-black ${isSignUp ? 'border-b border-black' : ''}`}>
+            {!isSignUp ? (
+              // Login mode: Show both buttons side by side
+              <div className="flex">
+                <button 
+                  type="button" 
+                  className="flex-1 py-3 bg-white text-black border-r border-black hover:bg-gray-50"
+                  style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 600, fontSize: '18px' }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsSignUp(true);
+                    setErrorMsg('');
+                    setConfirmPassword('');
+                    setPasswordStrength('');
+                  }}
+                >
+                  Sign Up
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 bg-white text-black hover:bg-gray-50"
+                  style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 600, fontSize: '18px' }}
+                  disabled={isSubmitting}
+                  aria-busy={isSubmitting}
+                >
+                  {isSubmitting ? <span className="loading loading-spinner"></span> : 'Login'}
+                </button>
+              </div>
+            ) : (
+              // Signup mode: Show only Sign Up button taking full width
+              <div className="w-full">
+                <button 
+                  type="submit" 
+                  className="w-full py-3 bg-white text-black hover:bg-gray-50"
+                  style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 600, fontSize: '18px' }}
+                  disabled={isSubmitting}
+                  aria-busy={isSubmitting}
+                >
+                  {isSubmitting ? <span className="loading loading-spinner"></span> : 'Sign Up'}
                 </button>
               </div>
             )}
-            <div className="text-center mt-4">
-              <a
-                href="#"
-                className="link"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsSignUp(!isSignUp);
-                  setErrorMsg('');
-                  setConfirmPassword('');
-                  setPasswordStrength('');
-                }}
-                aria-label={isSignUp ? 'Switch to Login' : 'Switch to Sign Up'}
-              >
-                {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
-              </a>
-            </div>
-          </form>
-        </div>
+          </div>
+         </form>
+        
+        {showResend && (
+          <div className="text-center mt-4 p-4">
+            <button 
+              type="button" 
+              className="text-blue-600 hover:text-blue-800 underline text-sm" 
+              onClick={handleResend} 
+              disabled={isSubmitting}
+            >
+              Resend confirmation email
+            </button>
+          </div>
+        )}
+        
+                 {/* Back button when in sign up mode */}
+         {isSignUp && (
+           <div className="text-center py-3">
+             <button
+               type="button"
+               className="text-black-600 "
+               style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 600, fontSize: '18px' }}
+               onClick={(e) => {
+                 e.preventDefault();
+                 setIsSignUp(false);
+                 setErrorMsg('');
+                 setConfirmPassword('');
+                 setPasswordStrength('');
+               }}
+             >
+               ← Back to Login
+             </button>
+           </div>
+         )}
       </div>
     </div>
   );

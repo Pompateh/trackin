@@ -268,6 +268,8 @@ const PodStepTemplate = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [driveLink, setDriveLink] = useState('');
+  const [showDriveLinkModal, setShowDriveLinkModal] = useState(false);
 
   const handleImageUpload = async (section, input) => {
     setIsUploading(true);
@@ -632,9 +634,48 @@ const PodStepTemplate = () => {
     }
   };
 
+  const handleDriveLinkUpdate = async () => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ drive_link: driveLink })
+        .eq('id', projectId);
+      
+      if (error) {
+        console.error('Error updating drive link:', error);
+        alert('Failed to update drive link: ' + error.message);
+      } else {
+        setShowDriveLinkModal(false);
+        alert('Drive link updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating drive link:', error);
+      alert('Failed to update drive link: ' + error.message);
+    }
+  };
+
+  const loadDriveLink = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('drive_link')
+        .eq('id', projectId)
+        .single();
+      
+      if (error) {
+        console.error('Error loading drive link:', error);
+      } else if (data) {
+        setDriveLink(data.drive_link || '');
+      }
+    } catch (error) {
+      console.error('Error loading drive link:', error);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     loadPodData();
+    loadDriveLink();
   }, [projectId]);
 
   // Auto-save when data changes
@@ -684,8 +725,31 @@ const PodStepTemplate = () => {
               <p className="text-sm md:text-lg text-gray-600 mt-1">
                 {new Date().toLocaleDateString('en-GB')}
               </p>
+              {driveLink && (
+                <div className="mt-2">
+                  <a 
+                    href={driveLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-block"
+                  >
+                    <img 
+                      src="/src/assets/Group 99.png" 
+                      alt="View Project Files" 
+                      className="h-8 w-auto hover:opacity-80 transition-opacity"
+                    />
+                  </a>
+                </div>
+              )}
             </div>
             <div className="flex space-x-2">
+              <button
+                onClick={() => setShowDriveLinkModal(true)}
+                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              >
+                Upload Drive Link
+              </button>
               <button
                 onClick={handleDeleteProject}
                 className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
@@ -710,37 +774,40 @@ const PodStepTemplate = () => {
               </div>
               <div className="space-y-2">
                 {scaleList.map((item, index) => (
-                  <div key={index} className="flex items-center space-x-1 md:space-x-2">
+                  <div key={index} className="flex items-start space-x-1 md:space-x-2 min-h-[24px]">
                     {editingScaleIndex === index ? (
                       <>
-                        <input
-                          type="text"
+                        <textarea
                           value={editingScaleValue}
                           onChange={(e) => setEditingScaleValue(e.target.value)}
-                          className="flex-1 px-2 py-1 border border-black text-black bg-white font-mono text-sm md:text-lg"
-                          style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                          onKeyPress={(e) => e.key === 'Enter' && handleScaleSave(index)}
+                          className="flex-1 px-2 py-1 border border-black text-black bg-white font-mono text-sm md:text-lg resize-none"
+                          style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0', minHeight: '60px', wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}
+                          onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleScaleSave(index)}
                           autoFocus
+                          rows={2}
                         />
-                        <button
-                          onClick={() => handleScaleSave(index)}
-                          className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
-                          style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          onClick={handleScaleCancel}
-                          className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
-                          style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                        >
-                          ✕
-                        </button>
+                        <div className="flex flex-col space-y-1">
+                          <button
+                            onClick={() => handleScaleSave(index)}
+                            className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
+                            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={handleScaleCancel}
+                            className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
+                            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </>
                     ) : (
                       <>
                         <div 
-                          className="text-sm md:text-lg font-mono flex-1 cursor-pointer truncate" 
+                          className="text-sm md:text-lg font-mono flex-1 cursor-pointer break-words" 
+                          style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', minHeight: '24px' }}
                           onDoubleClick={() => handleScaleEdit(index)}
                           title="Double-click to edit"
                         >
@@ -748,7 +815,7 @@ const PodStepTemplate = () => {
                         </div>
                         <button
                           onClick={() => handleScaleDelete(index)}
-                          className="text-black text-2xl font-light"
+                          className="text-black text-2xl font-light mt-1"
                           style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
                         >
                           ×
@@ -875,37 +942,40 @@ const PodStepTemplate = () => {
                   </div>
                   <div className="space-y-2">
                     {row.scaleList.map((item, index) => (
-                      <div key={index} className="flex items-center space-x-1 md:space-x-2">
+                      <div key={index} className="flex items-start space-x-1 md:space-x-2 min-h-[24px]">
                         {editingScaleIndex === `${rowIndex}-${index}` ? (
                           <>
-                            <input
-                              type="text"
+                            <textarea
                               value={editingScaleValue}
                               onChange={(e) => setEditingScaleValue(e.target.value)}
-                              className="flex-1 px-2 py-1 border border-black text-black bg-white font-mono text-sm md:text-lg"
-                              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                              onKeyPress={(e) => e.key === 'Enter' && handleScaleSave(`${rowIndex}-${index}`)}
+                              className="flex-1 px-2 py-1 border border-black text-black bg-white font-mono text-sm md:text-lg resize-none"
+                              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0', minHeight: '60px', wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}
+                              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleScaleSave(`${rowIndex}-${index}`)}
                               autoFocus
+                              rows={2}
                             />
-                            <button
-                              onClick={() => handleScaleSave(`${rowIndex}-${index}`)}
-                              className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
-                              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                            >
-                              ✓
-                            </button>
-                            <button
-                              onClick={handleScaleCancel}
-                              className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
-                              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                            >
-                              ✕
-                            </button>
+                            <div className="flex flex-col space-y-1">
+                              <button
+                                onClick={() => handleScaleSave(`${rowIndex}-${index}`)}
+                                className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
+                                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                              >
+                                ✓
+                              </button>
+                              <button
+                                onClick={handleScaleCancel}
+                                className="px-1 py-1 text-black bg-white border border-black font-crimson font-semibold text-xs min-w-0 md:px-2"
+                                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </>
                         ) : (
                           <>
                             <div 
-                              className="text-sm md:text-lg font-mono flex-1 cursor-pointer truncate" 
+                              className="text-sm md:text-lg font-mono flex-1 cursor-pointer break-words" 
+                              style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', minHeight: '24px' }}
                               onDoubleClick={() => handleScaleEdit(`${rowIndex}-${index}`, item)}
                               title="Double-click to edit"
                             >
@@ -913,7 +983,7 @@ const PodStepTemplate = () => {
                             </div>
                             <button
                               onClick={() => handleScaleDelete(`${rowIndex}-${index}`)}
-                              className="text-black text-2xl font-light"
+                              className="text-black text-2xl font-light mt-1"
                               style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
                             >
                               ×
@@ -1081,6 +1151,41 @@ const PodStepTemplate = () => {
         </div>
       </div>
       
+      {/* Drive Link Modal */}
+      {showDriveLinkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white p-6 min-w-[320px] max-w-[90vw] flex flex-col gap-4 border border-black" style={{ borderRadius: '0' }}>
+            <h2 className="text-lg font-bold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>Upload Drive Link</h2>
+            <p style={{ fontFamily: 'Crimson Pro, serif' }}>Enter the Google Drive link for this project:</p>
+            <input
+              type="url"
+              className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              placeholder="https://drive.google.com/..."
+              value={driveLink}
+              onChange={e => setDriveLink(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end mt-2">
+              <button
+                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                onClick={() => setShowDriveLinkModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                onClick={handleDriveLinkUpdate}
+              >
+                Update Drive Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">

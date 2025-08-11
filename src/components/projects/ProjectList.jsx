@@ -1,7 +1,7 @@
 import React from 'react';
 import ProjectCard from './ProjectCard';
 
-const ProjectList = ({ projects }) => {
+const ProjectList = ({ projects, onProjectUpdated }) => {
   console.log('ProjectList - received projects:', projects);
   console.log('ProjectList - first project team_emails:', projects[0]?.team_emails);
   
@@ -31,7 +31,7 @@ const ProjectList = ({ projects }) => {
                 key={project.id}
                 className={`w-1/3 border border-black ${isLastInLastRow ? '' : 'mb-8'}`}
               >
-                <ProjectCard project={project} />
+                <ProjectCard project={project} onProjectUpdated={onProjectUpdated} />
               </div>
             );
           })}

@@ -10,11 +10,13 @@ const Header = () => {
 
   const handleSignOut = async () => {
     try {
+      // Always navigate to login first, then sign out
+      navigate('/login');
       await signOut();
       toast.success('Signed out successfully');
-      navigate('/login');
     } catch (error) {
-      toast.error(error.message);
+      console.warn('Sign out error (non-critical):', error);
+      // Don't show error toast since we're already navigating away
     }
   };
 
@@ -22,7 +24,7 @@ const Header = () => {
     <header className="bg-white-300 py-4 w-full">
       <div className="navbar w-full flex justify-between items-center">
         <div className="flex-1">
-          <Link to="/" className="btn btn-ghost normal-case p-0">
+          <Link to="/" className="p-0">
             <img src={logo} alt="Logo" className="h-14 w-auto" />
           </Link>
         </div>
