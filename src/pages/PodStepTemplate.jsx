@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import ProjectSidebar from '../components/projects/ProjectSidebar';
 import { HiOutlineChevronRight } from 'react-icons/hi';
 import useProjectStore from '../store/useProjectStore';
+import group99Icon from '../assets/Group 99.png';
 
 // P.O.D specific content components
 const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommentChange, comment, showSeeMore = false, fileInputId, onSeeMoreClick, onRemove, isFinalDesign = false }) => {
@@ -270,6 +271,11 @@ const PodStepTemplate = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [driveLink, setDriveLink] = useState('');
   const [showDriveLinkModal, setShowDriveLinkModal] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState({ show: false, type: '', itemId: null });
+  const [workHistory, setWorkHistory] = useState([]);
+  const [showWorkHistory, setShowWorkHistory] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const [userMap, setUserMap] = useState({});
 
   const handleImageUpload = async (section, input) => {
     setIsUploading(true);
@@ -315,18 +321,22 @@ const PodStepTemplate = () => {
       switch (section) {
         case 'reference':
           setReferenceImage(imageUrl);
+          logWorkHistory('image_upload', `Uploaded reference image`, 'reference_image', section, null, imageUrl);
           break;
         case 'design':
           setDesignImage(imageUrl);
+          logWorkHistory('image_upload', `Uploaded design image`, 'design_image', section, null, imageUrl);
           break;
         case 'final-0':
           if (finalImages.length === 0) {
             setFinalImages([imageUrl]);
             setFinalComments(['']);
+            logWorkHistory('image_upload', `Uploaded final design image`, 'final_image', section, null, imageUrl);
           } else {
             const newImages = [...finalImages];
             newImages[0] = imageUrl;
             setFinalImages(newImages);
+            logWorkHistory('image_upload', `Updated final design image`, 'final_image', section, finalImages[0], imageUrl);
           }
           break;
         default:
@@ -340,12 +350,15 @@ const PodStepTemplate = () => {
               switch (imageType) {
                 case 'reference':
                   newRows[rowIndex].referenceImage = imageUrl;
+                  logWorkHistory('image_upload', `Uploaded reference image for row ${rowIndex + 1}`, 'reference_image', section, null, imageUrl);
                   break;
                 case 'design':
                   newRows[rowIndex].designImage = imageUrl;
+                  logWorkHistory('image_upload', `Uploaded design image for row ${rowIndex + 1}`, 'design_image', section, null, imageUrl);
                   break;
                 case 'final':
                   newRows[rowIndex].finalImage = imageUrl;
+                  logWorkHistory('image_upload', `Uploaded final design image for row ${rowIndex + 1}`, 'final_image', section, null, imageUrl);
                   break;
               }
               setAdditionalDesignRows(newRows);
@@ -514,18 +527,22 @@ const PodStepTemplate = () => {
         return;
       }
       
+      const oldValue = additionalDesignRows[rowIndex]?.scaleList?.[scaleIndex] || '';
       const newRows = [...additionalDesignRows];
       newRows[rowIndex] = { ...newRows[rowIndex] }; // Create a new object reference
       newRows[rowIndex].scaleList = [...(newRows[rowIndex].scaleList || [])]; // Create a new array reference
       newRows[rowIndex].scaleList[scaleIndex] = editingScaleValue;
       setAdditionalDesignRows(newRows);
       console.log('Additional row scale saved:', { rowIndex, scaleIndex, value: editingScaleValue, newRows });
+      logWorkHistory('scale_update', `Updated scale for row ${rowIndex + 1}`, 'scale', `row-${rowIndex}-${scaleIndex}`, oldValue, editingScaleValue);
     } else {
       // Main scale list
+      const oldValue = scaleList[index] || '';
       const newScaleList = [...scaleList];
       newScaleList[index] = editingScaleValue;
       setScaleList(newScaleList);
       console.log('Main scale saved:', { index, value: editingScaleValue, newScaleList });
+      logWorkHistory('scale_update', `Updated main scale`, 'scale', `main-${index}`, oldValue, editingScaleValue);
     }
     setEditingScaleIndex(null);
     setEditingScaleValue('');
@@ -563,6 +580,7 @@ const PodStepTemplate = () => {
       setEditingScaleIndex(`${rowIndex}-${newRows[rowIndex].scaleList.length - 1}`);
       setEditingScaleValue(newScaleItem);
       console.log('Additional row scale added:', { rowIndex, newScaleItem, newRows });
+      logWorkHistory('scale_add', `Added scale for row ${rowIndex + 1}`, 'scale', `row-${rowIndex}`, null, newScaleItem);
     } else {
       // Main scale list
       const existingNumbers = scaleList
@@ -579,6 +597,7 @@ const PodStepTemplate = () => {
       setEditingScaleIndex(scaleList.length);
       setEditingScaleValue(newScaleItem);
       console.log('Main scale added:', { newScaleItem });
+      logWorkHistory('scale_add', `Added main scale`, 'scale', 'main', null, newScaleItem);
     }
   };
 
@@ -592,16 +611,20 @@ const PodStepTemplate = () => {
         return;
       }
       
+      const deletedValue = additionalDesignRows[rowIndex]?.scaleList?.[scaleIndex] || '';
       const newRows = [...additionalDesignRows];
       newRows[rowIndex] = { ...newRows[rowIndex] }; // Create a new object reference
       newRows[rowIndex].scaleList = (newRows[rowIndex].scaleList || []).filter((_, i) => i !== scaleIndex);
       setAdditionalDesignRows(newRows);
       console.log('Additional row scale deleted:', { rowIndex, scaleIndex, newRows });
+      logWorkHistory('scale_delete', `Deleted scale for row ${rowIndex + 1}`, 'scale', `row-${rowIndex}-${scaleIndex}`, deletedValue, null);
     } else {
       // Main scale list
+      const deletedValue = scaleList[index] || '';
       const newScaleList = scaleList.filter((_, i) => i !== index);
       setScaleList(newScaleList);
       console.log('Main scale deleted:', { index, newScaleList });
+      logWorkHistory('scale_delete', `Deleted main scale`, 'scale', `main-${index}`, deletedValue, null);
     }
     console.log('Scale deleted, triggering auto-save...');
   };
@@ -647,11 +670,28 @@ const PodStepTemplate = () => {
       } else {
         setShowDriveLinkModal(false);
         alert('Drive link updated successfully!');
+        logWorkHistory('drive_link_update', `Updated drive link`, 'drive_link', 'project', null, driveLink);
       }
     } catch (error) {
       console.error('Error updating drive link:', error);
       alert('Failed to update drive link: ' + error.message);
     }
+  };
+
+  const handleRemoveConfirm = () => {
+    const { type, itemId } = showRemoveConfirm;
+    
+    if (type === 'design_row') {
+      const rowIndex = itemId;
+      const removedRow = additionalDesignRows[rowIndex];
+      const newRows = additionalDesignRows.filter((_, i) => i !== rowIndex);
+      setAdditionalDesignRows(newRows);
+      
+      // Log the removal
+      logWorkHistory('design_row_remove', `Removed design row ${rowIndex + 1}`, 'design_row', `row-${rowIndex}`, 'Design row with content', null);
+    }
+    
+    setShowRemoveConfirm({ show: false, type: '', itemId: null });
   };
 
   const loadDriveLink = async () => {
@@ -672,10 +712,131 @@ const PodStepTemplate = () => {
     }
   };
 
+  const loadWorkHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('work_history')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) {
+        console.error('Error loading work history:', error);
+      } else if (data) {
+        setWorkHistory(data || []);
+        
+        // Extract user IDs and load user information
+        if (data && data.length > 0) {
+          const userIds = data.map(entry => entry.user_id).filter(id => id);
+          await loadUserInfo(userIds);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading work history:', error);
+    }
+  };
+
+  const loadCurrentUserEmail = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserEmail(user.email || '');
+      }
+    } catch (error) {
+      console.error('Error loading current user email:', error);
+    }
+  };
+
+  const loadUserInfo = async (userIds) => {
+    try {
+      if (userIds.length === 0) return;
+      
+      // Get unique user IDs
+      const uniqueUserIds = [...new Set(userIds)];
+      
+      // Try to fetch user profiles from auth.users using a custom function
+      const { data, error } = await supabase.rpc('get_user_profiles', {
+        user_ids: uniqueUserIds
+      });
+      
+      if (error) {
+        console.error('Error loading user profiles via RPC:', error);
+        
+        // Fallback: try to get current user info and create a simple mapping
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const userInfoMap = {};
+            userInfoMap[user.id] = {
+              email: user.email,
+              name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'You'
+            };
+            
+            // For other users, show a friendly message
+            uniqueUserIds.forEach(id => {
+              if (id !== user.id) {
+                userInfoMap[id] = {
+                  email: 'user@example.com',
+                  name: 'Team Member'
+                };
+              }
+            });
+            
+            setUserMap(userInfoMap);
+            return;
+          }
+        } catch (fallbackError) {
+          console.error('Fallback user info loading failed:', fallbackError);
+        }
+        
+        return;
+      }
+      
+      // Create a map of user_id to user info
+      const userInfoMap = {};
+      if (data) {
+        data.forEach(user => {
+          userInfoMap[user.id] = {
+            email: user.email,
+            name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Unknown User'
+          };
+        });
+      }
+      
+      setUserMap(userInfoMap);
+    } catch (error) {
+      console.error('Error loading user info:', error);
+    }
+  };
+
+  const logWorkHistory = async (actionType, actionDescription, entityType = null, entityId = null, oldValue = null, newValue = null, metadata = null) => {
+    try {
+      const { error } = await supabase.rpc('log_work_history', {
+        p_project_id: projectId,
+        p_action_type: actionType,
+        p_action_description: actionDescription,
+        p_entity_type: entityType,
+        p_entity_id: entityId,
+        p_old_value: oldValue,
+        p_new_value: newValue,
+        p_metadata: metadata
+      });
+      
+      if (error) {
+        console.error('Error logging work history:', error);
+      }
+    } catch (error) {
+      console.error('Error logging work history:', error);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     loadPodData();
     loadDriveLink();
+    loadWorkHistory();
+    loadCurrentUserEmail();
   }, [projectId]);
 
   // Auto-save when data changes
@@ -734,9 +895,9 @@ const PodStepTemplate = () => {
                     className="inline-block"
                   >
                     <img 
-                      src="/src/assets/Group 99.png" 
+                      src={group99Icon} 
                       alt="View Project Files" 
-                      className="h-8 w-auto hover:opacity-80 transition-opacity"
+                      className="h-10 w-auto"
                     />
                   </a>
                 </div>
@@ -749,6 +910,13 @@ const PodStepTemplate = () => {
                 style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
               >
                 Upload Drive Link
+              </button>
+              <button
+                onClick={() => setShowWorkHistory(true)}
+                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              >
+                Work History
               </button>
               <button
                 onClick={handleDeleteProject}
@@ -841,13 +1009,25 @@ const PodStepTemplate = () => {
                 onImageUpload={(url) => handleImageUpload('reference', url)}
                 isUploading={isUploading && uploadingSection === 'reference'}
                 imageUrl={referenceImage}
-                onCommentChange={setReferenceComment}
+                onCommentChange={(comment) => {
+                  const oldComment = referenceComment;
+                  setReferenceComment(comment);
+                  if (oldComment !== comment) {
+                    logWorkHistory('comment_update', `Updated reference comment`, 'comment', 'reference', oldComment, comment);
+                  }
+                }}
                 comment={referenceComment}
                 fileInputId="file-input-paste-image-link-ref"
                 onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded`)}
                 onRemove={() => {
+                  const oldImage = referenceImage;
+                  const oldComment = referenceComment;
                   setReferenceImage(null);
                   setReferenceComment('');
+                  logWorkHistory('image_remove', `Removed reference image`, 'reference_image', 'reference', oldImage, null);
+                  if (oldComment) {
+                    logWorkHistory('comment_remove', `Removed reference comment`, 'comment', 'reference', oldComment, null);
+                  }
                 }}
               />
               <input 
@@ -866,13 +1046,25 @@ const PodStepTemplate = () => {
                 onImageUpload={(url) => handleImageUpload('design', url)}
                 isUploading={isUploading && uploadingSection === 'design'}
                 imageUrl={designImage}
-                onCommentChange={setDesignComment}
+                onCommentChange={(comment) => {
+                  const oldComment = designComment;
+                  setDesignComment(comment);
+                  if (oldComment !== comment) {
+                    logWorkHistory('comment_update', `Updated design comment`, 'comment', 'design', oldComment, comment);
+                  }
+                }}
                 comment={designComment}
                 fileInputId="file-input-design-upload"
                 onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded`)}
                 onRemove={() => {
+                  const oldImage = designImage;
+                  const oldComment = designComment;
                   setDesignImage(null);
                   setDesignComment('');
+                  logWorkHistory('image_remove', `Removed design image`, 'design_image', 'design', oldImage, null);
+                  if (oldComment) {
+                    logWorkHistory('comment_remove', `Removed design comment`, 'comment', 'design', oldComment, null);
+                  }
                 }}
               />
               <input 
@@ -892,19 +1084,31 @@ const PodStepTemplate = () => {
                 isUploading={isUploading && uploadingSection === 'final-0'}
                 imageUrl={finalImages[0] || null}
                 onCommentChange={(comment) => {
+                  const oldComment = finalComments[0] || '';
                   const newComments = [...finalComments];
                   newComments[0] = comment;
                   setFinalComments(newComments);
+                  if (oldComment !== comment) {
+                    logWorkHistory('comment_update', `Updated final design comment`, 'comment', 'final-0', oldComment, comment);
+                  }
                 }}
                 comment={finalComments[0] || ''}
                 showSeeMore={true}
                 fileInputId="file-input-final-design-0"
                 onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded`)}
                 onRemove={() => {
+                  const oldImage = finalImages[0];
+                  const oldComment = finalComments[0];
                   const newImages = finalImages.filter((_, i) => i !== 0);
                   const newComments = finalComments.filter((_, i) => i !== 0);
                   setFinalImages(newImages);
                   setFinalComments(newComments);
+                  if (oldImage) {
+                    logWorkHistory('image_remove', `Removed final design image`, 'final_image', 'final-0', oldImage, null);
+                  }
+                  if (oldComment) {
+                    logWorkHistory('comment_remove', `Removed final design comment`, 'comment', 'final-0', oldComment, null);
+                  }
                 }}
                 isFinalDesign={true}
               />
@@ -1010,18 +1214,30 @@ const PodStepTemplate = () => {
                     isUploading={isUploading && uploadingSection === `row-${rowIndex}-reference`}
                     imageUrl={row.referenceImage}
                     onCommentChange={(comment) => {
+                      const oldComment = additionalDesignRows[rowIndex]?.referenceComment || '';
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].referenceComment = comment;
                       setAdditionalDesignRows(newRows);
+                      if (oldComment !== comment) {
+                        logWorkHistory('comment_update', `Updated reference comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-reference`, oldComment, comment);
+                      }
                     }}
                     comment={row.referenceComment || ''}
                     fileInputId={`file-input-row-${rowIndex}-reference`}
                     onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
                     onRemove={() => {
+                      const oldImage = additionalDesignRows[rowIndex]?.referenceImage;
+                      const oldComment = additionalDesignRows[rowIndex]?.referenceComment;
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].referenceImage = null;
                       newRows[rowIndex].referenceComment = '';
                       setAdditionalDesignRows(newRows);
+                      if (oldImage) {
+                        logWorkHistory('image_remove', `Removed reference image for row ${rowIndex + 1}`, 'reference_image', `row-${rowIndex}-reference`, oldImage, null);
+                      }
+                      if (oldComment) {
+                        logWorkHistory('comment_remove', `Removed reference comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-reference`, oldComment, null);
+                      }
                     }}
                   />
                   <input 
@@ -1041,18 +1257,30 @@ const PodStepTemplate = () => {
                     isUploading={isUploading && uploadingSection === `row-${rowIndex}-design`}
                     imageUrl={row.designImage}
                     onCommentChange={(comment) => {
+                      const oldComment = additionalDesignRows[rowIndex]?.designComment || '';
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].designComment = comment;
                       setAdditionalDesignRows(newRows);
+                      if (oldComment !== comment) {
+                        logWorkHistory('comment_update', `Updated design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-design`, oldComment, comment);
+                      }
                     }}
                     comment={row.designComment || ''}
                     fileInputId={`file-input-row-${rowIndex}-design`}
                     onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
                     onRemove={() => {
+                      const oldImage = additionalDesignRows[rowIndex]?.designImage;
+                      const oldComment = additionalDesignRows[rowIndex]?.designComment;
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].designImage = null;
                       newRows[rowIndex].designComment = '';
                       setAdditionalDesignRows(newRows);
+                      if (oldImage) {
+                        logWorkHistory('image_remove', `Removed design image for row ${rowIndex + 1}`, 'design_image', `row-${rowIndex}-design`, oldImage, null);
+                      }
+                      if (oldComment) {
+                        logWorkHistory('comment_remove', `Removed design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-design`, oldComment, null);
+                      }
                     }}
                   />
                   <input 
@@ -1072,19 +1300,31 @@ const PodStepTemplate = () => {
                     isUploading={isUploading && uploadingSection === `row-${rowIndex}-final`}
                     imageUrl={row.finalImage}
                     onCommentChange={(comment) => {
+                      const oldComment = additionalDesignRows[rowIndex]?.finalComment || '';
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].finalComment = comment;
                       setAdditionalDesignRows(newRows);
+                      if (oldComment !== comment) {
+                        logWorkHistory('comment_update', `Updated final design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-final`, oldComment, comment);
+                      }
                     }}
                     comment={row.finalComment || ''}
                     showSeeMore={true}
                     fileInputId={`file-input-row-${rowIndex}-final`}
                                           onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
                       onRemove={() => {
+                        const oldImage = additionalDesignRows[rowIndex]?.finalImage;
+                        const oldComment = additionalDesignRows[rowIndex]?.finalComment;
                         const newRows = [...additionalDesignRows];
                         newRows[rowIndex].finalImage = null;
                         newRows[rowIndex].finalComment = '';
                         setAdditionalDesignRows(newRows);
+                        if (oldImage) {
+                          logWorkHistory('image_remove', `Removed final design image for row ${rowIndex + 1}`, 'final_image', `row-${rowIndex}-final`, oldImage, null);
+                        }
+                        if (oldComment) {
+                          logWorkHistory('comment_remove', `Removed final design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-final`, oldComment, null);
+                        }
                       }}
                     isFinalDesign={true}
                   />
@@ -1107,8 +1347,11 @@ const PodStepTemplate = () => {
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={() => {
-                    const newRows = additionalDesignRows.filter((_, i) => i !== rowIndex);
-                    setAdditionalDesignRows(newRows);
+                    setShowRemoveConfirm({ 
+                      show: true, 
+                      type: 'design_row', 
+                      itemId: rowIndex 
+                    });
                   }}
                   className="px-4 py-2 text-red-500 bg-white border border-red-500 font-crimson font-semibold"
                   style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
@@ -1133,6 +1376,7 @@ const PodStepTemplate = () => {
                   finalComment: ''
                 };
                 setAdditionalDesignRows([...additionalDesignRows, newRow]);
+                logWorkHistory('design_row_add', `Added design row ${additionalDesignRows.length + 1}`, 'design_row', `row-${additionalDesignRows.length}`, null, 'New design row created');
               }}
               className="w-full px-8 py-4 bg-white border border-black font-crimson font-semibold text-lg"
               style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0', color: '#646464' }}
@@ -1180,6 +1424,110 @@ const PodStepTemplate = () => {
                 onClick={handleDriveLinkUpdate}
               >
                 Update Drive Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Confirmation Modal */}
+      {showRemoveConfirm.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white p-6 min-w-[320px] max-w-[90vw] flex flex-col gap-4 border border-black" style={{ borderRadius: '0' }}>
+            <h2 className="text-lg font-bold mb-2 text-red-600" style={{ fontFamily: 'Crimson Pro, serif' }}>Confirm Removal</h2>
+            <p style={{ fontFamily: 'Crimson Pro, serif' }}>
+              {showRemoveConfirm.type === 'design_row' 
+                ? `Are you sure you want to remove Design Row ${showRemoveConfirm.itemId + 1}? This action cannot be undone.`
+                : 'Are you sure you want to remove this item? This action cannot be undone.'
+              }
+            </p>
+            <div className="flex gap-2 justify-end mt-2">
+              <button
+                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                onClick={() => setShowRemoveConfirm({ show: false, type: '', itemId: null })}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 text-red-500 bg-white border border-red-500 font-crimson font-semibold"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                onClick={handleRemoveConfirm}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Work History Modal */}
+      {showWorkHistory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white p-6 min-w-[600px] max-w-[90vw] max-h-[80vh] flex flex-col gap-4 border border-black overflow-hidden" style={{ borderRadius: '0' }}>
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold" style={{ fontFamily: 'Crimson Pro, serif' }}>Work History</h2>
+              <button
+                onClick={() => setShowWorkHistory(false)}
+                className="text-2xl font-light hover:text-gray-600"
+                style={{ fontFamily: 'Crimson Pro, serif' }}
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-xs text-gray-500" style={{ fontFamily: 'Crimson Pro, serif' }}>
+              Shows all actions performed on this project. Users are identified by their names or email addresses.
+            </p>
+            <div className="flex-1 overflow-y-auto">
+              {workHistory.length === 0 ? (
+                <p className="text-gray-500 text-center py-8" style={{ fontFamily: 'Crimson Pro, serif' }}>
+                  No work history available yet.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {workHistory.map((entry) => (
+                    <div key={entry.id} className="border border-gray-200 p-3 bg-gray-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-semibold text-sm" style={{ fontFamily: 'Crimson Pro, serif' }}>
+                          {entry.action_description}
+                        </span>
+                        <span className="text-xs text-gray-500" style={{ fontFamily: 'Crimson Pro, serif' }}>
+                          {new Date(entry.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-600" style={{ fontFamily: 'Crimson Pro, serif' }}>
+                        <span className="font-medium">Action:</span> {entry.action_type}
+                        {entry.entity_type && (
+                          <>
+                            <span className="mx-2">•</span>
+                            <span className="font-medium">Type:</span> {entry.entity_type}
+                          </>
+                        )}
+                        <span className="mx-2">•</span>
+                        <span className="font-medium">User:</span> {userMap[entry.user_id]?.name || userMap[entry.user_id]?.email || entry.user_id?.slice(0, 8) + '...'}
+                      </div>
+                      {entry.old_value && (
+                        <div className="text-xs text-gray-500 mt-1" style={{ fontFamily: 'Crimson Pro, serif' }}>
+                          <span className="font-medium">Previous:</span> {entry.old_value}
+                        </div>
+                      )}
+                      {entry.new_value && (
+                        <div className="text-xs text-gray-500 mt-1" style={{ fontFamily: 'Crimson Pro, serif' }}>
+                          <span className="font-medium">New:</span> {entry.new_value}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end pt-2 border-t border-gray-200">
+              <button
+                onClick={() => setShowWorkHistory(false)}
+                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              >
+                Close
               </button>
             </div>
           </div>

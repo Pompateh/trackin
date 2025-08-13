@@ -10,10 +10,29 @@ const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
     const steps = Array.from(document.querySelectorAll('.printable-step'));
     if (!steps.length) throw new Error('No printable steps found');
     
+    // Calculate the exact content dimensions needed for proper sizing
+    let maxContentHeight = 0;
+    let maxContentWidth = 0;
+    
+    steps.forEach(step => {
+      const stepWidth = step.offsetWidth;
+      const stepHeight = step.offsetHeight;
+      maxContentHeight = Math.max(maxContentHeight, stepHeight);
+      maxContentWidth = Math.max(maxContentWidth, stepWidth);
+    });
+    
+    // Convert pixels to mm (assuming 96 DPI: 1 inch = 25.4mm, 1 inch = 96px)
+    const contentWidthMm = (maxContentWidth / 96) * 25.4;
+    const contentHeightMm = (maxContentHeight / 96) * 25.4;
+    
+    // Create PDF with size that fits content exactly (add 10mm for margins)
+    const pageWidthMm = contentWidthMm + 10;
+    const pageHeightMm = contentHeightMm + 10;
+    
     const pdf = new jsPDF({ 
       orientation: 'landscape', 
       unit: 'mm', 
-      format: 'a3',
+      format: [pageWidthMm, pageHeightMm],
       compress: false // Disable compression for maximum quality
     });
     
@@ -27,13 +46,13 @@ const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
       const dataUrl = await domtoimage.toPng(step, { 
         bgcolor: '#fff', 
         style: { background: '#fff' }, 
-        width: stepWidth * 3, // Triple the resolution for ultra-high quality
-        height: stepHeight * 3, // Triple the resolution for ultra-high quality
+        width: stepWidth * 4, // Triple the resolution for ultra-high quality
+        height: stepHeight * 4, // Triple the resolution for ultra-high quality
         quality: 1.0,
         imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
         filter: (node) => !node.classList?.contains('no-print'),
         style: {
-          transform: 'scale(3)',
+          transform: 'scale(4)',
           transformOrigin: 'top left',
           width: stepWidth + 'px',
           height: stepHeight + 'px'
@@ -41,8 +60,29 @@ const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
       });
       
       if (i > 0) pdf.addPage();
-      // Scale image to fill the PDF page
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pageMmWidth, pageMmHeight, undefined, 'FAST');
+      
+      // Calculate dimensions to maintain aspect ratio and center content
+      const stepAspectRatio = stepWidth / stepHeight;
+      const pageAspectRatio = pageMmWidth / pageMmHeight;
+      
+      let finalWidth, finalHeight, offsetX, offsetY;
+      
+      if (stepAspectRatio > pageAspectRatio) {
+        // Step is wider than page - fit to width
+        finalWidth = pageMmWidth * 0.9; // 90% of page width for margins
+        finalHeight = finalWidth / stepAspectRatio;
+        offsetX = (pageMmWidth - finalWidth) / 2;
+        offsetY = (pageMmHeight - finalHeight) / 2;
+      } else {
+        // Step is taller than page - fit to height
+        finalHeight = pageMmHeight * 0.9; // 90% of page height for margins
+        finalWidth = finalHeight * stepAspectRatio;
+        offsetX = (pageMmWidth - finalWidth) / 2;
+        offsetY = (pageMmHeight - finalHeight) / 2;
+      }
+      
+      // Add image centered on page with preserved aspect ratio
+      pdf.addImage(dataUrl, 'PNG', offsetX, offsetY, finalWidth, finalHeight, undefined, 'FAST');
     }
     
     return pdf;
@@ -52,10 +92,29 @@ const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
     const steps = Array.from(document.querySelectorAll('.printable-step'));
     if (!steps.length) throw new Error('No printable steps found');
     
+    // Calculate the exact content dimensions needed for proper sizing
+    let maxContentHeight = 0;
+    let maxContentWidth = 0;
+    
+    steps.forEach(step => {
+      const stepWidth = step.offsetWidth;
+      const stepHeight = step.offsetHeight;
+      maxContentHeight = Math.max(maxContentHeight, stepHeight);
+      maxContentWidth = Math.max(maxContentWidth, stepWidth);
+    });
+    
+    // Convert pixels to mm (assuming 96 DPI: 1 inch = 25.4mm, 1 inch = 96px)
+    const contentWidthMm = (maxContentWidth / 96) * 25.4;
+    const contentHeightMm = (maxContentHeight / 96) * 25.4;
+    
+    // Create PDF with size that fits content exactly (add 10mm for margins)
+    const pageWidthMm = contentWidthMm + 10;
+    const pageHeightMm = contentHeightMm + 10;
+    
     const pdf = new jsPDF({ 
       orientation: 'landscape', 
       unit: 'mm', 
-      format: 'a3',
+      format: [pageWidthMm, pageHeightMm],
       compress: false // Disable compression for maximum quality
     });
     
@@ -92,8 +151,29 @@ const DownloadPDFButton = ({ printableRef, className = '', style = {} }) => {
       const imgData = canvas.toDataURL('image/png', 1.0);
       
       if (i > 0) pdf.addPage();
-      // Scale image to fill the PDF page
-      pdf.addImage(imgData, 'PNG', 0, 0, pageMmWidth, pageMmHeight, undefined, 'FAST');
+      
+      // Calculate dimensions to maintain aspect ratio and center content
+      const stepAspectRatio = stepWidth / stepHeight;
+      const pageAspectRatio = pageMmWidth / pageMmHeight;
+      
+      let finalWidth, finalHeight, offsetX, offsetY;
+      
+      if (stepAspectRatio > pageAspectRatio) {
+        // Step is wider than page - fit to width
+        finalWidth = pageMmWidth * 0.9; // 90% of page width for margins
+        finalHeight = finalWidth / stepAspectRatio;
+        offsetX = (pageMmWidth - finalWidth) / 2;
+        offsetY = (pageMmHeight - finalHeight) / 2;
+      } else {
+        // Step is taller than page - fit to height
+        finalHeight = pageMmHeight * 0.9; // 90% of page height for margins
+        finalWidth = finalHeight * stepAspectRatio;
+        offsetX = (pageMmWidth - finalWidth) / 2;
+        offsetY = (pageMmHeight - finalHeight) / 2;
+      }
+      
+      // Add image centered on page with preserved aspect ratio
+      pdf.addImage(imgData, 'PNG', offsetX, offsetY, finalWidth, finalHeight, undefined, 'FAST');
     }
     
     return pdf;

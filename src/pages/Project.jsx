@@ -252,7 +252,9 @@ const Project = () => {
         position: 'absolute',
         left: '-9999px',
         top: 0,
-        width: '210mm',
+        // Use responsive width instead of fixed 210mm to match template editor
+        width: '100%',
+        maxWidth: '800px', // Reasonable max width for PDF generation
         background: '#fff',
         zIndex: -1,
         pointerEvents: 'none'

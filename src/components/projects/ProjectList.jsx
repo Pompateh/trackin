@@ -23,13 +23,13 @@ const ProjectList = ({ projects, onProjectUpdated }) => {
   return (
     <div className="w-full">
       {rows.map((row, rowIndex) => (
-        <div key={rowIndex} className="flex w-full px-2 mb-2 gap-2">
+        <div key={rowIndex} className="flex w-full px-2 pr-6 gap-2">
           {row.map((project, idx) => {
             const isLastInLastRow = rowIndex === rows.length - 1;
             return (
               <div
                 key={project.id}
-                className={`w-1/3 border border-black ${isLastInLastRow ? '' : 'mb-8'}`}
+                className={`w-1/3 flex-shrink-0 border border-black ${isLastInLastRow ? '' : 'mb-2'}`}
               >
                 <ProjectCard project={project} onProjectUpdated={onProjectUpdated} />
               </div>

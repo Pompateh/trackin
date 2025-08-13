@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import toast from 'react-hot-toast';
 import EditProjectModal from './EditProjectModal';
+import useAuthStore from '../../store/useAuthStore';
 
 const statusLabels = {
   on_going: 'On Going',
@@ -18,10 +19,14 @@ const statusColors = {
 
 const ProjectCard = ({ project, onProjectUpdated }) => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
+
+  // Check if user is admin
+  const isAdmin = user?.user_metadata?.can_create_projects === true;
 
   // Format date to match the design (e.g., "Jan 06, 2025")
   const formatDate = (date) => {
@@ -156,13 +161,15 @@ const ProjectCard = ({ project, onProjectUpdated }) => {
       {/* Project Name Section */}
       <div className="px-2 pt-2 pb-1 font-serif font-bold text-2xl flex justify-between items-center">
         <span>{project.name}</span>
-        <button 
-          className="text-black hover:text-gray-700 font-bold text-xl cursor-pointer"
-          onClick={() => setShowDeleteModal(true)}
-          title="Delete Project"
-        >
-          ×
-        </button>
+        {isAdmin && (
+          <button 
+            className="text-black hover:text-gray-700 font-bold text-xl cursor-pointer"
+            onClick={() => setShowDeleteModal(true)}
+            title="Delete Project"
+          >
+            ×
+          </button>
+        )}
       </div>
       <div className="border-b border-black w-full h-px"></div>
       {/* Team Member Section */}
@@ -207,13 +214,15 @@ const ProjectCard = ({ project, onProjectUpdated }) => {
         >
           Detail
         </div>
-        <div 
-          className="cursor-pointer hover:bg-gray-100 transition font-crimson font-semibold text-[25px]"
-          onClick={() => setIsEditModalOpen(true)}
-          title="Edit Project"
-        >
-          Edit
-        </div>
+        {isAdmin && (
+          <div 
+            className="cursor-pointer hover:bg-gray-100 transition font-crimson font-semibold text-[25px]"
+            onClick={() => setIsEditModalOpen(true)}
+            title="Edit Project"
+          >
+            Edit
+          </div>
+        )}
       </div>
       
       <EditProjectModal

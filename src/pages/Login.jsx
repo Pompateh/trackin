@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
+import logo from '../assets/Vector.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -88,7 +89,7 @@ const Login = () => {
           <div className="p-2">
                       {/* Logo and Title */}
             <div className="text-left relative mb-16">
-              <img src="/src/assets/Vector.png" alt="Logo" className="h-26 w-auto" />
+              <img src={logo} alt="Logo" className="h-26 w-auto" />
                             <p className="text-black uppercase tracking-wide absolute left-0" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 200, fontSize: '35px', top: '72px' }}>TRACKING APP</p>
             </div>
            

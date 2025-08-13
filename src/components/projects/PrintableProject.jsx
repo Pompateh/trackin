@@ -456,9 +456,10 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
               flexDirection: pdfMode ? 'column' : 'block',
               position: pdfMode ? 'relative' : 'static',
               overflow: pdfMode ? 'hidden' : 'visible',
-              minHeight: pdfMode ? '210mm' : 'auto',
-              maxHeight: pdfMode ? '210mm' : 'none',
-              height: pdfMode ? '210mm' : 'auto',
+              // Remove fixed height constraints to match template editor
+              minHeight: pdfMode ? 'auto' : 'auto',
+              maxHeight: pdfMode ? 'none' : 'none',
+              height: pdfMode ? 'auto' : 'auto',
               width: '100%'
             }}
           >
@@ -478,11 +479,12 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
               gap: '10px 5px',
               alignItems: 'stretch',
               justifyContent: 'stretch',
-              aspectRatio: pdfMode ? '420/297' : 'auto',
+              // Use same aspect ratio as template editor
+              aspectRatio: '420/297',
               width: '100%',
-              height: pdfMode ? '100%' : '400px',
+              height: pdfMode ? 'auto' : '400px',
               maxWidth: '100%',
-              maxHeight: pdfMode ? '100%' : 'none',
+              maxHeight: pdfMode ? 'none' : 'none',
               margin: '0',
               background: '#fff',
               boxSizing: 'border-box',
@@ -538,7 +540,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                     textDecoration: briefData.body_underline ? 'underline' : 'none',
                     fontSize: `${briefData.body_font_size || 12}px`, 
                     lineHeight: '1.4',
-                    fontFamily: briefData.body_font_family === 'crimson pro' ? '"Crimson Pro", serif' : '"Gothic A1", sans-serif',
+                    fontFamily: briefData.subtitle_font_family === 'crimson pro' ? '"Crimson Pro", serif' : '"Gothic A1", sans-serif',
                     color: '#333'
                   }}>
                     {briefData.body_text}
@@ -624,30 +626,71 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                     flexDirection: 'column',
                     position: 'relative',
                     overflow: 'hidden',
-                    minHeight: '210mm',
-                    maxHeight: '210mm',
-                    height: '210mm', // Ensure full page height
+                    // Use exact same height calculation as StepTemplate
+                    height: 'auto',
                     width: '100%',
                   }}
                 >
-                  {/* Section Grid - Now using A3 landscape styling like template editor */}
+                  {/* Section Grid - Now using EXACT same styling as StepTemplate */}
                   <div style={{ 
                     display: 'grid', 
                     gridTemplateColumns: `repeat(${NUM_COLS}, 1fr)`,
                     gridTemplateRows: `repeat(${rows}, 1fr)`, // Use 1fr to fill available space
-                    gap: '10px 5px', // Match template editor gap
+                    gap: '10px 5px', // Match StepTemplate gap exactly
                     alignItems: 'stretch', // Stretch items to fill space
                     justifyContent: 'stretch', // Stretch grid to fill container
-                    aspectRatio: '420/297', // A3 landscape ratio
+                    // Use EXACT same aspect ratio and sizing as StepTemplate
+                    aspectRatio: '420/297', // Exact same A3 landscape ratio
                     width: '100%',
-                    height: '100%', // Fill full height
+                    height: 'auto', // Use auto height like StepTemplate
                     maxWidth: '100%',
-                    maxHeight: '100%',
+                    maxHeight: 'none',
                     margin: '0',
                     background: '#fff',
                     boxSizing: 'border-box',
                     flex: 1,
+                    // Ensure grid fills the available space exactly like StepTemplate
+                    minHeight: '0',
+                    overflow: 'hidden',
+                    // Add grid alignment debug overlay for PDF mode
+                    position: 'relative',
                   }}>
+                    {/* Grid alignment debug overlay - only visible in PDF mode */}
+                    {pdfMode && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        pointerEvents: 'none',
+                        zIndex: 1,
+                        background: 'rgba(255, 0, 0, 0.1)',
+                        border: '1px solid rgba(255, 0, 0, 0.3)',
+                      }}>
+                        {/* Grid lines overlay */}
+                        {Array.from({ length: NUM_COLS + 1 }, (_, i) => (
+                          <div key={`col-${i}`} style={{
+                            position: 'absolute',
+                            left: `${(i / NUM_COLS) * 100}%`,
+                            top: 0,
+                            bottom: 0,
+                            width: '1px',
+                            background: 'rgba(255, 0, 0, 0.2)',
+                          }} />
+                        ))}
+                        {Array.from({ length: rows + 1 }, (_, i) => (
+                          <div key={`row-${i}`} style={{
+                            position: 'absolute',
+                            top: `${(i / rows) * 100}%`,
+                            left: 0,
+                            right: 0,
+                            height: '1px',
+                            background: 'rgba(255, 0, 0, 0.2)',
+                          }} />
+                        ))}
+                      </div>
+                    )}
                     {items.map(item => {
                       const row = (item.row_num || item.row || 1) - 1; // Convert to 0-based index
                       const col = (item.col_num || item.col || 1) - 1; // Convert to 0-based index
@@ -671,6 +714,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                           style={{
                             gridColumn: `${col + 1} / span ${colSpan}`,
                             gridRow: `${row + 1} / span ${rowSpan}`,
+                            // Use exact same styling as StepTemplate GridItem
                             minHeight: '120px',
                             background: item.template_type === 'text' ? 'transparent' : '#f8f9fa',
                             borderRadius: '0',
@@ -682,6 +726,9 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                             width: '100%',
                             display: 'flex',
                             flexDirection: 'column',
+                            // Ensure grid items stretch to fill their allocated space
+                            alignItems: 'stretch',
+                            justifyContent: 'stretch',
                           }}
                         >
                           {item.template_type === 'text' && <TextContent item={item} />}
@@ -695,7 +742,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
               );
             });
           } else {
-            // --- SCREEN MODE: Original logic ---
+            // --- SCREEN MODE: Use exact same grid structure as StepTemplate ---
             // Group by page_num (default 0)
             const itemsByPage = {};
             sectionGridItems.forEach(item => {
@@ -708,8 +755,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
             return pageNums.map((pageNum, pageIndex) => {
               const pageItems = itemsByPage[pageNum];
               const { rows, grid, items } = calculateGridStructure(pageItems);
-              // Calculate proper height for screen mode
-              const gridHeight = Math.max(rows * 180, 800); // Make grid taller: 180px per row, minimum 400px
+              
               return (
                 <div
                   key={`${section.title}-page-${pageNum}`}
@@ -725,29 +771,70 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                     flexDirection: 'column',
                     position: 'relative',
                     overflow: 'visible',
-                    minHeight: 'auto',
-                    maxHeight: 'none',
                     height: 'auto',
                     width: '100%',
                   }}
                 >
-                  {/* Section Grid - Now using calculated structure */}
+                  {/* Section Grid - Now using EXACT same styling as StepTemplate */}
                   <div style={{ 
                     display: 'grid', 
                     gridTemplateColumns: `repeat(${NUM_COLS}, 1fr)`,
                     gridTemplateRows: `repeat(${rows}, 1fr)`, // Use same styling for both modes
-                    gap: '10px 5px', // Match PDF mode gap
+                    gap: '10px 5px', // Match StepTemplate gap exactly
                     alignItems: 'stretch', // Stretch items to fill space
                     justifyContent: 'stretch', // Stretch grid to fill container
+                    // Use EXACT same aspect ratio and sizing as StepTemplate
+                    aspectRatio: '420/297',
                     width: '100%',
-                    height: pdfMode ? '100%' : `${gridHeight}px`, // Make grid taller in screen mode
+                    height: 'auto', // Use auto height for consistent sizing
                     maxWidth: '100%',
-                    maxHeight: pdfMode ? '100%' : 'none',
+                    maxHeight: 'none',
                     margin: '0',
                     background: '#fff',
                     boxSizing: 'border-box',
                     flex: pdfMode ? 1 : 'none',
+                    // Ensure grid fills the available space exactly like StepTemplate
+                    minHeight: '0',
+                    overflow: 'auto',
+                    // Add grid alignment debug overlay for screen mode
+                    position: 'relative',
                   }}>
+                    {/* Grid alignment debug overlay - visible in screen mode for alignment verification */}
+                    {!pdfMode && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        pointerEvents: 'none',
+                        zIndex: 1,
+                        background: 'rgba(0, 255, 0, 0.05)',
+                        border: '1px solid rgba(0, 255, 0, 0.2)',
+                      }}>
+                        {/* Grid lines overlay */}
+                        {Array.from({ length: NUM_COLS + 1 }, (_, i) => (
+                          <div key={`col-${i}`} style={{
+                            position: 'absolute',
+                            left: `${(i / NUM_COLS) * 100}%`,
+                            top: 0,
+                            bottom: 0,
+                            width: '1px',
+                            background: 'rgba(0, 255, 0, 0.15)',
+                          }} />
+                        ))}
+                        {Array.from({ length: rows + 1 }, (_, i) => (
+                          <div key={`row-${i}`} style={{
+                            position: 'absolute',
+                            top: `${(i / rows) * 100}%`,
+                            left: 0,
+                            right: 0,
+                            height: '1px',
+                            background: 'rgba(0, 255, 0, 0.15)',
+                          }} />
+                        ))}
+                      </div>
+                    )}
                     {items.map(item => {
                       const row = (item.row_num || item.row || 1) - 1; // Convert to 0-based index
                       const col = (item.col_num || item.col || 1) - 1; // Convert to 0-based index
@@ -759,6 +846,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                           style={{
                             gridColumn: `${col + 1} / span ${colSpan}`,
                             gridRow: `${row + 1} / span ${rowSpan}`,
+                            // Use exact same styling as StepTemplate GridItem
                             minHeight: '120px',
                             background: item.template_type === 'text' ? 'transparent' : '#f8f9fa',
                             borderRadius: '0',
@@ -770,6 +858,9 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                             width: '100%',
                             display: 'flex',
                             flexDirection: 'column',
+                            // Ensure grid items stretch to fill their allocated space
+                            alignItems: 'stretch',
+                            justifyContent: 'stretch',
                           }}
                         >
                           {item.template_type === 'text' && <TextContent item={item} />}

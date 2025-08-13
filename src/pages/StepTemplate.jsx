@@ -321,7 +321,21 @@ const TextContent = ({ item, onUpdate, onTextFocus }) => {
   if (item.text_horizontal_align === 'right') effectiveTextAlign = 'right';
 
   return (
-    <div className={`p-2 h-full w-full flex flex-col relative bg-transparent ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}>
+    <div className={`p-2 h-full w-full flex flex-col relative bg-transparent ${justifyMap[item.text_vertical_align] || 'justify-start'} ${alignMap[item.text_horizontal_align] || 'items-start'}`}
+      style={{
+        // Use EXACT same styling as PDF output
+        minHeight: '120px',
+        borderRadius: '0',
+        background: 'transparent',
+        boxSizing: 'border-box',
+        padding: '8px',
+        height: '100%',
+        width: '100%',
+        flex: 1,
+        // Ensure text content fills allocated space exactly like PDF
+        alignItems: 'stretch',
+        justifyContent: 'stretch',
+      }}>
       <div style={{ 
         textAlign: effectiveTextAlign, 
         width: '100%', 
@@ -511,7 +525,21 @@ const ImageContent = ({ item, onUpdate, onImageSelect, isUploading }) => {
       onMouseMove={dragging ? handleMouseMove : undefined}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      style={{ cursor: item.image_url ? (dragging ? 'grabbing' : 'grab') : 'pointer', overflow: 'hidden', width: '100%', height: '100%', position: 'relative' }}
+      style={{ 
+        cursor: item.image_url ? (dragging ? 'grabbing' : 'grab') : 'pointer', 
+        overflow: 'hidden', 
+        width: '100%', 
+        height: '100%', 
+        position: 'relative',
+        // Use EXACT same styling as PDF output
+        background: '#f8f9fa',
+        borderRadius: '0',
+        padding: 0,
+        margin: 0,
+        // Ensure image content fills allocated space exactly like PDF
+        alignItems: 'stretch',
+        justifyContent: 'stretch',
+      }}
     >
       {item.image_url ? (
         <>
@@ -643,10 +671,22 @@ const GridItem = ({ item, selected, onSelect, onShowMenu, onUpdate, projectId, o
       style={{
         gridColumn: `span ${item.colSpan}`,
         gridRow: `span ${item.rowSpan}`,
+        // Use EXACT same styling as PDF output
         height: '100%',
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
+        // Ensure grid items stretch to fill their allocated space exactly like PDF
+        alignItems: 'stretch',
+        justifyContent: 'stretch',
+        // Match PDF styling exactly
+        minHeight: '120px',
+        background: item.template_type === 'text' ? 'transparent' : '#f8f9fa',
+        borderRadius: '0',
+        overflow: 'hidden',
+        position: 'relative',
+        padding: item.template_type === 'text' ? '0' : '0px',
+        boxShadow: 'none',
       }}
       onClick={(e) => onSelect(item.grid_item_id, e)}
       onContextMenu={(e) => { e.preventDefault(); onShowMenu(e, item.grid_item_id); }}
@@ -1476,17 +1516,59 @@ const StepTemplate = () => {
               <div
                 className="grid grid-cols-4 a3-landscape-grid-container"
                 style={{
-                  aspectRatio: '420/297', // A3 landscape ratio
+                  aspectRatio: '420/297', // A3 landscape ratio - EXACT same as PDF
                   width: '100%',
-                  height: '100%', // Match PDF - use full height
+                  height: 'auto', // Use auto height to match PDF exactly
                   margin: '0 auto',
-                  gap: '10px 5px',
-                  gridTemplateRows: `repeat(${rows}, 1fr)`, // Match PDF - stretch rows equally
+                  gap: '10px 5px', // EXACT same gap as PDF
+                  gridTemplateRows: `repeat(${rows}, 1fr)`, // EXACT same row sizing as PDF
                   overflow: 'auto',
                   background: '#fff',
                   boxSizing: 'border-box',
+                  // Ensure grid fills available space exactly like PDF
+                  minHeight: '0',
+                  flex: 'none',
+                  // Force consistent sizing between template and PDF
+                  maxHeight: 'none',
+                  maxWidth: '100%',
+                  // Add grid alignment debug overlay for alignment verification
+                  position: 'relative',
                 }}
               >
+                {/* Grid alignment debug overlay - visible in template editor for alignment verification */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                  background: 'rgba(0, 0, 255, 0.03)',
+                  border: '1px solid rgba(0, 0, 255, 0.2)',
+                }}>
+                  {/* Grid lines overlay */}
+                  {Array.from({ length: NUM_COLS + 1 }, (_, i) => (
+                    <div key={`col-${i}`} style={{
+                      position: 'absolute',
+                      left: `${(i / NUM_COLS) * 100}%`,
+                      top: 0,
+                      bottom: 0,
+                      width: '1px',
+                      background: 'rgba(0, 0, 255, 0.15)',
+                    }} />
+                  ))}
+                  {Array.from({ length: rows + 1 }, (_, i) => (
+                    <div key={`row-${i}`} style={{
+                      position: 'absolute',
+                      top: `${(i / rows) * 100}%`,
+                      left: 0,
+                      right: 0,
+                      height: '1px',
+                      background: 'rgba(0, 0, 255, 0.15)',
+                    }} />
+                  ))}
+                </div>
                 {gridItems.map(item =>
                   !item.hidden ? (
                     <GridItem
