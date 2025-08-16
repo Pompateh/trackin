@@ -1120,6 +1120,15 @@ const PodStepTemplate = () => {
                     logWorkHistory('comment_remove', `Removed reference comment`, 'comment', 'reference', oldComment, null);
                   }
                 }}
+                sectionType="reference"
+                onImageMove={(draggedUrl, fromSection, toSection) => {
+                  // Allow moving from design or final-0 to reference
+                  if ((fromSection === 'design' || fromSection === 'final-0') && toSection === 'reference') {
+                    setReferenceImage(draggedUrl);
+                    if (fromSection === 'design') setDesignImage(null);
+                    if (fromSection === 'final-0') setFinalImages([null]);
+                  }
+                }}
                 isUnread={isReferenceCommentUnread}
                 onMarkAsRead={() => setAndPersistUnread('reference', false)}
               />
@@ -1163,9 +1172,11 @@ const PodStepTemplate = () => {
                 }}
                 sectionType="design"
                 onImageMove={(draggedUrl, fromSection, toSection) => {
-                  if (fromSection === 'final-0' && toSection === 'design') {
+                  // Allow moving from reference or final-0 to design
+                  if (toSection === 'design') {
                     setDesignImage(draggedUrl);
-                    setFinalImages([null]);
+                    if (fromSection === 'reference') setReferenceImage(null);
+                    if (fromSection === 'final-0') setFinalImages([null]);
                   }
                 }}
                 isUnread={isDesignCommentUnread}
@@ -1218,9 +1229,11 @@ const PodStepTemplate = () => {
                 }}
                 sectionType="final-0"
                 onImageMove={(draggedUrl, fromSection, toSection) => {
-                  if (fromSection === 'design' && toSection === 'final-0') {
+                  // Allow moving from reference or design to final-0
+                  if (toSection === 'final-0') {
                     setFinalImages([draggedUrl]);
-                    setDesignImage(null);
+                    if (fromSection === 'reference') setReferenceImage(null);
+                    if (fromSection === 'design') setDesignImage(null);
                   }
                 }}
                 isFinalDesign={true}
@@ -1356,6 +1369,17 @@ const PodStepTemplate = () => {
                         logWorkHistory('comment_remove', `Removed reference comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-reference`, oldComment, null);
                       }
                     }}
+                    sectionType={`row-${rowIndex}-reference`}
+                    onImageMove={(draggedUrl, fromSection, toSection) => {
+                      // Allow moving from design or final to reference in this row
+                      if (toSection === `row-${rowIndex}-reference`) {
+                        const newRows = [...additionalDesignRows];
+                        newRows[rowIndex].referenceImage = draggedUrl;
+                        if (fromSection === `row-${rowIndex}-design`) newRows[rowIndex].designImage = null;
+                        if (fromSection === `row-${rowIndex}-final`) newRows[rowIndex].finalImage = null;
+                        setAdditionalDesignRows(newRows);
+                      }
+                    }}
                     isUnread={!!(additionalRowsUnread[rowIndex]?.reference)}
                     onMarkAsRead={() => setAndPersistAdditionalUnread(rowIndex, 'reference', false)}
                   />
@@ -1405,11 +1429,12 @@ const PodStepTemplate = () => {
                     }}
                     sectionType={`row-${rowIndex}-design`}
                     onImageMove={(draggedUrl, fromSection, toSection) => {
-                      // Only allow move between design/final in this row
-                      if (fromSection === `row-${rowIndex}-final` && toSection === `row-${rowIndex}-design`) {
+                      // Allow moving from reference or final to design in this row
+                      if (toSection === `row-${rowIndex}-design`) {
                         const newRows = [...additionalDesignRows];
                         newRows[rowIndex].designImage = draggedUrl;
-                        newRows[rowIndex].finalImage = null;
+                        if (fromSection === `row-${rowIndex}-reference`) newRows[rowIndex].referenceImage = null;
+                        if (fromSection === `row-${rowIndex}-final`) newRows[rowIndex].finalImage = null;
                         setAdditionalDesignRows(newRows);
                       }
                     }}
@@ -1463,11 +1488,12 @@ const PodStepTemplate = () => {
                     }}
                     sectionType={`row-${rowIndex}-final`}
                     onImageMove={(draggedUrl, fromSection, toSection) => {
-                      // Only allow move between design/final in this row
-                      if (fromSection === `row-${rowIndex}-design` && toSection === `row-${rowIndex}-final`) {
+                      // Allow moving from reference or design to final in this row
+                      if (toSection === `row-${rowIndex}-final`) {
                         const newRows = [...additionalDesignRows];
                         newRows[rowIndex].finalImage = draggedUrl;
-                        newRows[rowIndex].designImage = null;
+                        if (fromSection === `row-${rowIndex}-reference`) newRows[rowIndex].referenceImage = null;
+                        if (fromSection === `row-${rowIndex}-design`) newRows[rowIndex].designImage = null;
                         setAdditionalDesignRows(newRows);
                       }
                     }}
