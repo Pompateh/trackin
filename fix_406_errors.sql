@@ -160,3 +160,4 @@ SELECT 'boards table status:' as info,
 -- Show sample data
 SELECT 'brief_data count:' as info, COUNT(*) as count FROM brief_data;
 SELECT 'boards count:' as info, COUNT(*) as count FROM boards;
+

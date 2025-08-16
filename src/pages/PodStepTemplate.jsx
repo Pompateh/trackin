@@ -7,7 +7,7 @@ import useProjectStore from '../store/useProjectStore';
 import group99Icon from '../assets/Group 99.png';
 
 // P.O.D specific content components
-const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommentChange, comment, showSeeMore = false, fileInputId, onSeeMoreClick, onRemove, isFinalDesign = false }) => {
+const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommentChange, comment, showSeeMore = false, fileInputId, onSeeMoreClick, onRemove, isFinalDesign = false, sectionType, onImageMove, isUnread, onMarkAsRead }) => {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -76,7 +76,24 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full"
+      tabIndex={0}
+      onDragOver={e => {
+        if (onImageMove) e.preventDefault();
+      }}
+      onDrop={e => {
+        if (onImageMove) {
+          e.preventDefault();
+          const data = e.dataTransfer.getData('application/json');
+          if (data) {
+            const { imageUrl: draggedUrl, fromSection } = JSON.parse(data);
+            if (draggedUrl && fromSection !== sectionType) {
+              onImageMove(draggedUrl, fromSection, sectionType);
+            }
+          }
+        }
+      }}
+    >
       <h3 className="text-lg font-bold mb-2" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
         {title}
       </h3>
@@ -157,11 +174,15 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
               width: '100%',
               height: '100%',
               objectFit: 'contain',
-              objectPosition: 'center',
-              userSelect: 'none',
-              pointerEvents: 'none'
+              objectPosition: 'center'
+              // Removed userSelect and pointerEvents to allow right-click copy
             }}
-            draggable={false}
+            draggable={!!onImageMove}
+            onDragStart={e => {
+              if (onImageMove) {
+                e.dataTransfer.setData('application/json', JSON.stringify({ imageUrl, fromSection: sectionType }));
+              }
+            }}
           />
         ) : (
             <div className="text-center text-gray-500 h-[95%] flex items-center justify-center">
@@ -179,70 +200,89 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
             </div>
           )}
       </div>
-              {!showSeeMore ? (
-          <div className="mt-2 border border-black bg-white">
-            <textarea
-              placeholder="Add a comment..."
-              value={comment}
-              onChange={(e) => onCommentChange(e.target.value)}
-              className="w-full px-2 py-1 border-0 text-black bg-white font-crimson font-semibold text-xs md:text-sm resize-none"
-              style={{ 
-                fontFamily: 'Crimson Pro, serif', 
-                borderRadius: '0',
-                minHeight: '165px',
-                lineHeight: '1.5',
-                wordWrap: 'break-word'
-              }}
-              rows={4}
-            />
+      {/* Comment Section with unread logic */}
+      {!showSeeMore ? (
+        <div className={`mt-2 border border-black bg-white ${isUnread ? 'border-4 border-red-500' : ''}`}>
+          <textarea
+            placeholder="Add a comment..."
+            value={comment}
+            onChange={(e) => onCommentChange(e.target.value)}
+            className="w-full px-2 py-1 border-0 text-black bg-white font-crimson font-semibold text-xs md:text-sm resize-none"
+            style={{ 
+              fontFamily: 'Crimson Pro, serif', 
+              borderRadius: '0',
+              minHeight: '165px',
+              lineHeight: '1.5',
+              wordWrap: 'break-word'
+            }}
+            rows={4}
+          />
+          {isUnread && (
             <button
-              onClick={onRemove}
-              className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+              onClick={onMarkAsRead}
+              className="w-full px-2 py-1 bg-red-100 text-red-700 border border-red-500 font-crimson font-semibold text-xs"
               style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             >
-              Remove
+              Mark as Read
             </button>
-          </div>
-        ) : isFinalDesign ? (
-          <div className="mt-2 border border-black bg-white">
-            <textarea
-              placeholder="Add a comment..."
-              value={comment}
-              onChange={(e) => onCommentChange(e.target.value)}
-              className="w-full px-2 py-1 border-0 text-black bg-white font-crimson font-semibold text-xs md:text-sm resize-none"
-              style={{ 
-                fontFamily: 'Crimson Pro, serif', 
-                borderRadius: '0',
-                minHeight: '120px',
-                lineHeight: '1.5',
-                wordWrap: 'break-word'
-              }}
-              rows={2}
-            />
+          )}
+          <button
+            onClick={onRemove}
+            className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+          >
+            Remove
+          </button>
+        </div>
+      ) : isFinalDesign ? (
+        <div className={`mt-2 border border-black bg-white ${isUnread ? 'border-4 border-red-500' : ''}`}>
+          <textarea
+            placeholder="Add a comment..."
+            value={comment}
+            onChange={(e) => onCommentChange(e.target.value)}
+            className="w-full px-2 py-1 border-0 text-black bg-white font-crimson font-semibold text-xs md:text-sm resize-none"
+            style={{ 
+              fontFamily: 'Crimson Pro, serif', 
+              borderRadius: '0',
+              minHeight: '120px',
+              lineHeight: '1.5',
+              wordWrap: 'break-word'
+            }}
+            rows={2}
+          />
+          {isUnread && (
             <button
-              onClick={onRemove}
-              className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+              onClick={onMarkAsRead}
+              className="w-full px-2 py-1 bg-red-100 text-red-700 border border-red-500 font-crimson font-semibold text-xs"
               style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             >
-              Remove
+              Mark as Read
             </button>
-            <button 
-              onClick={onSeeMoreClick}
-              className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
-              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-            >
-              See More
-            </button>
-          </div>
-        ) : (
+          )}
+          <button
+            onClick={onRemove}
+            className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+          >
+            Remove
+          </button>
           <button 
             onClick={onSeeMoreClick}
-            className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold w-full mt-2 text-xs"
+            className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
             style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
           >
             See More
           </button>
-        )}
+        </div>
+      ) : (
+        <button 
+          onClick={onSeeMoreClick}
+          className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold w-full mt-2 text-xs"
+          style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+        >
+          See More
+        </button>
+      )}
     </div>
   );
 };
@@ -276,6 +316,55 @@ const PodStepTemplate = () => {
   const [showWorkHistory, setShowWorkHistory] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [userMap, setUserMap] = useState({});
+
+  // Utility for localStorage keys
+  const getUnreadKey = (projectId, section) => `pod_unread_${projectId}_${section}`;
+
+  // Main comment unread states (persisted)
+  const [isReferenceCommentUnread, setIsReferenceCommentUnread] = useState(false);
+  const [isDesignCommentUnread, setIsDesignCommentUnread] = useState(false);
+  const [isFinalCommentUnread, setIsFinalCommentUnread] = useState(false);
+  // Additional rows unread state: array of { reference, design, final }
+  const [additionalRowsUnread, setAdditionalRowsUnread] = useState([]);
+
+  // Load unread state from localStorage on mount or projectId change
+  useEffect(() => {
+    if (!projectId) return;
+    setIsReferenceCommentUnread(localStorage.getItem(getUnreadKey(projectId, 'reference')) === 'true');
+    setIsDesignCommentUnread(localStorage.getItem(getUnreadKey(projectId, 'design')) === 'true');
+    setIsFinalCommentUnread(localStorage.getItem(getUnreadKey(projectId, 'final-0')) === 'true');
+    // For additional rows
+    const arr = [];
+    (additionalDesignRows || []).forEach((row, idx) => {
+      arr[idx] = {
+        reference: localStorage.getItem(getUnreadKey(projectId, `row-${idx}-reference`)) === 'true',
+        design: localStorage.getItem(getUnreadKey(projectId, `row-${idx}-design`)) === 'true',
+        final: localStorage.getItem(getUnreadKey(projectId, `row-${idx}-final`)) === 'true',
+      };
+    });
+    setAdditionalRowsUnread(arr);
+  }, [projectId, additionalDesignRows.length]);
+
+  // Helper to set and persist unread state for main comments
+  const setAndPersistUnread = (section, value) => {
+    localStorage.setItem(getUnreadKey(projectId, section), value ? 'true' : 'false');
+    switch (section) {
+      case 'reference': setIsReferenceCommentUnread(value); break;
+      case 'design': setIsDesignCommentUnread(value); break;
+      case 'final-0': setIsFinalCommentUnread(value); break;
+      default: break;
+    }
+  };
+  // Helper for additional rows
+  const setAndPersistAdditionalUnread = (rowIdx, type, value) => {
+    localStorage.setItem(getUnreadKey(projectId, `row-${rowIdx}-${type}`), value ? 'true' : 'false');
+    setAdditionalRowsUnread(prev => {
+      const arr = [...prev];
+      arr[rowIdx] = arr[rowIdx] || { reference: false, design: false, final: false };
+      arr[rowIdx][type] = value;
+      return arr;
+    });
+  };
 
   const handleImageUpload = async (section, input) => {
     setIsUploading(true);
@@ -1012,6 +1101,7 @@ const PodStepTemplate = () => {
                 onCommentChange={(comment) => {
                   const oldComment = referenceComment;
                   setReferenceComment(comment);
+                  setAndPersistUnread('reference', true);
                   if (oldComment !== comment) {
                     logWorkHistory('comment_update', `Updated reference comment`, 'comment', 'reference', oldComment, comment);
                   }
@@ -1024,11 +1114,14 @@ const PodStepTemplate = () => {
                   const oldComment = referenceComment;
                   setReferenceImage(null);
                   setReferenceComment('');
+                  setAndPersistUnread('reference', false);
                   logWorkHistory('image_remove', `Removed reference image`, 'reference_image', 'reference', oldImage, null);
                   if (oldComment) {
                     logWorkHistory('comment_remove', `Removed reference comment`, 'comment', 'reference', oldComment, null);
                   }
                 }}
+                isUnread={isReferenceCommentUnread}
+                onMarkAsRead={() => setAndPersistUnread('reference', false)}
               />
               <input 
                 type="file" 
@@ -1049,6 +1142,7 @@ const PodStepTemplate = () => {
                 onCommentChange={(comment) => {
                   const oldComment = designComment;
                   setDesignComment(comment);
+                  setAndPersistUnread('design', true);
                   if (oldComment !== comment) {
                     logWorkHistory('comment_update', `Updated design comment`, 'comment', 'design', oldComment, comment);
                   }
@@ -1061,11 +1155,21 @@ const PodStepTemplate = () => {
                   const oldComment = designComment;
                   setDesignImage(null);
                   setDesignComment('');
+                  setAndPersistUnread('design', false);
                   logWorkHistory('image_remove', `Removed design image`, 'design_image', 'design', oldImage, null);
                   if (oldComment) {
                     logWorkHistory('comment_remove', `Removed design comment`, 'comment', 'design', oldComment, null);
                   }
                 }}
+                sectionType="design"
+                onImageMove={(draggedUrl, fromSection, toSection) => {
+                  if (fromSection === 'final-0' && toSection === 'design') {
+                    setDesignImage(draggedUrl);
+                    setFinalImages([null]);
+                  }
+                }}
+                isUnread={isDesignCommentUnread}
+                onMarkAsRead={() => setAndPersistUnread('design', false)}
               />
               <input 
                 type="file" 
@@ -1088,6 +1192,7 @@ const PodStepTemplate = () => {
                   const newComments = [...finalComments];
                   newComments[0] = comment;
                   setFinalComments(newComments);
+                  setAndPersistUnread('final-0', true);
                   if (oldComment !== comment) {
                     logWorkHistory('comment_update', `Updated final design comment`, 'comment', 'final-0', oldComment, comment);
                   }
@@ -1103,6 +1208,7 @@ const PodStepTemplate = () => {
                   const newComments = finalComments.filter((_, i) => i !== 0);
                   setFinalImages(newImages);
                   setFinalComments(newComments);
+                  setAndPersistUnread('final-0', false);
                   if (oldImage) {
                     logWorkHistory('image_remove', `Removed final design image`, 'final_image', 'final-0', oldImage, null);
                   }
@@ -1110,7 +1216,16 @@ const PodStepTemplate = () => {
                     logWorkHistory('comment_remove', `Removed final design comment`, 'comment', 'final-0', oldComment, null);
                   }
                 }}
+                sectionType="final-0"
+                onImageMove={(draggedUrl, fromSection, toSection) => {
+                  if (fromSection === 'design' && toSection === 'final-0') {
+                    setFinalImages([draggedUrl]);
+                    setDesignImage(null);
+                  }
+                }}
                 isFinalDesign={true}
+                isUnread={isFinalCommentUnread}
+                onMarkAsRead={() => setAndPersistUnread('final-0', false)}
               />
               <input 
                 type="file" 
@@ -1218,6 +1333,7 @@ const PodStepTemplate = () => {
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].referenceComment = comment;
                       setAdditionalDesignRows(newRows);
+                      setAndPersistAdditionalUnread(rowIndex, 'reference', true);
                       if (oldComment !== comment) {
                         logWorkHistory('comment_update', `Updated reference comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-reference`, oldComment, comment);
                       }
@@ -1232,6 +1348,7 @@ const PodStepTemplate = () => {
                       newRows[rowIndex].referenceImage = null;
                       newRows[rowIndex].referenceComment = '';
                       setAdditionalDesignRows(newRows);
+                      setAndPersistAdditionalUnread(rowIndex, 'reference', false);
                       if (oldImage) {
                         logWorkHistory('image_remove', `Removed reference image for row ${rowIndex + 1}`, 'reference_image', `row-${rowIndex}-reference`, oldImage, null);
                       }
@@ -1239,6 +1356,8 @@ const PodStepTemplate = () => {
                         logWorkHistory('comment_remove', `Removed reference comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-reference`, oldComment, null);
                       }
                     }}
+                    isUnread={!!(additionalRowsUnread[rowIndex]?.reference)}
+                    onMarkAsRead={() => setAndPersistAdditionalUnread(rowIndex, 'reference', false)}
                   />
                   <input 
                     type="file" 
@@ -1261,6 +1380,7 @@ const PodStepTemplate = () => {
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].designComment = comment;
                       setAdditionalDesignRows(newRows);
+                      setAndPersistAdditionalUnread(rowIndex, 'design', true);
                       if (oldComment !== comment) {
                         logWorkHistory('comment_update', `Updated design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-design`, oldComment, comment);
                       }
@@ -1275,6 +1395,7 @@ const PodStepTemplate = () => {
                       newRows[rowIndex].designImage = null;
                       newRows[rowIndex].designComment = '';
                       setAdditionalDesignRows(newRows);
+                      setAndPersistAdditionalUnread(rowIndex, 'design', false);
                       if (oldImage) {
                         logWorkHistory('image_remove', `Removed design image for row ${rowIndex + 1}`, 'design_image', `row-${rowIndex}-design`, oldImage, null);
                       }
@@ -1282,6 +1403,18 @@ const PodStepTemplate = () => {
                         logWorkHistory('comment_remove', `Removed design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-design`, oldComment, null);
                       }
                     }}
+                    sectionType={`row-${rowIndex}-design`}
+                    onImageMove={(draggedUrl, fromSection, toSection) => {
+                      // Only allow move between design/final in this row
+                      if (fromSection === `row-${rowIndex}-final` && toSection === `row-${rowIndex}-design`) {
+                        const newRows = [...additionalDesignRows];
+                        newRows[rowIndex].designImage = draggedUrl;
+                        newRows[rowIndex].finalImage = null;
+                        setAdditionalDesignRows(newRows);
+                      }
+                    }}
+                    isUnread={!!(additionalRowsUnread[rowIndex]?.design)}
+                    onMarkAsRead={() => setAndPersistAdditionalUnread(rowIndex, 'design', false)}
                   />
                   <input 
                     type="file" 
@@ -1304,6 +1437,7 @@ const PodStepTemplate = () => {
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].finalComment = comment;
                       setAdditionalDesignRows(newRows);
+                      setAndPersistAdditionalUnread(rowIndex, 'final', true);
                       if (oldComment !== comment) {
                         logWorkHistory('comment_update', `Updated final design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-final`, oldComment, comment);
                       }
@@ -1311,22 +1445,35 @@ const PodStepTemplate = () => {
                     comment={row.finalComment || ''}
                     showSeeMore={true}
                     fileInputId={`file-input-row-${rowIndex}-final`}
-                                          onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
-                      onRemove={() => {
-                        const oldImage = additionalDesignRows[rowIndex]?.finalImage;
-                        const oldComment = additionalDesignRows[rowIndex]?.finalComment;
+                    onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
+                    onRemove={() => {
+                      const oldImage = additionalDesignRows[rowIndex]?.finalImage;
+                      const oldComment = additionalDesignRows[rowIndex]?.finalComment;
+                      const newRows = [...additionalDesignRows];
+                      newRows[rowIndex].finalImage = null;
+                      newRows[rowIndex].finalComment = '';
+                      setAdditionalDesignRows(newRows);
+                      setAndPersistAdditionalUnread(rowIndex, 'final', false);
+                      if (oldImage) {
+                        logWorkHistory('image_remove', `Removed final design image for row ${rowIndex + 1}`, 'final_image', `row-${rowIndex}-final`, oldImage, null);
+                      }
+                      if (oldComment) {
+                        logWorkHistory('comment_remove', `Removed final design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-final`, oldComment, null);
+                      }
+                    }}
+                    sectionType={`row-${rowIndex}-final`}
+                    onImageMove={(draggedUrl, fromSection, toSection) => {
+                      // Only allow move between design/final in this row
+                      if (fromSection === `row-${rowIndex}-design` && toSection === `row-${rowIndex}-final`) {
                         const newRows = [...additionalDesignRows];
-                        newRows[rowIndex].finalImage = null;
-                        newRows[rowIndex].finalComment = '';
+                        newRows[rowIndex].finalImage = draggedUrl;
+                        newRows[rowIndex].designImage = null;
                         setAdditionalDesignRows(newRows);
-                        if (oldImage) {
-                          logWorkHistory('image_remove', `Removed final design image for row ${rowIndex + 1}`, 'final_image', `row-${rowIndex}-final`, oldImage, null);
-                        }
-                        if (oldComment) {
-                          logWorkHistory('comment_remove', `Removed final design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-final`, oldComment, null);
-                        }
-                      }}
+                      }
+                    }}
                     isFinalDesign={true}
+                    isUnread={!!(additionalRowsUnread[rowIndex]?.final)}
+                    onMarkAsRead={() => setAndPersistAdditionalUnread(rowIndex, 'final', false)}
                   />
                   <input 
                     type="file" 
