@@ -7,7 +7,7 @@ import useProjectStore from '../store/useProjectStore';
 import group99Icon from '../assets/Group 99.png';
 
 // P.O.D specific content components
-const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommentChange, comment, showSeeMore = false, fileInputId, onSeeMoreClick, onRemove, isFinalDesign = false, sectionType, onImageMove, isUnread, onMarkAsRead }) => {
+const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommentChange, comment, showSeeMore = false, fileInputId, onSeeMoreClick, onRemove, isFinalDesign = false, sectionType, onImageMove, isUnread, onMarkAsRead, commentAuthor }) => {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -202,7 +202,7 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
       </div>
       {/* Comment Section with unread logic */}
       {!showSeeMore ? (
-        <div className={`mt-2 border border-black bg-white ${isUnread ? 'border-4 border-red-500' : ''}`}>
+        <div className={`mt-2 border bg-white ${isUnread ? 'border-red-500' : 'border-black'}`}>
           <textarea
             placeholder="Add a comment..."
             value={comment}
@@ -217,25 +217,32 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
             }}
             rows={4}
           />
-          {isUnread && (
+          {commentAuthor && (
+            <div className="text-xs text-gray-500 px-2 pb-1" style={{ fontFamily: 'Crimson Pro, serif' }}>
+              {`By: ${commentAuthor}`}
+            </div>
+          )}
+          <div className="flex flex-col">
+            {isUnread && (
+              <button
+                onClick={onMarkAsRead}
+                className="w-full px-4 py-3 font-crimson font-bold text-lg text-red-600 bg-white border-t border-red-500 hover:bg-red-50 focus:bg-red-100 transition-colors"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              >
+                MARK AS READ
+              </button>
+            )}
             <button
-              onClick={onMarkAsRead}
-              className="w-full px-2 py-1 bg-red-100 text-red-700 border border-red-500 font-crimson font-semibold text-xs"
+              onClick={onRemove}
+              className={`w-full px-4 py-3 text-black bg-white border-t font-crimson font-semibold text-sm ${isUnread ? 'border-red-500' : 'border-black'}`}
               style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             >
-              Mark as Read
+              Remove
             </button>
-          )}
-          <button
-            onClick={onRemove}
-            className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
-            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-          >
-            Remove
-          </button>
+          </div>
         </div>
       ) : isFinalDesign ? (
-        <div className={`mt-2 border border-black bg-white ${isUnread ? 'border-4 border-red-500' : ''}`}>
+        <div className={`mt-2 border bg-white ${isUnread ? 'border-red-500' : 'border-black'}`}>
           <textarea
             placeholder="Add a comment..."
             value={comment}
@@ -250,29 +257,36 @@ const PodImageSection = ({ title, onImageUpload, isUploading, imageUrl, onCommen
             }}
             rows={2}
           />
-          {isUnread && (
+          {commentAuthor && (
+            <div className="text-xs text-gray-500 px-2 pb-1" style={{ fontFamily: 'Crimson Pro, serif' }}>
+              {`By: ${commentAuthor}`}
+            </div>
+          )}
+          <div className="flex flex-col">
+            {isUnread && (
+              <button
+                onClick={onMarkAsRead}
+                className="w-full px-4 py-3 font-crimson font-bold text-sm text-red-600 bg-white border-t border-red-500 hover:bg-red-50 focus:bg-red-100 transition-colors"
+                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+              >
+                Mark as Read
+              </button>
+            )}
             <button
-              onClick={onMarkAsRead}
-              className="w-full px-2 py-1 bg-red-100 text-red-700 border border-red-500 font-crimson font-semibold text-xs"
+              onClick={onRemove}
+              className={`w-full px-4 py-3 text-black bg-white border-t font-crimson font-semibold text-sm ${isUnread ? 'border-red-500' : 'border-black'}`}
               style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
             >
-              Mark as Read
+              Remove
             </button>
-          )}
-          <button
-            onClick={onRemove}
-            className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
-            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-          >
-            Remove
-          </button>
-          <button 
-            onClick={onSeeMoreClick}
-            className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
-            style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-          >
-            See More
-          </button>
+            <button 
+              onClick={onSeeMoreClick}
+              className="w-full px-4 py-3 text-black bg-white border-t border-black font-crimson font-semibold text-sm"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+            >
+              See More
+            </button>
+          </div>
         </div>
       ) : (
         <button 
@@ -304,6 +318,7 @@ const PodStepTemplate = () => {
   const [referenceComment, setReferenceComment] = useState('');
   const [designComment, setDesignComment] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // NEW: Track saving state
   const [uploadingSection, setUploadingSection] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -316,55 +331,15 @@ const PodStepTemplate = () => {
   const [showWorkHistory, setShowWorkHistory] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [userMap, setUserMap] = useState({});
+  const [referenceCommentAuthor, setReferenceCommentAuthor] = useState('');
+  const [designCommentAuthor, setDesignCommentAuthor] = useState('');
+  const [finalCommentAuthor, setFinalCommentAuthor] = useState('');
+  const [currentUserName, setCurrentUserName] = useState('');
 
-  // Utility for localStorage keys
-  const getUnreadKey = (projectId, section) => `pod_unread_${projectId}_${section}`;
-
-  // Main comment unread states (persisted)
-  const [isReferenceCommentUnread, setIsReferenceCommentUnread] = useState(false);
-  const [isDesignCommentUnread, setIsDesignCommentUnread] = useState(false);
-  const [isFinalCommentUnread, setIsFinalCommentUnread] = useState(false);
-  // Additional rows unread state: array of { reference, design, final }
-  const [additionalRowsUnread, setAdditionalRowsUnread] = useState([]);
-
-  // Load unread state from localStorage on mount or projectId change
-  useEffect(() => {
-    if (!projectId) return;
-    setIsReferenceCommentUnread(localStorage.getItem(getUnreadKey(projectId, 'reference')) === 'true');
-    setIsDesignCommentUnread(localStorage.getItem(getUnreadKey(projectId, 'design')) === 'true');
-    setIsFinalCommentUnread(localStorage.getItem(getUnreadKey(projectId, 'final-0')) === 'true');
-    // For additional rows
-    const arr = [];
-    (additionalDesignRows || []).forEach((row, idx) => {
-      arr[idx] = {
-        reference: localStorage.getItem(getUnreadKey(projectId, `row-${idx}-reference`)) === 'true',
-        design: localStorage.getItem(getUnreadKey(projectId, `row-${idx}-design`)) === 'true',
-        final: localStorage.getItem(getUnreadKey(projectId, `row-${idx}-final`)) === 'true',
-      };
-    });
-    setAdditionalRowsUnread(arr);
-  }, [projectId, additionalDesignRows.length]);
-
-  // Helper to set and persist unread state for main comments
-  const setAndPersistUnread = (section, value) => {
-    localStorage.setItem(getUnreadKey(projectId, section), value ? 'true' : 'false');
-    switch (section) {
-      case 'reference': setIsReferenceCommentUnread(value); break;
-      case 'design': setIsDesignCommentUnread(value); break;
-      case 'final-0': setIsFinalCommentUnread(value); break;
-      default: break;
-    }
-  };
-  // Helper for additional rows
-  const setAndPersistAdditionalUnread = (rowIdx, type, value) => {
-    localStorage.setItem(getUnreadKey(projectId, `row-${rowIdx}-${type}`), value ? 'true' : 'false');
-    setAdditionalRowsUnread(prev => {
-      const arr = [...prev];
-      arr[rowIdx] = arr[rowIdx] || { reference: false, design: false, final: false };
-      arr[rowIdx][type] = value;
-      return arr;
-    });
-  };
+  // Add to state:
+  const [referenceCommentUnread, setReferenceCommentUnread] = useState(false);
+  const [designCommentUnread, setDesignCommentUnread] = useState(false);
+  const [finalCommentUnread, setFinalCommentUnread] = useState(false);
 
   const handleImageUpload = async (section, input) => {
     setIsUploading(true);
@@ -455,11 +430,15 @@ const PodStepTemplate = () => {
           }
           break;
       }
+      // IMMEDIATE SAVE after upload
+      setIsSaving(true);
+      await savePodData();
     } catch (error) {
       console.error('Error in image upload process:', error);
     } finally {
       setIsUploading(false);
       setUploadingSection(null);
+      setIsSaving(false);
     }
   };
 
@@ -512,6 +491,12 @@ const PodStepTemplate = () => {
         setAdditionalDesignRows(data.additional_design_rows || []);
         setReferenceComment(data.reference_comment || '');
         setDesignComment(data.design_comment || '');
+        setReferenceCommentAuthor(data.reference_comment_author || '');
+        setDesignCommentAuthor(data.design_comment_author || '');
+        setFinalCommentAuthor(data.final_comment_author || '');
+        setReferenceCommentUnread(!!data.reference_comment_unread);
+        setDesignCommentUnread(!!data.design_comment_unread);
+        setFinalCommentUnread(!!data.final_comment_unread);
       }
     } catch (error) {
       console.error('Error loading POD data:', error);
@@ -536,27 +521,21 @@ const PodStepTemplate = () => {
         return;
       }
 
-      console.log('Saving POD data:', {
-        project_id: projectId,
-        scale_list: scaleList,
-        reference_image_url: referenceImage,
-        reference_comment: referenceComment,
-        design_image_url: designImage,
-        design_comment: designComment,
-        final_images: finalImages,
-        final_comments: finalComments,
-        additional_design_rows: additionalDesignRows
-      });
-
       const podData = {
         project_id: projectId,
         scale_list: scaleList,
         reference_image_url: referenceImage,
         reference_comment: referenceComment,
+        reference_comment_author: referenceCommentAuthor,
+        reference_comment_unread: referenceCommentUnread,
         design_image_url: designImage,
         design_comment: designComment,
+        design_comment_author: designCommentAuthor,
+        design_comment_unread: designCommentUnread,
         final_images: finalImages,
         final_comments: finalComments,
+        final_comment_author: finalCommentAuthor,
+        final_comment_unread: finalCommentUnread,
         additional_design_rows: additionalDesignRows
       };
 
@@ -575,6 +554,7 @@ const PodStepTemplate = () => {
           .insert(podData);
       } else if (selectError) {
         // Other error
+        console.error('[savePodData] Select error:', selectError);
         throw selectError;
       } else {
         // Existing data found, update
@@ -587,16 +567,16 @@ const PodStepTemplate = () => {
       const { data, error } = result;
 
       if (error) {
-        console.error('Error saving POD data:', error);
+        console.error('[savePodData] Error saving POD data:', error);
         // If table doesn't exist, create it
         if (error.code === '42P01') { // Table doesn't exist
           console.log('POD data table not found. Please run the SQL script to create it.');
         }
       } else {
-        console.log('POD data saved successfully:', data);
+        console.log('[savePodData] POD data saved successfully:', data);
       }
     } catch (error) {
-      console.error('Error saving POD data:', error);
+      console.error('[savePodData] Error saving POD data:', error);
     }
   };
 
@@ -622,7 +602,6 @@ const PodStepTemplate = () => {
       newRows[rowIndex].scaleList = [...(newRows[rowIndex].scaleList || [])]; // Create a new array reference
       newRows[rowIndex].scaleList[scaleIndex] = editingScaleValue;
       setAdditionalDesignRows(newRows);
-      console.log('Additional row scale saved:', { rowIndex, scaleIndex, value: editingScaleValue, newRows });
       logWorkHistory('scale_update', `Updated scale for row ${rowIndex + 1}`, 'scale', `row-${rowIndex}-${scaleIndex}`, oldValue, editingScaleValue);
     } else {
       // Main scale list
@@ -630,12 +609,10 @@ const PodStepTemplate = () => {
       const newScaleList = [...scaleList];
       newScaleList[index] = editingScaleValue;
       setScaleList(newScaleList);
-      console.log('Main scale saved:', { index, value: editingScaleValue, newScaleList });
       logWorkHistory('scale_update', `Updated main scale`, 'scale', `main-${index}`, oldValue, editingScaleValue);
     }
     setEditingScaleIndex(null);
     setEditingScaleValue('');
-    console.log('Scale saved, triggering auto-save...');
   };
 
   const handleScaleCancel = () => {
@@ -668,7 +645,6 @@ const PodStepTemplate = () => {
       setAdditionalDesignRows(newRows);
       setEditingScaleIndex(`${rowIndex}-${newRows[rowIndex].scaleList.length - 1}`);
       setEditingScaleValue(newScaleItem);
-      console.log('Additional row scale added:', { rowIndex, newScaleItem, newRows });
       logWorkHistory('scale_add', `Added scale for row ${rowIndex + 1}`, 'scale', `row-${rowIndex}`, null, newScaleItem);
     } else {
       // Main scale list
@@ -685,7 +661,6 @@ const PodStepTemplate = () => {
       setScaleList([...scaleList, newScaleItem]);
       setEditingScaleIndex(scaleList.length);
       setEditingScaleValue(newScaleItem);
-      console.log('Main scale added:', { newScaleItem });
       logWorkHistory('scale_add', `Added main scale`, 'scale', 'main', null, newScaleItem);
     }
   };
@@ -705,17 +680,14 @@ const PodStepTemplate = () => {
       newRows[rowIndex] = { ...newRows[rowIndex] }; // Create a new object reference
       newRows[rowIndex].scaleList = (newRows[rowIndex].scaleList || []).filter((_, i) => i !== scaleIndex);
       setAdditionalDesignRows(newRows);
-      console.log('Additional row scale deleted:', { rowIndex, scaleIndex, newRows });
       logWorkHistory('scale_delete', `Deleted scale for row ${rowIndex + 1}`, 'scale', `row-${rowIndex}-${scaleIndex}`, deletedValue, null);
     } else {
       // Main scale list
       const deletedValue = scaleList[index] || '';
       const newScaleList = scaleList.filter((_, i) => i !== index);
       setScaleList(newScaleList);
-      console.log('Main scale deleted:', { index, newScaleList });
       logWorkHistory('scale_delete', `Deleted main scale`, 'scale', `main-${index}`, deletedValue, null);
     }
-    console.log('Scale deleted, triggering auto-save...');
   };
 
   const handleDeleteProject = () => {
@@ -831,6 +803,11 @@ const PodStepTemplate = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserEmail(user.email || '');
+        setCurrentUserName(
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          (user.email ? user.email.split('@')[0] : 'Unknown')
+        );
       }
     } catch (error) {
       console.error('Error loading current user email:', error);
@@ -932,13 +909,36 @@ const PodStepTemplate = () => {
   useEffect(() => {
     if (!isLoading && projectId) {
       const timeoutId = setTimeout(() => {
-        console.log('Auto-saving POD data...');
         savePodData();
       }, 1000); // Debounce save by 1 second
       
       return () => clearTimeout(timeoutId);
     }
   }, [scaleList, referenceImage, designImage, finalImages, finalComments, additionalDesignRows, referenceComment, designComment, isLoading, projectId]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      savePodData();
+    }
+  }, [referenceCommentUnread, designCommentUnread, finalCommentUnread]);
+
+  // Add useEffect to save when additionalDesignRows changes
+  useEffect(() => {
+    if (!isLoading) {
+      savePodData();
+    }
+  }, [additionalDesignRows]);
+
+  useEffect(() => {
+    // Hide main window scrollbar when this page is mounted
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      // Restore scrolling when leaving this page
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -956,8 +956,13 @@ const PodStepTemplate = () => {
           className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold text-xs md:text-sm"
           style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
           onClick={() => navigate('/')}
+          disabled={isUploading || isSaving} // Disable navigation while uploading or saving
         >
-          ← Back to Dashboard
+          {isUploading || isSaving ? (
+            <span className="flex items-center"><span className="loading loading-spinner loading-xs mr-2"></span>Saving...</span>
+          ) : (
+            '← Back to Dashboard'
+          )}
         </button>
       </div>
       <div className="flex w-full h-full">
@@ -965,7 +970,7 @@ const PodStepTemplate = () => {
         <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
         
         {/* Main content */}
-        <div className="flex-1 h-full border-t border-b border-black transition-all duration-300 p-2 md:p-4 overflow-auto">
+        <div className="flex-1 h-full border-t border-b border-black transition-all duration-300 p-2 md:p-4 overflow-y-scroll scrollbar-visible">
           {/* P.O.D Header */}
           <div className="mb-4 md:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
             <div>
@@ -1098,39 +1103,38 @@ const PodStepTemplate = () => {
                 onImageUpload={(url) => handleImageUpload('reference', url)}
                 isUploading={isUploading && uploadingSection === 'reference'}
                 imageUrl={referenceImage}
-                onCommentChange={(comment) => {
+                onCommentChange={async (comment) => {
                   const oldComment = referenceComment;
                   setReferenceComment(comment);
-                  setAndPersistUnread('reference', true);
+                  setReferenceCommentAuthor(currentUserName);
+                  setReferenceCommentUnread(true);
                   if (oldComment !== comment) {
                     logWorkHistory('comment_update', `Updated reference comment`, 'comment', 'reference', oldComment, comment);
                   }
+                  await savePodData();
                 }}
                 comment={referenceComment}
+                commentAuthor={referenceCommentAuthor}
                 fileInputId="file-input-paste-image-link-ref"
                 onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded`)}
-                onRemove={() => {
+                onRemove={async () => {
                   const oldImage = referenceImage;
-                  const oldComment = referenceComment;
                   setReferenceImage(null);
-                  setReferenceComment('');
-                  setAndPersistUnread('reference', false);
                   logWorkHistory('image_remove', `Removed reference image`, 'reference_image', 'reference', oldImage, null);
-                  if (oldComment) {
-                    logWorkHistory('comment_remove', `Removed reference comment`, 'comment', 'reference', oldComment, null);
-                  }
+                  await savePodData();
                 }}
                 sectionType="reference"
                 onImageMove={(draggedUrl, fromSection, toSection) => {
-                  // Allow moving from design or final-0 to reference
                   if ((fromSection === 'design' || fromSection === 'final-0') && toSection === 'reference') {
                     setReferenceImage(draggedUrl);
                     if (fromSection === 'design') setDesignImage(null);
                     if (fromSection === 'final-0') setFinalImages([null]);
                   }
                 }}
-                isUnread={isReferenceCommentUnread}
-                onMarkAsRead={() => setAndPersistUnread('reference', false)}
+                isUnread={referenceCommentUnread}
+                onMarkAsRead={() => {
+                  setReferenceCommentUnread(false);
+                }}
               />
               <input 
                 type="file" 
@@ -1148,39 +1152,38 @@ const PodStepTemplate = () => {
                 onImageUpload={(url) => handleImageUpload('design', url)}
                 isUploading={isUploading && uploadingSection === 'design'}
                 imageUrl={designImage}
-                onCommentChange={(comment) => {
+                onCommentChange={async (comment) => {
                   const oldComment = designComment;
                   setDesignComment(comment);
-                  setAndPersistUnread('design', true);
+                  setDesignCommentAuthor(currentUserName);
+                  setDesignCommentUnread(true);
                   if (oldComment !== comment) {
                     logWorkHistory('comment_update', `Updated design comment`, 'comment', 'design', oldComment, comment);
                   }
+                  await savePodData();
                 }}
                 comment={designComment}
+                commentAuthor={designCommentAuthor}
                 fileInputId="file-input-design-upload"
                 onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded`)}
-                onRemove={() => {
+                onRemove={async () => {
                   const oldImage = designImage;
-                  const oldComment = designComment;
                   setDesignImage(null);
-                  setDesignComment('');
-                  setAndPersistUnread('design', false);
                   logWorkHistory('image_remove', `Removed design image`, 'design_image', 'design', oldImage, null);
-                  if (oldComment) {
-                    logWorkHistory('comment_remove', `Removed design comment`, 'comment', 'design', oldComment, null);
-                  }
+                  await savePodData();
                 }}
                 sectionType="design"
                 onImageMove={(draggedUrl, fromSection, toSection) => {
-                  // Allow moving from reference or final-0 to design
                   if (toSection === 'design') {
                     setDesignImage(draggedUrl);
                     if (fromSection === 'reference') setReferenceImage(null);
                     if (fromSection === 'final-0') setFinalImages([null]);
                   }
                 }}
-                isUnread={isDesignCommentUnread}
-                onMarkAsRead={() => setAndPersistUnread('design', false)}
+                isUnread={designCommentUnread}
+                onMarkAsRead={() => {
+                  setDesignCommentUnread(false);
+                }}
               />
               <input 
                 type="file" 
@@ -1198,38 +1201,33 @@ const PodStepTemplate = () => {
                 onImageUpload={(url) => handleImageUpload('final-0', url)}
                 isUploading={isUploading && uploadingSection === 'final-0'}
                 imageUrl={finalImages[0] || null}
-                onCommentChange={(comment) => {
+                onCommentChange={async (comment) => {
                   const oldComment = finalComments[0] || '';
                   const newComments = [...finalComments];
                   newComments[0] = comment;
                   setFinalComments(newComments);
-                  setAndPersistUnread('final-0', true);
+                  setFinalCommentAuthor(currentUserName);
+                  setFinalCommentUnread(true);
                   if (oldComment !== comment) {
                     logWorkHistory('comment_update', `Updated final design comment`, 'comment', 'final-0', oldComment, comment);
                   }
+                  await savePodData();
                 }}
                 comment={finalComments[0] || ''}
+                commentAuthor={finalCommentAuthor}
                 showSeeMore={true}
                 fileInputId="file-input-final-design-0"
                 onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded`)}
-                onRemove={() => {
+                onRemove={async () => {
                   const oldImage = finalImages[0];
-                  const oldComment = finalComments[0];
-                  const newImages = finalImages.filter((_, i) => i !== 0);
-                  const newComments = finalComments.filter((_, i) => i !== 0);
+                  const newImages = [...finalImages];
+                  newImages[0] = null;
                   setFinalImages(newImages);
-                  setFinalComments(newComments);
-                  setAndPersistUnread('final-0', false);
-                  if (oldImage) {
-                    logWorkHistory('image_remove', `Removed final design image`, 'final_image', 'final-0', oldImage, null);
-                  }
-                  if (oldComment) {
-                    logWorkHistory('comment_remove', `Removed final design comment`, 'comment', 'final-0', oldComment, null);
-                  }
+                  logWorkHistory('image_remove', `Removed final design image`, 'final_image', 'final-0', oldImage, null);
+                  await savePodData();
                 }}
                 sectionType="final-0"
                 onImageMove={(draggedUrl, fromSection, toSection) => {
-                  // Allow moving from reference or design to final-0
                   if (toSection === 'final-0') {
                     setFinalImages([draggedUrl]);
                     if (fromSection === 'reference') setReferenceImage(null);
@@ -1237,8 +1235,10 @@ const PodStepTemplate = () => {
                   }
                 }}
                 isFinalDesign={true}
-                isUnread={isFinalCommentUnread}
-                onMarkAsRead={() => setAndPersistUnread('final-0', false)}
+                isUnread={finalCommentUnread}
+                onMarkAsRead={() => {
+                  setFinalCommentUnread(false);
+                }}
               />
               <input 
                 type="file" 
@@ -1341,37 +1341,34 @@ const PodStepTemplate = () => {
                     onImageUpload={(url) => handleImageUpload(`row-${rowIndex}-reference`, url)}
                     isUploading={isUploading && uploadingSection === `row-${rowIndex}-reference`}
                     imageUrl={row.referenceImage}
-                    onCommentChange={(comment) => {
+                    onCommentChange={async (comment) => {
                       const oldComment = additionalDesignRows[rowIndex]?.referenceComment || '';
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].referenceComment = comment;
+                      newRows[rowIndex].referenceCommentAuthor = currentUserName;
+                      newRows[rowIndex].referenceCommentUnread = true;
                       setAdditionalDesignRows(newRows);
-                      setAndPersistAdditionalUnread(rowIndex, 'reference', true);
                       if (oldComment !== comment) {
                         logWorkHistory('comment_update', `Updated reference comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-reference`, oldComment, comment);
                       }
+                      await savePodData();
                     }}
                     comment={row.referenceComment || ''}
+                    commentAuthor={row.referenceCommentAuthor || ''}
                     fileInputId={`file-input-row-${rowIndex}-reference`}
                     onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
-                    onRemove={() => {
+                    onRemove={async () => {
                       const oldImage = additionalDesignRows[rowIndex]?.referenceImage;
-                      const oldComment = additionalDesignRows[rowIndex]?.referenceComment;
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].referenceImage = null;
-                      newRows[rowIndex].referenceComment = '';
                       setAdditionalDesignRows(newRows);
-                      setAndPersistAdditionalUnread(rowIndex, 'reference', false);
                       if (oldImage) {
                         logWorkHistory('image_remove', `Removed reference image for row ${rowIndex + 1}`, 'reference_image', `row-${rowIndex}-reference`, oldImage, null);
                       }
-                      if (oldComment) {
-                        logWorkHistory('comment_remove', `Removed reference comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-reference`, oldComment, null);
-                      }
+                      await savePodData();
                     }}
                     sectionType={`row-${rowIndex}-reference`}
                     onImageMove={(draggedUrl, fromSection, toSection) => {
-                      // Allow moving from design or final to reference in this row
                       if (toSection === `row-${rowIndex}-reference`) {
                         const newRows = [...additionalDesignRows];
                         newRows[rowIndex].referenceImage = draggedUrl;
@@ -1380,8 +1377,12 @@ const PodStepTemplate = () => {
                         setAdditionalDesignRows(newRows);
                       }
                     }}
-                    isUnread={!!(additionalRowsUnread[rowIndex]?.reference)}
-                    onMarkAsRead={() => setAndPersistAdditionalUnread(rowIndex, 'reference', false)}
+                    isUnread={!!row.referenceCommentUnread}
+                    onMarkAsRead={() => {
+                      const newRows = [...additionalDesignRows];
+                      newRows[rowIndex].referenceCommentUnread = false;
+                      setAdditionalDesignRows(newRows);
+                    }}
                   />
                   <input 
                     type="file" 
@@ -1399,37 +1400,34 @@ const PodStepTemplate = () => {
                     onImageUpload={(url) => handleImageUpload(`row-${rowIndex}-design`, url)}
                     isUploading={isUploading && uploadingSection === `row-${rowIndex}-design`}
                     imageUrl={row.designImage}
-                    onCommentChange={(comment) => {
+                    onCommentChange={async (comment) => {
                       const oldComment = additionalDesignRows[rowIndex]?.designComment || '';
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].designComment = comment;
+                      newRows[rowIndex].designCommentAuthor = currentUserName;
+                      newRows[rowIndex].designCommentUnread = true;
                       setAdditionalDesignRows(newRows);
-                      setAndPersistAdditionalUnread(rowIndex, 'design', true);
                       if (oldComment !== comment) {
                         logWorkHistory('comment_update', `Updated design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-design`, oldComment, comment);
                       }
+                      await savePodData();
                     }}
                     comment={row.designComment || ''}
+                    commentAuthor={row.designCommentAuthor || ''}
                     fileInputId={`file-input-row-${rowIndex}-design`}
                     onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
-                    onRemove={() => {
+                    onRemove={async () => {
                       const oldImage = additionalDesignRows[rowIndex]?.designImage;
-                      const oldComment = additionalDesignRows[rowIndex]?.designComment;
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].designImage = null;
-                      newRows[rowIndex].designComment = '';
                       setAdditionalDesignRows(newRows);
-                      setAndPersistAdditionalUnread(rowIndex, 'design', false);
                       if (oldImage) {
                         logWorkHistory('image_remove', `Removed design image for row ${rowIndex + 1}`, 'design_image', `row-${rowIndex}-design`, oldImage, null);
                       }
-                      if (oldComment) {
-                        logWorkHistory('comment_remove', `Removed design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-design`, oldComment, null);
-                      }
+                      await savePodData();
                     }}
                     sectionType={`row-${rowIndex}-design`}
                     onImageMove={(draggedUrl, fromSection, toSection) => {
-                      // Allow moving from reference or final to design in this row
                       if (toSection === `row-${rowIndex}-design`) {
                         const newRows = [...additionalDesignRows];
                         newRows[rowIndex].designImage = draggedUrl;
@@ -1438,8 +1436,12 @@ const PodStepTemplate = () => {
                         setAdditionalDesignRows(newRows);
                       }
                     }}
-                    isUnread={!!(additionalRowsUnread[rowIndex]?.design)}
-                    onMarkAsRead={() => setAndPersistAdditionalUnread(rowIndex, 'design', false)}
+                    isUnread={!!row.designCommentUnread}
+                    onMarkAsRead={() => {
+                      const newRows = [...additionalDesignRows];
+                      newRows[rowIndex].designCommentUnread = false;
+                      setAdditionalDesignRows(newRows);
+                    }}
                   />
                   <input 
                     type="file" 
@@ -1457,38 +1459,34 @@ const PodStepTemplate = () => {
                     onImageUpload={(url) => handleImageUpload(`row-${rowIndex}-final`, url)}
                     isUploading={isUploading && uploadingSection === `row-${rowIndex}-final`}
                     imageUrl={row.finalImage}
-                    onCommentChange={(comment) => {
+                    onCommentChange={async (comment) => {
                       const oldComment = additionalDesignRows[rowIndex]?.finalComment || '';
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].finalComment = comment;
+                      newRows[rowIndex].finalCommentAuthor = currentUserName;
+                      newRows[rowIndex].finalCommentUnread = true;
                       setAdditionalDesignRows(newRows);
-                      setAndPersistAdditionalUnread(rowIndex, 'final', true);
                       if (oldComment !== comment) {
                         logWorkHistory('comment_update', `Updated final design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-final`, oldComment, comment);
                       }
+                      await savePodData();
                     }}
                     comment={row.finalComment || ''}
-                    showSeeMore={true}
+                    commentAuthor={row.finalCommentAuthor || ''}
                     fileInputId={`file-input-row-${rowIndex}-final`}
                     onSeeMoreClick={() => navigate(`/project/${projectId}/pod/expanded/${rowIndex + 1}`)}
-                    onRemove={() => {
+                    onRemove={async () => {
                       const oldImage = additionalDesignRows[rowIndex]?.finalImage;
-                      const oldComment = additionalDesignRows[rowIndex]?.finalComment;
                       const newRows = [...additionalDesignRows];
                       newRows[rowIndex].finalImage = null;
-                      newRows[rowIndex].finalComment = '';
                       setAdditionalDesignRows(newRows);
-                      setAndPersistAdditionalUnread(rowIndex, 'final', false);
                       if (oldImage) {
                         logWorkHistory('image_remove', `Removed final design image for row ${rowIndex + 1}`, 'final_image', `row-${rowIndex}-final`, oldImage, null);
                       }
-                      if (oldComment) {
-                        logWorkHistory('comment_remove', `Removed final design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-final`, oldComment, null);
-                      }
+                      await savePodData();
                     }}
                     sectionType={`row-${rowIndex}-final`}
                     onImageMove={(draggedUrl, fromSection, toSection) => {
-                      // Allow moving from reference or design to final in this row
                       if (toSection === `row-${rowIndex}-final`) {
                         const newRows = [...additionalDesignRows];
                         newRows[rowIndex].finalImage = draggedUrl;
@@ -1497,9 +1495,12 @@ const PodStepTemplate = () => {
                         setAdditionalDesignRows(newRows);
                       }
                     }}
-                    isFinalDesign={true}
-                    isUnread={!!(additionalRowsUnread[rowIndex]?.final)}
-                    onMarkAsRead={() => setAndPersistAdditionalUnread(rowIndex, 'final', false)}
+                    isUnread={!!row.finalCommentUnread}
+                    onMarkAsRead={() => {
+                      const newRows = [...additionalDesignRows];
+                      newRows[rowIndex].finalCommentUnread = false;
+                      setAdditionalDesignRows(newRows);
+                    }}
                   />
                   <input 
                     type="file" 
@@ -1515,16 +1516,11 @@ const PodStepTemplate = () => {
                   />
                 </div>
               </div>
-              
-              {/* Remove Row Button */}
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={() => {
-                    setShowRemoveConfirm({ 
-                      show: true, 
-                      type: 'design_row', 
-                      itemId: rowIndex 
-                    });
+                    const newRows = additionalDesignRows.filter((_, i) => i !== rowIndex);
+                    setAdditionalDesignRows(newRows);
                   }}
                   className="px-4 py-2 text-red-500 bg-white border border-red-500 font-crimson font-semibold"
                   style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
@@ -1546,10 +1542,15 @@ const PodStepTemplate = () => {
                   finalImage: null,
                   referenceComment: '',
                   designComment: '',
-                  finalComment: ''
+                  finalComment: '',
+                  referenceCommentAuthor: '',
+                  designCommentAuthor: '',
+                  finalCommentAuthor: '',
+                  referenceCommentUnread: false,
+                  designCommentUnread: false,
+                  finalCommentUnread: false,
                 };
                 setAdditionalDesignRows([...additionalDesignRows, newRow]);
-                logWorkHistory('design_row_add', `Added design row ${additionalDesignRows.length + 1}`, 'design_row', `row-${additionalDesignRows.length}`, null, 'New design row created');
               }}
               className="w-full px-8 py-4 bg-white border border-black font-crimson font-semibold text-lg"
               style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0', color: '#646464' }}
@@ -1558,76 +1559,75 @@ const PodStepTemplate = () => {
             </button>
           </div>
         </div>
-
-        {/* Right vertical divider */}
-        <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
-
-        {/* ProjectSidebar - Hidden */}
-        <div className="hidden">
-          <ProjectSidebar projectId={projectId} onToggleSidebar={() => setIsSidebarVisible(false)} role={role} />
-        </div>
       </div>
-      
-      {/* Drive Link Modal */}
-      {showDriveLinkModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white p-6 min-w-[320px] max-w-[90vw] flex flex-col gap-4 border border-black" style={{ borderRadius: '0' }}>
-            <h2 className="text-lg font-bold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>Upload Drive Link</h2>
-            <p style={{ fontFamily: 'Crimson Pro, serif' }}>Enter the Google Drive link for this project:</p>
-            <input
-              type="url"
-              className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
-              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-              placeholder="https://drive.google.com/..."
-              value={driveLink}
-              onChange={e => setDriveLink(e.target.value)}
-              autoFocus
-            />
-            <div className="flex gap-2 justify-end mt-2">
+
+      {/* Delete Project Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <h3 className="text-lg font-bold mb-4" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
+              Delete Project
+            </h3>
+            <p className="text-sm text-gray-700 mb-4">
+              Are you sure you want to delete this project? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-2">
               <button
-                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-black bg-gray-200 border border-gray-300 font-crimson font-semibold text-xs md:text-sm"
                 style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                onClick={() => setShowDriveLinkModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                onClick={confirmDeleteProject}
+                className="px-4 py-2 text-white bg-red-600 border border-red-700 font-crimson font-semibold text-xs md:text-sm"
                 style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                onClick={handleDriveLinkUpdate}
               >
-                Update Drive Link
+                {isDeleting ? (
+                  <span className="loading loading-spinner loading-xs"></span>
+                ) : (
+                  'Delete Project'
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Remove Confirmation Modal */}
-      {showRemoveConfirm.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white p-6 min-w-[320px] max-w-[90vw] flex flex-col gap-4 border border-black" style={{ borderRadius: '0' }}>
-            <h2 className="text-lg font-bold mb-2 text-red-600" style={{ fontFamily: 'Crimson Pro, serif' }}>Confirm Removal</h2>
-            <p style={{ fontFamily: 'Crimson Pro, serif' }}>
-              {showRemoveConfirm.type === 'design_row' 
-                ? `Are you sure you want to remove Design Row ${showRemoveConfirm.itemId + 1}? This action cannot be undone.`
-                : 'Are you sure you want to remove this item? This action cannot be undone.'
-              }
-            </p>
-            <div className="flex gap-2 justify-end mt-2">
+      {/* Drive Link Modal */}
+      {showDriveLinkModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <h3 className="text-lg font-bold mb-4" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
+              Update Drive Link
+            </h3>
+            <input
+              type="text"
+              placeholder="Enter new drive link"
+              value={driveLink}
+              onChange={(e) => setDriveLink(e.target.value)}
+              className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold text-xs md:text-sm"
+              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+            />
+            <div className="flex justify-end space-x-2 mt-4">
               <button
-                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                onClick={() => setShowDriveLinkModal(false)}
+                className="px-4 py-2 text-black bg-gray-200 border border-gray-300 font-crimson font-semibold text-xs md:text-sm"
                 style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                onClick={() => setShowRemoveConfirm({ show: false, type: '', itemId: null })}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 text-red-500 bg-white border border-red-500 font-crimson font-semibold"
+                onClick={handleDriveLinkUpdate}
+                className="px-4 py-2 text-white bg-blue-600 border border-blue-700 font-crimson font-semibold text-xs md:text-sm"
                 style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                onClick={handleRemoveConfirm}
               >
-                Remove
+                {isDeleting ? (
+                  <span className="loading loading-spinner loading-xs"></span>
+                ) : (
+                  'Update Drive Link'
+                )}
               </button>
             </div>
           </div>
@@ -1636,112 +1636,35 @@ const PodStepTemplate = () => {
 
       {/* Work History Modal */}
       {showWorkHistory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white p-6 min-w-[600px] max-w-[90vw] max-h-[80vh] flex flex-col gap-4 border border-black overflow-hidden" style={{ borderRadius: '0' }}>
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold" style={{ fontFamily: 'Crimson Pro, serif' }}>Work History</h2>
-              <button
-                onClick={() => setShowWorkHistory(false)}
-                className="text-2xl font-light hover:text-gray-600"
-                style={{ fontFamily: 'Crimson Pro, serif' }}
-              >
-                ×
-              </button>
-            </div>
-            <p className="text-xs text-gray-500" style={{ fontFamily: 'Crimson Pro, serif' }}>
-              Shows all actions performed on this project. Users are identified by their names or email addresses.
-            </p>
-            <div className="flex-1 overflow-y-auto">
-              {workHistory.length === 0 ? (
-                <p className="text-gray-500 text-center py-8" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                  No work history available yet.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {workHistory.map((entry) => (
-                    <div key={entry.id} className="border border-gray-200 p-3 bg-gray-50">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-semibold text-sm" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                          {entry.action_description}
-                        </span>
-                        <span className="text-xs text-gray-500" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                          {new Date(entry.created_at).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-600" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                        <span className="font-medium">Action:</span> {entry.action_type}
-                        {entry.entity_type && (
-                          <>
-                            <span className="mx-2">•</span>
-                            <span className="font-medium">Type:</span> {entry.entity_type}
-                          </>
-                        )}
-                        <span className="mx-2">•</span>
-                        <span className="font-medium">User:</span> {userMap[entry.user_id]?.name || userMap[entry.user_id]?.email || entry.user_id?.slice(0, 8) + '...'}
-                      </div>
-                      {entry.old_value && (
-                        <div className="text-xs text-gray-500 mt-1" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                          <span className="font-medium">Previous:</span> {entry.old_value}
-                        </div>
-                      )}
-                      {entry.new_value && (
-                        <div className="text-xs text-gray-500 mt-1" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                          <span className="font-medium">New:</span> {entry.new_value}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-4xl h-full">
+            <h3 className="text-lg font-bold mb-4" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
+              Work History
+            </h3>
+            <div className="overflow-y-auto h-[calc(100%-100px)]">
+              {workHistory.map((entry, index) => (
+                <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                  <div>
+                    <p className="text-sm font-crimson font-semibold" style={{ fontFamily: 'Crimson Pro, serif' }}>
+                      {userMap[entry.user_id]?.name || 'Unknown User'}
+                    </p>
+                    <p className="text-xs text-gray-500" style={{ fontFamily: 'Crimson Pro, serif' }}>
+                      {new Date(entry.created_at).toLocaleDateString('en-GB')}
+                    </p>
+                  </div>
+                  <div className="text-sm text-gray-700" style={{ fontFamily: 'Crimson Pro, serif' }}>
+                    {entry.action_description}
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
-            <div className="flex justify-end pt-2 border-t border-gray-200">
+            <div className="flex justify-end mt-4">
               <button
                 onClick={() => setShowWorkHistory(false)}
-                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
+                className="px-4 py-2 text-black bg-gray-200 border border-gray-300 font-crimson font-semibold text-xs md:text-sm"
                 style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
               >
                 Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white p-6 min-w-[320px] max-w-[90vw] flex flex-col gap-4 border border-black" style={{ borderRadius: '0' }}>
-            <h2 className="text-lg font-bold mb-2 text-red-600" style={{ fontFamily: 'Crimson Pro, serif' }}>Confirm Project Deletion</h2>
-            <p style={{ fontFamily: 'Crimson Pro, serif' }}>To confirm deletion, type the project name below:</p>
-            <div className="mb-2">
-              <span className="font-semibold" style={{ fontFamily: 'Crimson Pro, serif' }}>Project Name:</span> <span className="italic">{project?.name}</span>
-            </div>
-            <input
-              type="text"
-              className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
-              style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-              placeholder="Type project name to confirm"
-              value={deleteInput}
-              onChange={e => setDeleteInput(e.target.value)}
-              disabled={isDeleting}
-              autoFocus
-            />
-            <div className="flex gap-2 justify-end mt-2">
-              <button
-                className="px-4 py-2 text-black bg-white border border-black font-crimson font-semibold"
-                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                onClick={() => { setShowDeleteModal(false); setDeleteInput(''); }}
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 text-red-500 bg-white border border-red-500 font-crimson font-semibold"
-                style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                onClick={confirmDeleteProject}
-                disabled={deleteInput !== project?.name || isDeleting}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
@@ -1751,4 +1674,4 @@ const PodStepTemplate = () => {
   );
 };
 
-export default PodStepTemplate; 
+export default PodStepTemplate;

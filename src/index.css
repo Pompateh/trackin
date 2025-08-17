@@ -1,10 +1,15 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Hide scrollbar and prevent scrolling globally */
--body {
-  overflow: hidden !important;
+/* Hide scrollbar globally, but allow scrolling */
+*::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
 }
 
 /* Utility to hide scrollbars */
@@ -24,14 +29,21 @@
   scrollbar-width: none;     /* Firefox */
 }
 
-/* Universal scrollbar hide for all elements */
-*::-webkit-scrollbar {
-  display: none !important;
+/* Custom visible scrollbar styles */
+.scrollbar-visible {
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f1f1f1;
 }
-* {
-  -ms-overflow-style: none !important;  /* IE and Edge */
-  scrollbar-width: none !important;     /* Firefox */
-} 
+.scrollbar-visible::-webkit-scrollbar {
+  width: 12px;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background: #888;
+
+}
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
 
 /* Font family utilities */
 .font-gothic-a1 {
