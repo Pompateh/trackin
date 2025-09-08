@@ -102,13 +102,13 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
       );
     }
     
-    // Special handling for Brief section - don't navigate, just call onSelectSection
+    // Brief section - now works like other regular sections
     if (section.title === 'Brief') {
       return (
-        <div
+        <Link
+          to={`/project/${projectId}/step/${sectionSlug}`}
           key={section.id}
-          className={`block border-b border-black ${idx === 0 ? 'border-t border-black' : ''} cursor-pointer h-full flex-1`}
-          onClick={() => onSelectSection(section)}
+          className={`block border-b border-black ${idx === 0 ? 'border-t border-black' : ''} h-full flex-1`}
         >
           <div className={`flex justify-between items-stretch px-3 cursor-pointer h-full`}>
             <span className={`${isSubsection ? '' : 'font-crimson font-semibold text-[25px]'} flex-1`} style={{flexBasis: '80%', flexGrow: 0, flexShrink: 0}}>
@@ -130,7 +130,7 @@ const SectionList = ({ projectId, onSelectSection, selectedSection, isAdmin }) =
               )}
             </div>
           </div>
-        </div>
+        </Link>
       );
     }
 

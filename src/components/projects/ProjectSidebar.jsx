@@ -147,7 +147,7 @@ const ProjectSidebar = ({ projectId, onToggleSidebar, role, projectName }) => {
           .hide-scrollbar::-webkit-scrollbar { display: none; }
           .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
         `}</style>
-        <div className="flex items-center justify-between px-0 sticky top-0 bg-white border-b border-black hide-scrollbar" style={{height: '60px', zIndex: 100, position: 'sticky', top: 0, background: '#D9D9D9'}}>
+        <div className="flex items-center justify-between px-0 sticky top-0 bg-white border-b border-black hide-scrollbar" style={{height: '60px', zIndex: 10, position: 'sticky', top: 0, background: '#D9D9D9'}}>
           <span className="font-gothic font-bold" style={{ fontFamily: 'Gothic A1, sans-serif', fontWeight: 700, fontSize: '25px', paddingLeft: '16px' }}>TASK</span>
           <button className="flex items-center justify-center text-black border-none bg-transparent hover:bg-gray-100" style={{ fontSize: '2rem', width: '60px', height: '100%', borderRadius: 0, marginRight: '8px' }} onClick={() => setIsTaskModalOpen(true)}>
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>

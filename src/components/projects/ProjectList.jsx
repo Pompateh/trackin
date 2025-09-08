@@ -23,7 +23,10 @@ const ProjectList = ({ projects, onProjectUpdated }) => {
   return (
     <div className="w-full">
       {rows.map((row, rowIndex) => (
-        <div key={rowIndex} className="flex w-full px-2 pr-6 gap-2">
+        <div
+          key={rowIndex}
+          className={`flex w-full px-2 pr-6 gap-2 ${rowIndex === rows.length - 1 ? 'pb-8' : ''}`}
+        >
           {row.map((project, idx) => {
             const isLastInLastRow = rowIndex === rows.length - 1;
             return (

@@ -414,15 +414,15 @@ const PodStepTemplate = () => {
               switch (imageType) {
                 case 'reference':
                   newRows[rowIndex].referenceImage = imageUrl;
-                  logWorkHistory('image_upload', `Uploaded reference image for row ${rowIndex + 1}`, 'reference_image', section, null, imageUrl);
+                  logWorkHistory('image_upload', `Uploaded reference image for row ${rowIndex + 2}`, 'reference_image', section, null, imageUrl);
                   break;
                 case 'design':
                   newRows[rowIndex].designImage = imageUrl;
-                  logWorkHistory('image_upload', `Uploaded design image for row ${rowIndex + 1}`, 'design_image', section, null, imageUrl);
+                  logWorkHistory('image_upload', `Uploaded design image for row ${rowIndex + 2}`, 'design_image', section, null, imageUrl);
                   break;
                 case 'final':
                   newRows[rowIndex].finalImage = imageUrl;
-                  logWorkHistory('image_upload', `Uploaded final design image for row ${rowIndex + 1}`, 'final_image', section, null, imageUrl);
+                  logWorkHistory('image_upload', `Uploaded final design image for row ${rowIndex + 2}`, 'final_image', section, null, imageUrl);
                   break;
               }
               setAdditionalDesignRows(newRows);
@@ -602,7 +602,7 @@ const PodStepTemplate = () => {
       newRows[rowIndex].scaleList = [...(newRows[rowIndex].scaleList || [])]; // Create a new array reference
       newRows[rowIndex].scaleList[scaleIndex] = editingScaleValue;
       setAdditionalDesignRows(newRows);
-      logWorkHistory('scale_update', `Updated scale for row ${rowIndex + 1}`, 'scale', `row-${rowIndex}-${scaleIndex}`, oldValue, editingScaleValue);
+      logWorkHistory('scale_update', `Updated scale for row ${rowIndex + 2}`, 'scale', `row-${rowIndex}-${scaleIndex}`, oldValue, editingScaleValue);
     } else {
       // Main scale list
       const oldValue = scaleList[index] || '';
@@ -645,7 +645,7 @@ const PodStepTemplate = () => {
       setAdditionalDesignRows(newRows);
       setEditingScaleIndex(`${rowIndex}-${newRows[rowIndex].scaleList.length - 1}`);
       setEditingScaleValue(newScaleItem);
-      logWorkHistory('scale_add', `Added scale for row ${rowIndex + 1}`, 'scale', `row-${rowIndex}`, null, newScaleItem);
+      logWorkHistory('scale_add', `Added scale for row ${rowIndex + 2}`, 'scale', `row-${rowIndex}`, null, newScaleItem);
     } else {
       // Main scale list
       const existingNumbers = scaleList
@@ -680,7 +680,7 @@ const PodStepTemplate = () => {
       newRows[rowIndex] = { ...newRows[rowIndex] }; // Create a new object reference
       newRows[rowIndex].scaleList = (newRows[rowIndex].scaleList || []).filter((_, i) => i !== scaleIndex);
       setAdditionalDesignRows(newRows);
-      logWorkHistory('scale_delete', `Deleted scale for row ${rowIndex + 1}`, 'scale', `row-${rowIndex}-${scaleIndex}`, deletedValue, null);
+      logWorkHistory('scale_delete', `Deleted scale for row ${rowIndex + 2}`, 'scale', `row-${rowIndex}-${scaleIndex}`, deletedValue, null);
     } else {
       // Main scale list
       const deletedValue = scaleList[index] || '';
@@ -749,7 +749,7 @@ const PodStepTemplate = () => {
       setAdditionalDesignRows(newRows);
       
       // Log the removal
-      logWorkHistory('design_row_remove', `Removed design row ${rowIndex + 1}`, 'design_row', `row-${rowIndex}`, 'Design row with content', null);
+      logWorkHistory('design_row_remove', `Removed design row ${rowIndex + 2}`, 'design_row', `row-${rowIndex}`, 'Design row with content', null);
     }
     
     setShowRemoveConfirm({ show: false, type: '', itemId: null });
@@ -965,12 +965,12 @@ const PodStepTemplate = () => {
           )}
         </button>
       </div>
-      <div className="flex w-full h-full">
+      <div className="flex w-full flex-1 min-h-0">
         {/* Left vertical divider */}
         <div className="h-full w-5 border-r border-t border-l border-b bir border-black flex flex-col items-end mr-0" style={{backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, #222 39px, #222 40px)'}}></div>
         
         {/* Main content */}
-        <div className="flex-1 h-full border-t border-b border-black transition-all duration-300 p-2 md:p-4 overflow-y-scroll scrollbar-visible">
+        <div className="flex-1 min-h-0 border-t border-b border-black transition-all duration-300 p-2 md:p-4 overflow-y-scroll scrollbar-visible">
           {/* P.O.D Header */}
           <div className="mb-4 md:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
             <div>
@@ -1257,9 +1257,9 @@ const PodStepTemplate = () => {
 
           {/* Additional Design Rows */}
           {additionalDesignRows.map((row, rowIndex) => (
-            <div key={rowIndex} className="mt-8">
+            <div key={rowIndex} id={`design-row-${rowIndex}`} className="mt-8">
               <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 700 }}>
-                Design Row {rowIndex + 1}
+                Design Row {rowIndex + 2}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4" style={{ minHeight: '600px' }}>
                 {/* Scale List Column */}
@@ -1349,7 +1349,7 @@ const PodStepTemplate = () => {
                       newRows[rowIndex].referenceCommentUnread = true;
                       setAdditionalDesignRows(newRows);
                       if (oldComment !== comment) {
-                        logWorkHistory('comment_update', `Updated reference comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-reference`, oldComment, comment);
+                        logWorkHistory('comment_update', `Updated reference comment for row ${rowIndex + 2}`, 'comment', `row-${rowIndex}-reference`, oldComment, comment);
                       }
                       await savePodData();
                     }}
@@ -1363,7 +1363,7 @@ const PodStepTemplate = () => {
                       newRows[rowIndex].referenceImage = null;
                       setAdditionalDesignRows(newRows);
                       if (oldImage) {
-                        logWorkHistory('image_remove', `Removed reference image for row ${rowIndex + 1}`, 'reference_image', `row-${rowIndex}-reference`, oldImage, null);
+                        logWorkHistory('image_remove', `Removed reference image for row ${rowIndex + 2}`, 'reference_image', `row-${rowIndex}-reference`, oldImage, null);
                       }
                       await savePodData();
                     }}
@@ -1408,7 +1408,7 @@ const PodStepTemplate = () => {
                       newRows[rowIndex].designCommentUnread = true;
                       setAdditionalDesignRows(newRows);
                       if (oldComment !== comment) {
-                        logWorkHistory('comment_update', `Updated design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-design`, oldComment, comment);
+                        logWorkHistory('comment_update', `Updated design comment for row ${rowIndex + 2}`, 'comment', `row-${rowIndex}-design`, oldComment, comment);
                       }
                       await savePodData();
                     }}
@@ -1422,7 +1422,7 @@ const PodStepTemplate = () => {
                       newRows[rowIndex].designImage = null;
                       setAdditionalDesignRows(newRows);
                       if (oldImage) {
-                        logWorkHistory('image_remove', `Removed design image for row ${rowIndex + 1}`, 'design_image', `row-${rowIndex}-design`, oldImage, null);
+                        logWorkHistory('image_remove', `Removed design image for row ${rowIndex + 2}`, 'design_image', `row-${rowIndex}-design`, oldImage, null);
                       }
                       await savePodData();
                     }}
@@ -1467,7 +1467,7 @@ const PodStepTemplate = () => {
                       newRows[rowIndex].finalCommentUnread = true;
                       setAdditionalDesignRows(newRows);
                       if (oldComment !== comment) {
-                        logWorkHistory('comment_update', `Updated final design comment for row ${rowIndex + 1}`, 'comment', `row-${rowIndex}-final`, oldComment, comment);
+                        logWorkHistory('comment_update', `Updated final design comment for row ${rowIndex + 2}`, 'comment', `row-${rowIndex}-final`, oldComment, comment);
                       }
                       await savePodData();
                     }}
@@ -1481,7 +1481,7 @@ const PodStepTemplate = () => {
                       newRows[rowIndex].finalImage = null;
                       setAdditionalDesignRows(newRows);
                       if (oldImage) {
-                        logWorkHistory('image_remove', `Removed final design image for row ${rowIndex + 1}`, 'final_image', `row-${rowIndex}-final`, oldImage, null);
+                        logWorkHistory('image_remove', `Removed final design image for row ${rowIndex + 2}`, 'final_image', `row-${rowIndex}-final`, oldImage, null);
                       }
                       await savePodData();
                     }}
@@ -1550,7 +1550,15 @@ const PodStepTemplate = () => {
                   designCommentUnread: false,
                   finalCommentUnread: false,
                 };
+                const newIndex = additionalDesignRows.length;
                 setAdditionalDesignRows([...additionalDesignRows, newRow]);
+                // Smoothly scroll to the newly added row after it mounts
+                setTimeout(() => {
+                  const el = document.getElementById(`design-row-${newIndex}`);
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 0);
               }}
               className="w-full px-8 py-4 bg-white border border-black font-crimson font-semibold text-lg"
               style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0', color: '#646464' }}

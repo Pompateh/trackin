@@ -218,11 +218,11 @@ const TextAndImageContent = ({ item }) => {
               textShadow: '0 1px 2px rgba(0,0,0,0.5)'
             }}>
               {item.body_text}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
+  </div>
   );
 };
 
@@ -306,23 +306,48 @@ const splitGridIntoPages = (gridItems, maxRowsPerPage = 3) => {
   return pages;
 };
 
-const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) => {
+const PrintableProject = ({ project, sections, gridItems, pdfMode, previewMode = 'all', selectedSteps = [], selectedConceptSubsections = [] }) => {
   // Filter grid items to only include items from the current project
   const projectGridItems = gridItems?.filter(item => item.project_id === project?.id) || [];
   
   // Get all unique section titles from grid items (these are URL-encoded)
   const sectionTitles = [...new Set(projectGridItems.map(item => item.section_id_text).filter(Boolean))];
 
-  // For PDF, include all sections that have content; for screen, filter as before
-  const sectionsToRender = pdfMode
-    ? (sections?.filter(section => {
-        const sectionUrl = sectionTitleToUrl(section.title);
-        const hasContent = projectGridItems.some(item => 
-          item.section_id_text === sectionUrl && !item.is_hidden
-        );
-        return hasContent;
-      }) || [])
-    : (sections?.filter(section => sectionTitles.includes(sectionTitleToUrl(section.title))) || []);
+  // Filter sections based on preview mode
+  let sectionsToRender = [];
+  
+  if (previewMode === 'all') {
+    // Show all sections with content (original behavior)
+    sectionsToRender = pdfMode
+      ? (sections?.filter(section => {
+          const sectionUrl = sectionTitleToUrl(section.title);
+          const hasContent = projectGridItems.some(item => 
+            item.section_id_text === sectionUrl && !item.is_hidden
+          );
+          return hasContent;
+        }) || [])
+      : (sections?.filter(section => sectionTitles.includes(sectionTitleToUrl(section.title))) || []);
+  } else if (previewMode === 'individual') {
+    // Show only selected individual steps
+    sectionsToRender = sections?.filter(section => {
+      const sectionId = section.id;
+      return selectedSteps.includes(sectionId);
+    }) || [];
+  } else if (previewMode === 'concept') {
+    // Show Concept & Direction main section + selected subsections
+    const conceptSection = sections?.find(section => section.title === 'Concept & Direction');
+    if (conceptSection) {
+      sectionsToRender = [conceptSection];
+      
+      // Add selected subsections
+      if (selectedConceptSubsections.length > 0) {
+        const subsectionSections = sections?.filter(section => 
+          selectedConceptSubsections.includes(section.title)
+        ) || [];
+        sectionsToRender = [...sectionsToRender, ...subsectionSections];
+      }
+    }
+  }
 
   // Add debugging information
   console.log('PrintableProject Debug:', {
@@ -335,6 +360,9 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
     sectionsWithContentCount: sectionsToRender.length,
     gridItemsSample: projectGridItems.slice(0, 3),
     pdfMode,
+    previewMode,
+    selectedSteps,
+    selectedConceptSubsections,
     sectionsToRender: sectionsToRender.map(s => s.title)
   });
 
@@ -415,7 +443,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
       <div style={{ 
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
-        padding: '40px 30px',
+        padding: pdfMode ? '20px 15px' : '40px 30px',
         textAlign: 'center',
         marginBottom: '0'
       }}>
@@ -440,146 +468,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
       </div>
       
       {/* Content Area */}
-      <div style={{ padding: '30px' }}>
-                {/* Brief Section */}
-        {briefData && (
-          <div
-            className={pdfMode ? 'printable-step' : ''}
-            style={{
-              marginBottom: pdfMode ? '0' : '20px',
-              pageBreakInside: 'avoid',
-              pageBreakBefore: pdfMode ? 'auto' : 'auto',
-              background: '#fff',
-              boxSizing: 'border-box',
-              padding: pdfMode ? '10px' : '20px',
-              display: pdfMode ? 'flex' : 'block',
-              flexDirection: pdfMode ? 'column' : 'block',
-              position: pdfMode ? 'relative' : 'static',
-              overflow: pdfMode ? 'hidden' : 'visible',
-              // Remove fixed height constraints to match template editor
-              minHeight: pdfMode ? 'auto' : 'auto',
-              maxHeight: pdfMode ? 'none' : 'none',
-              height: pdfMode ? 'auto' : 'auto',
-              width: '100%'
-            }}
-          >
-            <h2 style={{ 
-              fontSize: '18px', 
-              fontWeight: 'bold',
-              marginBottom: '15px',
-              color: '#333',
-              fontFamily: '"Crimson Pro", serif'
-            }}>
-              Brief
-            </h2>
-            {/* Grid Layout - 8 columns total */}
-            <div style={{ 
-              display: 'grid',
-              gridTemplateColumns: 'repeat(8, 1fr)',
-              gap: '10px 5px',
-              alignItems: 'stretch',
-              justifyContent: 'stretch',
-              // Use same aspect ratio as template editor
-              aspectRatio: '420/297',
-              width: '100%',
-              height: pdfMode ? 'auto' : '400px',
-              maxWidth: '100%',
-              maxHeight: pdfMode ? 'none' : 'none',
-              margin: '0',
-              background: '#fff',
-              boxSizing: 'border-box',
-              flex: pdfMode ? 1 : 'none',
-            }}>
-              {/* Text Content - 4 columns */}
-              <div style={{ 
-                gridColumn: `${briefData.text_grid_col || 1} / span ${briefData.text_grid_col_span || 4}`,
-                gridRow: `${briefData.text_grid_row || 1} / span ${briefData.text_grid_row_span || 1}`,
-                padding: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: briefData.text_vertical_align === 'top' ? 'flex-start' : 
-                               briefData.text_vertical_align === 'center' ? 'center' : 'flex-end',
-                alignItems: briefData.text_horizontal_align === 'left' ? 'flex-start' : 
-                           briefData.text_horizontal_align === 'center' ? 'center' : 'flex-end',
-                textAlign: briefData.text_horizontal_align === 'left' ? 'left' : 
-                          briefData.text_horizontal_align === 'center' ? 'center' : 'right',
-                background: 'transparent'
-              }}>
-                {briefData.is_title_visible && briefData.title_text && (
-                  <div style={{ 
-                    fontWeight: briefData.title_bold ? 'bold' : 'normal', 
-                    fontStyle: briefData.title_italic ? 'italic' : 'normal',
-                    textDecoration: briefData.title_underline ? 'underline' : 'none',
-                    fontSize: `${briefData.title_font_size || 20}px`, 
-                    marginBottom: '8px',
-                    fontFamily: briefData.title_font_family === 'crimson pro' ? '"Crimson Pro", serif' : '"Gothic A1", sans-serif',
-                    lineHeight: '1.2',
-                    color: '#222'
-                  }}>
-                    {briefData.title_text}
-                  </div>
-                )}
-                {briefData.is_subtitle_visible && briefData.subtitle_text && (
-                  <div style={{ 
-                    fontWeight: briefData.subtitle_bold ? 'bold' : 'normal', 
-                    fontStyle: briefData.subtitle_italic ? 'italic' : 'normal',
-                    textDecoration: briefData.subtitle_underline ? 'underline' : 'none',
-                    fontSize: `${briefData.subtitle_font_size || 14}px`, 
-                    color: '#666', 
-                    marginBottom: '6px',
-                    fontFamily: briefData.subtitle_font_family === 'crimson pro' ? '"Crimson Pro", serif' : '"Gothic A1", sans-serif',
-                    lineHeight: '1.3'
-                  }}>
-                    {briefData.subtitle_text}
-                  </div>
-                )}
-                {briefData.is_body_visible && briefData.body_text && (
-                  <div style={{ 
-                    fontWeight: briefData.body_bold ? 'bold' : 'normal', 
-                    fontStyle: briefData.body_italic ? 'italic' : 'normal',
-                    textDecoration: briefData.body_underline ? 'underline' : 'none',
-                    fontSize: `${briefData.body_font_size || 12}px`, 
-                    lineHeight: '1.4',
-                    fontFamily: briefData.subtitle_font_family === 'crimson pro' ? '"Crimson Pro", serif' : '"Gothic A1", sans-serif',
-                    color: '#333'
-                  }}>
-                    {briefData.body_text}
-                  </div>
-                )}
-              </div>
-
-              {/* Image Content - 4 columns */}
-              {briefData.image_url && (
-                <div style={{ 
-                  gridColumn: `${briefData.image_grid_col || 5} / span ${briefData.image_grid_col_span || 4}`,
-                  gridRow: `${briefData.image_grid_row || 1} / span ${briefData.image_grid_row_span || 1}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '10px',
-                  background: 'transparent',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
-                  <img 
-                    src={briefData.image_url} 
-                    alt="Brief image"
-                    style={{
-                      position: 'absolute',
-                      left: briefData.image_position_x || 0,
-                      top: briefData.image_position_y || 0,
-                      maxWidth: 'none',
-                      maxHeight: 'none',
-                      transform: `scale(${briefData.image_scale || 1})`,
-                      transformOrigin: 'top left',
-                      objectFit: 'contain'
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+      <div style={{ padding: pdfMode ? '8px' : '15px' }}>
         
         {/* Render each section with its grid content */}
         {sectionsToRender.map((section, sectionIndex) => {
@@ -615,6 +504,9 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                 <div
                   key={`${section.title}-pdfpage-${pageIndex}`}
                   className="printable-step"
+                  data-step-title={section.title}
+                  data-section-id-text={sectionTitleToUrl(section.title)}
+                  data-page-index={pageIndex}
                   style={{
                     marginBottom: '0',
                     pageBreakInside: 'avoid',
@@ -655,7 +547,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                     // Add grid alignment debug overlay for PDF mode
                     position: 'relative',
                   }}>
-                    {/* Grid alignment debug overlay - only visible in PDF mode */}
+                    {/* Grid alignment debug overlay - now transparent */}
                     {pdfMode && (
                       <div style={{
                         position: 'absolute',
@@ -665,10 +557,10 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                         bottom: 0,
                         pointerEvents: 'none',
                         zIndex: 1,
-                        background: 'rgba(255, 0, 0, 0.1)',
-                        border: '1px solid rgba(255, 0, 0, 0.3)',
+                        background: 'transparent',
+                        border: 'none',
                       }}>
-                        {/* Grid lines overlay */}
+                        {/* Grid lines overlay - now transparent */}
                         {Array.from({ length: NUM_COLS + 1 }, (_, i) => (
                           <div key={`col-${i}`} style={{
                             position: 'absolute',
@@ -676,7 +568,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                             top: 0,
                             bottom: 0,
                             width: '1px',
-                            background: 'rgba(255, 0, 0, 0.2)',
+                            background: 'transparent',
                           }} />
                         ))}
                         {Array.from({ length: rows + 1 }, (_, i) => (
@@ -686,7 +578,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                             left: 0,
                             right: 0,
                             height: '1px',
-                            background: 'rgba(255, 0, 0, 0.2)',
+                            background: 'transparent',
                           }} />
                         ))}
                       </div>
@@ -760,6 +652,9 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
                 <div
                   key={`${section.title}-page-${pageNum}`}
                   className={pdfMode ? 'printable-step' : ''}
+                  data-step-title={section.title}
+                  data-section-id-text={sectionTitleToUrl(section.title)}
+                  data-page-index={pageIndex}
                   style={{
                     marginBottom: '20px',
                     pageBreakInside: 'avoid',
@@ -892,7 +787,7 @@ const PrintableProject = ({ project, sections, gridItems, briefData, pdfMode }) 
       {/* Footer */}
       <div style={{ 
         background: '#f8f9fa',
-        padding: '20px 30px',
+        padding: pdfMode ? '10px 15px' : '20px 30px',
         borderTop: '1px solid #e9ecef',
         textAlign: 'center',
         color: '#666',

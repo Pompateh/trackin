@@ -91,7 +91,8 @@ const TaskList = ({ projectId, sectionId, onSelectTask, selectedTask, tasks = []
                             top: dropdownPosition.top,
                             width: dropdownPosition.width,
                             position: 'absolute',
-                            overflow: 'visible'
+                            overflow: 'visible',
+                            zIndex: 40
                           }}
                         >
                           {STATUS_OPTIONS.map(opt => (

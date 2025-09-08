@@ -1002,57 +1002,6 @@ const StepTemplate = () => {
     setSelectedGrids(new Set()); // Deselect after action
   };
 
-  const handleAddRow = async () => {
-    const newRowsCount = rows + 1;
-    
-    const newItems = [];
-    const dbItemsToUpsert = [];
-
-    for (let c = 1; c <= NUM_COLS; c++) {
-      const newItem = createDefaultGridItem(newRowsCount, c);
-      newItems.push(newItem);
-      dbItemsToUpsert.push(mapStateToDb(newItem, projectId, sectionId));
-    }
-
-    const { error } = await supabase.from('grid_items').upsert(dbItemsToUpsert, {
-      onConflict: 'project_id,section_id_text,grid_item_id'
-    });
-
-    if (error) {
-      console.error("Error adding new row:", JSON.stringify(error, null, 2));
-      return;
-    }
-
-    setGridItems(prevItems => [...prevItems, ...newItems]);
-    setRows(newRowsCount);
-  };
-
-  const handleRemoveRow = async () => {
-    if (rows <= MIN_ROWS) return;
-
-    const lastRow = rows;
-    const itemIdsToDelete = gridItems
-      .filter(item => item.row === lastRow)
-      .map(item => item.grid_item_id);
-
-    if (itemIdsToDelete.length > 0) {
-      const { error } = await supabase
-        .from('grid_items')
-        .delete()
-        .eq('project_id', projectId)
-        .eq('section_id_text', sectionId)
-        .in('grid_item_id', itemIdsToDelete);
-
-      if (error) {
-        console.error("Error removing row:", JSON.stringify(error, null, 2));
-        return;
-      }
-    }
-
-    setGridItems(prevItems => prevItems.filter(item => item.row < lastRow));
-    setRows(lastRow - 1);
-  };
-
   // --- Data Fetching and Saving ---
   useEffect(() => {
     const fetchProjectName = async () => {
@@ -1463,13 +1412,6 @@ const StepTemplate = () => {
                   >
                     Multi-Select{isMultiSelectMode ? ' ON' : ''}
                   </button>
-                  <div className="w-full flex border border-black border-t-0 rounded-none bg-white" style={{height: '40px'}}>
-                    <div className="flex-1 flex items-center justify-center border-r border-black text-xl font-bold cursor-pointer select-none" style={{height: '100%'}} onClick={handleRemoveRow} role="button" tabIndex={0} aria-label="Remove Row" >-</div>
-                    <div className="flex-1 flex items-center justify-center text-base font-serif border-r border-black" style={{height: '100%'}}>
-                      <span>{rows} rows</span>
-                    </div>
-                    <div className="flex-1 flex items-center justify-center text-xl font-bold cursor-pointer select-none" style={{height: '100%'}} onClick={handleAddRow} role="button" tabIndex={0} aria-label="Add Row" >+</div>
-                  </div>
                 </div>
               </div>
 

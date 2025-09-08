@@ -45,7 +45,9 @@ const QaEditor = () => {
       .from('qa_data')
       .select('*')
       .eq('project_id', projectId)
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching Q&A data:', error);
@@ -99,31 +101,66 @@ const QaEditor = () => {
     }
   };
 
-  const saveQaData = async (updates = {}) => {
+  const saveQaData = async (updates = {}, options = { merge: true }) => {
     if (!projectId) return;
 
-    const updatedData = { ...qaData, ...updates };
+    const updatedData = options.merge ? { ...qaData, ...updates } : { ...updates };
     setQaData(updatedData);
 
     console.log('QaEditor - Saving Q&A data:', updatedData);
 
-    const { error } = await supabase
-      .from('qa_data')
-      .upsert({
-        project_id: projectId,
-        ...updatedData,
-        updated_at: new Date().toISOString()
-      });
+    try {
+      // Check if a row exists for this project
+      const { data: existing, error: selectError } = await supabase
+        .from('qa_data')
+        .select('project_id')
+        .eq('project_id', projectId)
+        .maybeSingle();
 
-    if (error) {
-      console.error('Error saving Q&A data:', error);
-    } else {
-      console.log('QaEditor - Q&A data saved successfully');
+      if (selectError) {
+        console.error('Error checking existing Q&A row:', selectError);
+        return;
+      }
+
+      if (existing) {
+        const { error: updateError } = await supabase
+          .from('qa_data')
+          .update({
+            ...updatedData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('project_id', projectId);
+
+        if (updateError) {
+          console.error('Error saving Q&A data (update):', updateError);
+        } else {
+          console.log('QaEditor - Q&A data updated successfully');
+        }
+      } else {
+        const { error: insertError } = await supabase
+          .from('qa_data')
+          .insert({
+            project_id: projectId,
+            ...updatedData,
+            updated_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('Error saving Q&A data (insert):', insertError);
+        } else {
+          console.log('QaEditor - Q&A data inserted successfully');
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error saving Q&A data:', err);
     }
   };
 
   const handleUpdate = (field, value) => {
-    saveQaData({ [field]: value });
+    const updates = { [field]: value };
+    // If admin edited a specific question, keep sequential consistency by not creating holes
+    // For normal edits, merge is fine
+    saveQaData(updates, { merge: true });
   };
 
   const addNewQa = () => {
@@ -140,13 +177,30 @@ const QaEditor = () => {
 
   const removeQa = (num) => {
     if (qaCount > 1) {
-      setQaCount(prev => prev - 1);
       const questionKey = `question_${num}`;
       const answerKey = `answer_${num}`;
-      const updatedData = { ...qaData };
-      delete updatedData[questionKey];
-      delete updatedData[answerKey];
-      saveQaData(updatedData);
+
+      // Build a new reduced object containing only remaining Q&A in sequence
+      const remaining = {};
+      const remainingPairs = [];
+      for (let i = 1; i <= qaCount; i++) {
+        if (i === num) continue;
+        const q = qaData[`question_${i}`];
+        const a = qaData[`answer_${i}`];
+        remainingPairs.push({ q, a });
+      }
+
+      // Re-index so questions remain sequential (1..N-1)
+      remainingPairs.forEach((pair, idx) => {
+        remaining[`question_${idx + 1}`] = pair.q ?? '';
+        remaining[`answer_${idx + 1}`] = pair.a ?? '';
+      });
+
+      // Persist full replacement (not merge) to drop removed keys server-side
+      saveQaData(remaining, { merge: false });
+
+      // Update local count to the new number of pairs
+      setQaCount(remainingPairs.length);
     }
   };
 

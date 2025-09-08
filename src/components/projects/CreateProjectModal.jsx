@@ -15,24 +15,30 @@ const templateOptions = [
   { value: 'pod', label: 'Print on Demand (P.O.D)', description: 'Print on demand design workflow with reference images, design uploads, and final design tracking.' },
 ];
 
+const predefinedEmails = [
+  'tvmanh98@gmail.com',
+  '0906531101h@gmail.com',
+  'soogarrr@gmail.com',
+];
+
 const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [deadline, setDeadline] = useState('');
   const [status, setStatus] = useState('on_going');
   const [templateType, setTemplateType] = useState('branding');
-  const [teamMembers, setTeamMembers] = useState(['']);
+  const [teamMembers, setTeamMembers] = useState([{ type: 'select', value: '' }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuthStore();
 
-  const handleTeamMemberChange = (idx, value) => {
+  const handleTeamMemberChange = (idx, value, type = 'select') => {
     const updated = [...teamMembers];
-    updated[idx] = value;
+    updated[idx] = { type, value };
     setTeamMembers(updated);
   };
 
   const addTeamMemberField = () => {
-    setTeamMembers([...teamMembers, '']);
+    setTeamMembers([...teamMembers, { type: 'select', value: '' }]);
   };
 
   const removeTeamMemberField = (idx) => {
@@ -45,7 +51,7 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
     try {
       // Filter out empty emails and the creator's own email
       const emails = teamMembers
-        .map((email) => email.trim().toLowerCase())
+        .map((member) => member.type === 'other' ? member.value.trim().toLowerCase() : member.value)
         .filter((email) => email && email !== user.email);
       
 
@@ -72,7 +78,7 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
       setDeadline('');
       setStatus('on_going');
       setTemplateType('branding');
-      setTeamMembers(['']);
+      setTeamMembers([{ type: 'select', value: '' }]);
     } catch (error) {
 
       toast.error(error.message);
@@ -180,16 +186,36 @@ const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }) => {
           <label className="block text-sm font-semibold mb-2" style={{ fontFamily: 'Crimson Pro, serif' }}>
             Team Members (emails)
           </label>
-          {teamMembers.map((email, idx) => (
+          {teamMembers.map((member, idx) => (
             <div key={idx} className="flex items-center gap-2 mb-2">
-              <input
-                type="email"
+              <select
                 className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
                 style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
-                placeholder="user@example.com"
-                value={email}
-                onChange={(e) => handleTeamMemberChange(idx, e.target.value)}
-              />
+                value={predefinedEmails.includes(member.value) ? member.value : member.type === 'other' ? 'other' : ''}
+                onChange={e => {
+                  if (e.target.value === 'other') {
+                    handleTeamMemberChange(idx, '', 'other');
+                  } else {
+                    handleTeamMemberChange(idx, e.target.value, 'select');
+                  }
+                }}
+              >
+                <option value="" disabled>Select team member email</option>
+                {predefinedEmails.map(email => (
+                  <option key={email} value={email}>{email}</option>
+                ))}
+                <option value="other">Other...</option>
+              </select>
+              {member.type === 'other' && (
+                <input
+                  type="email"
+                  className="w-full px-2 py-1 border border-black text-black bg-white font-crimson font-semibold"
+                  style={{ fontFamily: 'Crimson Pro, serif', borderRadius: '0' }}
+                  placeholder="user@example.com"
+                  value={member.value}
+                  onChange={e => handleTeamMemberChange(idx, e.target.value, 'other')}
+                />
+              )}
               {teamMembers.length > 1 && (
                 <button
                   type="button"

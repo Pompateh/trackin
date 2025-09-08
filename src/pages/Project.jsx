@@ -10,7 +10,7 @@ import RecapList from '../components/projects/RecapList';
 import ProjectSidebar from '../components/projects/ProjectSidebar';
 import PrintableProject from '../components/projects/PrintableProject';
 import DownloadPDFButton from '../components/projects/DownloadPDFButton';
-import BriefEditor from '../components/projects/BriefEditor';
+
 import { supabase } from '../lib/supabaseClient';
 import Modal from '../components/ui/Modal';
 import { HiOutlineChevronRight, HiOutlineMenu, HiOutlineX } from 'react-icons/hi';
@@ -53,22 +53,15 @@ const Project = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [gridItems, setGridItems] = useState([]);
-  const [showBriefEditor, setShowBriefEditor] = useState(false);
-  const [briefData, setBriefData] = useState(null);
+
   const printableRef = useRef();
   const hiddenPdfRef = useRef();
   const [showPrintable, setShowPrintable] = useState(false);
   const navigate = useNavigate();
 
-  // Handle section selection - special handling for Brief
+  // Handle section selection
   const handleSectionSelect = (section) => {
-    if (section.title === 'Brief') {
-      setShowBriefEditor(true);
-      setSelectedSection(section);
-    } else {
-      setSelectedSection(section);
-      setShowBriefEditor(false);
-    }
+    setSelectedSection(section);
   };
 
   useEffect(() => {
@@ -77,12 +70,13 @@ const Project = () => {
     }
   }, [projectId, user, fetchProjectData]);
 
-  // Auto-redirect P.O.D projects to the P.O.D template
+  // Auto-redirect P.O.D projects to the P.O.D template (only when the fetched project matches the current route and loading is done)
   useEffect(() => {
-    if (project && project.template_type === 'pod') {
-      navigate(`/project/${projectId}/pod`);
+    if (loading) return;
+    if (project && String(project.id) === String(projectId) && project.template_type === 'pod') {
+      navigate(`/project/${projectId}/pod`, { replace: true });
     }
-  }, [project, projectId, navigate]);
+  }, [loading, project, projectId, navigate]);
 
   useEffect(() => {
     const fetchGridItems = async () => {
@@ -97,27 +91,7 @@ const Project = () => {
       if (!error) setGridItems(data || []);
     };
     
-    const fetchBriefData = async () => {
-      if (!projectId) return;
-      const { data, error } = await supabase
-        .from('brief_data')
-        .select('*')
-        .eq('project_id', projectId)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-        console.error('Error fetching brief data:', error);
-        return;
-      }
-      
-      if (data) {
-        console.log('Project.jsx - Fetched brief data:', data);
-        setBriefData(data);
-      }
-    };
-    
     fetchGridItems();
-    fetchBriefData();
   }, [projectId]);
 
   if (loading) {
@@ -177,47 +151,28 @@ const Project = () => {
               <h1 className="font-serif font-extralight text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl text-center sm:text-left" style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, lineHeight: '1.1' }}>INDEX</h1>
             </div>
             
-            {/* Show sections or brief editor */}
+            {/* Show sections */}
             <div className="flex-1 overflow-auto">
-              {showBriefEditor ? (
-                <BriefEditor 
-                  projectId={projectId}
-                  isVisible={showBriefEditor}
-                  onToggle={() => setShowBriefEditor(false)}
-                  onBriefUpdate={setBriefData}
-                  initialBriefData={briefData}
-                />
-              ) : (
-                <div className="h-full flex flex-col">
-                  <div className="flex-1">
-                    <SectionList 
-                      projectId={projectId} 
-                      onSelectSection={handleSectionSelect} 
-                      selectedSection={selectedSection} 
-                      isAdmin={role === 'admin'} 
-                    />
-                  </div>
+              <div className="h-full flex flex-col">
+                <div className="flex-1">
+                  <SectionList 
+                    projectId={projectId} 
+                    onSelectSection={handleSectionSelect} 
+                    selectedSection={selectedSection} 
+                    isAdmin={role === 'admin'} 
+                  />
                 </div>
-              )}
+              </div>
             </div>
             
-            {/* PDF buttons - hidden when brief editor is open */}
-            {!showBriefEditor && (
-              <div className="flex flex-col sm:flex-row w-full">
-                <DownloadPDFButton 
-                  printableRef={hiddenPdfRef} 
-                  className="custom-action-btn font-serif font-extralight text-sm sm:text-base md:text-xl lg:text-2xl border-b border-r border-black rounded-none px-2 sm:px-0 py-4 sm:py-6 bg-white hover:bg-gray-100 transition w-full sm:w-1/2"
-                  style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, minWidth: 0, borderLeft: 'none', borderTop: 'none', borderRadius: 0, borderRight: '1px solid #000', borderBottom: '1px solid #000' }} 
-                />
-                <button 
-                  className="custom-action-btn font-serif font-extralight text-sm sm:text-base md:text-xl lg:text-2xl border-b border-black rounded-none px-2 sm:px-0 py-4 sm:py-6 bg-white hover:bg-gray-100 transition w-full sm:w-1/2"
-                  style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, minWidth: 0, borderLeft: 'none', borderTop: 'none', borderRadius: 0, borderRight: 'none', borderBottom: '1px solid #000' }}
-                  onClick={() => setShowPrintable(true)}
-                >
-                  Show Printable Project
-                </button>
-              </div>
-            )}
+            {/* PDF buttons */}
+            <div className="flex flex-col sm:flex-row w-full">
+              <DownloadPDFButton 
+                printableRef={hiddenPdfRef} 
+                className="custom-action-btn font-serif font-extralight text-sm sm:text-base md:text-xl lg:text-2xl border-b border-black rounded-none px-2 sm:px-0 py-4 sm:py-6 bg-white hover:bg-gray-100 transition w-full"
+                style={{ fontFamily: 'Crimson Pro, serif', fontWeight: 250, minWidth: 0, borderLeft: 'none', borderTop: 'none', borderRadius: 0, borderRight: 'none', borderBottom: '1px solid #000' }} 
+              />
+            </div>
           </div>
         )}
         
@@ -238,11 +193,27 @@ const Project = () => {
         )}
       </div>
       
+      {/* Printable Options Modal */}
+      {/* Removed as per edit hint */}
+
+      {/* Individual Steps Selection Modal for Preview */}
+      {/* Removed as per edit hint */}
+
+      {/* Concept & Direction Subsection Selection Modal for Preview */}
+      {/* Removed as per edit hint */}
+
       {/* PrintableProject Modal */}
       {showPrintable && (
         <Modal isOpen={showPrintable} onClose={() => setShowPrintable(false)}>
           <div className="w-full h-full bg-white overflow-auto">
-            <PrintableProject project={project} sections={DEFAULT_SECTIONS} gridItems={gridItems} briefData={briefData} />
+            <PrintableProject 
+              project={project} 
+              sections={DEFAULT_SECTIONS} 
+              gridItems={gridItems}
+              previewMode={'all'} // Assuming 'all' for now as printableMode is removed
+              selectedSteps={[]} // No longer needed
+              selectedConceptSubsections={[]} // No longer needed
+            />
           </div>
         </Modal>
       )}
@@ -264,7 +235,6 @@ const Project = () => {
             project={project}
             sections={DEFAULT_SECTIONS}
             gridItems={gridItems}
-            briefData={briefData}
             pdfMode={true}
           />
         </div>
